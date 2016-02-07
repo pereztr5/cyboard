@@ -1,0 +1,10 @@
+[
+{
+    "name": "ping",
+    "timeout": 1,
+    "timer": 5,
+    "command": "ping",
+    "arguments": "-c 1 -t 1",
+    "points": 5
+}
+]

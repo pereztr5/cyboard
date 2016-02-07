@@ -1,0 +1,26 @@
+[{
+    "name": "example",
+    "challenge": "1",
+    "points": 1,
+    "value": "flag{flag1}"
+}, {
+    "name": "flag",
+    "challenge": "2",
+    "points": 5,
+    "value": "band3ra"
+}, {
+    "name": "gotit",
+    "challenge": "3",
+    "points": 10,
+    "value": "key"
+}, {
+    "name": "James Flag",
+    "challenge": "5",
+    "points": 100,
+    "value": "james"
+}, {
+    "name": "bandera",
+    "challenge": "4",
+    "points": 15,
+    "value": "1234"
+}]

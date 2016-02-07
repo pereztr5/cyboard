@@ -1,0 +1,22 @@
+[{
+    "team": 1,
+    "name": "NetCats",
+    "score": 100,
+    "flags": [{
+        "name": "flag"
+    }]
+}, {
+    "team": 2,
+    "name": "MVCC",
+    "score": 55,
+    "flags": [{
+        "name": "flag"
+    }]
+}, {
+    "team": 3,
+    "name": "UC",
+    "score": 70,
+    "flags": [{
+        "name": "flag"
+    }]
+}]
