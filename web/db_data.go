@@ -114,6 +114,7 @@ func (c *MongoConnection) DataCheckFlag(chal, val string) (bool, error) {
 	defer session.Close()
 	err = flagCollection.Find(bson.M{"challenge": chal, "value": val}).Select(bson.M{"name": 1, "points": 1}).One(&result)
 	if err != nil {
+		// Log invalid flags here by team
 		fmt.Printf("Invalid flag\n")
 	} else {
 		// Need to add points to the team who got the flag

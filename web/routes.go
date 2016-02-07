@@ -51,7 +51,7 @@ func CreateAPIRoutes(SE *ScoreEngineAPI) Routes {
 		Route{
 			"CheckFlag",
 			"POST",
-			"/flag/CheckFlag/{challenge}/{value}",
+			"/flag/CheckFlag",
 			SE.CheckFlag,
 		},
 	}

@@ -5,7 +5,7 @@ import (
 	"fmt"
 	"net/http"
 
-	"github.com/gorilla/mux"
+	_ "github.com/gorilla/mux"
 )
 
 type ScoreEngineAPI struct {
@@ -50,18 +50,18 @@ func (Se *ScoreEngineAPI) GetFlags(w http.ResponseWriter, r *http.Request) {
 }
 
 func (Se *ScoreEngineAPI) CheckFlag(w http.ResponseWriter, r *http.Request) {
-	vars := mux.Vars(r)
-	challenge := vars["challenge"]
-	flag := vars["value"]
+	challenge := r.FormValue("challenge")
+	flag := r.FormValue("flag")
+	var found bool
 
-	// Work around. Need to find out how to properly take care of this
 	if len(flag) > 0 {
 		// Need to handle these errors better
 		// This needs to send the correct team who submitted the flag
-		f, _ := Se.myconnection.DataCheckFlag(challenge, flag)
-		fmt.Fprint(w, f)
+		found, _ = Se.myconnection.DataCheckFlag(challenge, flag)
+		fmt.Fprint(w, found)
 		w.WriteHeader(http.StatusOK)
 	} else {
-		fmt.Fprint(w, "No Flag Entered")
+		fmt.Fprint(w, found)
+		w.WriteHeader(http.StatusOK)
 	}
 }

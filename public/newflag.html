@@ -2,57 +2,63 @@
 <html>
 
 <head>
-    <title>New Flag</title>
-    <link href="bootstrap/css/bootstrap.min.css" rel="stylesheet">
-    <link href="bootstrap/css/bootstrap-theme.min.css" rel="stylesheet">
-    <link href="flag.css" rel="stylesheet">
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>CNYHackathon</title>
+    <link rel="stylesheet" href="assets/bootstrap/css/bootstrap.min.css">
+    <link rel="stylesheet" href="assets/css/custom.css.css">
+    <link rel="stylesheet" href="assets/css/styles.css">
 </head>
 
 <body>
-    <nav class="navbar navbar-inverse navbar-fixed-top">
-        <div class="container">
-            <div class="navbar-header">
-                <button type="button" class="navbar-toggle collapsed" data-toggle="collapse" data-target="#navbar" aria-expanded="false" aria-controls="navbar">
-                    <span class="sr-only">Toggle navigation</span>
-                    <span class="icon-bar"></span>
-                    <span class="icon-bar"></span>
-                    <span class="icon-bar"></span>
-                </button>
-                <a class="navbar-brand" href="flag.html">Flag Submission</a>
-            </div>
-            <div id="navbar" class="collapse navbar-collapse">
-                <ul class="nav navbar-nav">
-                    <li><a href="flag.html">Submit Flag</a></li>
-                    <li class="active"><a href="newFlag.html">New Flag</a></li>
-                    <!-- <li><a href="#about">About</a></li>
-                            <li><a href="#contact">Contact</a></li> -->
-                </ul>
-            </div>
-            <!--/.nav-collapse -->
-        </div>
-    </nav>
     <div class="container">
-        <form id="flagSubmit">
-            <div class="form-group">
-                <label for="challengeName">Challenge Name</label>
-                <input type="text" class="form-control" id="challengeName" placeholder="Challenge 1">
+        <nav class="navbar navbar-inverse">
+            <div class="container-fluid">
+                <div class="navbar-header"><a class="navbar-brand navbar-link" href="index.html">CNY Hackathon</a>
+                    <button class="navbar-toggle collapsed" data-toggle="collapse" data-target="#navcol-1"><span class="sr-only">Toggle navigation</span><span class="icon-bar"></span><span class="icon-bar"></span><span class="icon-bar"></span></button>
+                </div>
+                <div class="collapse navbar-collapse" id="navcol-1">
+                    <ul class="nav navbar-nav navbar-left">
+                        <li role="presentation"><a href="index.html">Home </a></li>
+                        <li class="active" role="presentation"><a href="scoreboard.html">Scoreboard</a></li>
+                        <li role="presentation"><a href="flag.html">Submit Flag</a></li>
+                        <li role="presentation"><a href="newFlag.html">New Flag</a></li>
+                    </ul>
+                    <ul class="nav navbar-nav navbar-right">
+                        <li role="presentation"><a href="login.html">Login </a></li>
+                    </ul>
+                </div>
             </div>
-            <div class="form-group">
-                <label for="flag">Flag Name</label>
-                <input type="text" class="form-control" id="flag" placeholder="flag{g0Tth3f1AG}">
+        </nav>
+        <div class="row">
+            <div class="col-lg-6 col-lg-offset-3 col-md-6 col-md-offset-3 col-sm-8 col-sm-offset-2">
+                <form>
+                    <h4 class="text-center">New Flag</h4>
+                    <hr>
+                    <div class="form-group">
+                        <label class="control-label" for="challenge">Challenge Name</label>
+                        <input class="form-control input-sm" type="text" name="challenge" required="" placeholder="Crypto 101" minlength="1">
+                    </div>
+                    <div class="form-group">
+                        <label class="control-label" for="flagName">Flag </label>
+                        <input class="form-control input-sm" type="text" name="flagName" required="" placeholder="flag{k3yW0rd}" minlength="1">
+                    </div>
+                    <div class="form-group">
+                        <label class="control-label" for="points">Points </label>
+                        <input class="form-control input-sm" type="text" name="points" required="" placeholder="77" minlength="1">
+                    </div>
+                    <div class="form-group">
+                        <label class="control-label" for="description">Description </label>
+                        <input class="form-control input-sm" type="text" name="description" required="" placeholder="0110100001101001" minlength="1">
+                    </div>
+                    <button class="btn btn-default btn-block" type="submit">Submit </button>
+                </form>
             </div>
-            <div class="form-group">
-                <label for="points">Points</label>
-                <input type="text" class="form-control" id="points" placeholder="1">
-            </div>
-            <button type="submit" class="btn btn-default">Submit</button>
-        </form>
+        </div>
     </div>
-    <!-- /.container -->
-    <!-- Javascript Files -->
-    <script src="https://code.jquery.com/jquery-2.1.4.min.js"></script>
-    <script src="bootstrap/js/bootstrap.min.js"></script>
-    <script src="flag.js"></script>
+    <script src="assets/js/jquery.min.js"></script>
+    <script src="assets/bootstrap/js/bootstrap.min.js"></script>
+    <script src="assets/js/flag.js"></script>
 </body>
 
 </html>

@@ -4,9 +4,17 @@ $(document).ready(function() {
 
 $('#hiddenModal').on("click", "#flag-submit", function() {
     var flagValue = $('#flag-value').val();
+    var challengeValue = $(this).data("challenge");
+
     if (flagValue.length > 0) {
         $.ajax({
-            url: 'https://127.0.0.1:5443/flag/CheckFlag/' + $(this).data("challenge") + '/' + flagValue,
+            url: 'flag/CheckFlag',
+            type: 'POST',
+            dataType: 'html',
+            data: { 
+                challenge: challengeValue,
+                flag: flagValue
+            },
             success: function(value) {
                 if (value == 'true') {
                     $('#flag-form').removeClass('has-error').addClass('has-success');
@@ -14,13 +22,12 @@ $('#hiddenModal').on("click", "#flag-submit", function() {
                     $('#flag-form').removeClass('has-success').addClass('has-error');
                 }
             },
-            dataType: 'text'
         });
     }
 });
 
 function getList() {
-    var url = 'https://127.0.0.1:5443/flag/GetFlags'
+    var url = 'flag/GetFlags'
     $.getJSON(url, function(json) {
         //console.dir(JSON.stringify(json, null, 2));
         makeList(json);
@@ -31,7 +38,7 @@ function makeList(flags) {
     for (i = 0; i < flags.length; i++) {
         var list = $('<button/>').attr({
             type: 'button',
-            class: 'list-group-item',
+            class: 'btn btn-default btn-block',
             'data-toggle': 'modal',
             'data-target': '#currentFlag',
             onclick: 'makeModal("' + flags[i].name + '", "' + flags[i].challenge + '")'
