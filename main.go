@@ -9,5 +9,5 @@ import (
 func main() {
 	fmt.Printf("Starting Cyboard!\n")
 
-	web.Start(":5443")
+	web.Start(":443")
 }
