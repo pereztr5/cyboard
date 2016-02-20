@@ -1,0 +1,20 @@
+appname = "cyboard"
+
+[server]
+ip = "127.0.0.1"
+http_port = "8080"
+https_port = "8081"
+cert = "certs/cert.pem"
+key = "certs/key.pem"
+
+[database]
+mongodb_uri = "mongodb://127.0.0.1"
+dbname = "scorengine"
+
+[teams]
+    [teams.1]
+    name = "test"
+    password = "password"
+    [teams.2]
+    name = "Leet Hackers"
+    password = "SuperSecret"

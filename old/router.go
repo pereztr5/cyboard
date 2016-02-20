@@ -1,4 +1,4 @@
-package web
+package cmd
 
 import (
 	"github.com/gorilla/mux"

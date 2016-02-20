@@ -1,6 +1,7 @@
 [{
     "team": 1,
     "name": "NetCats",
+    password: "$2a$10$uETLwMbBLoaxlRIiPd/bmOrJOZRvPs4oSeihqpprEjCqM/I/VVRGm",
     "score": 100,
     "flags": [{
         "name": "flag"
@@ -8,6 +9,7 @@
 }, {
     "team": 2,
     "name": "MVCC",
+    password: "$2a$10$dExCf/g/LzG0usKb4sj1p.jcd83KaxVsbRdzSLzYDiIXWBB9Hnzca",
     "score": 55,
     "flags": [{
         "name": "flag"
@@ -15,6 +17,7 @@
 }, {
     "team": 3,
     "name": "UC",
+    password: "$2a$10$IioOVWtP.gCBXCDjWkxYCO0f2f7T3EHdjQ/fZlVQMaUGGE8.zev4u",
     "score": 70,
     "flags": [{
         "name": "flag"

@@ -1,4 +1,4 @@
-package web
+package cmd
 
 import "net/http"
 
@@ -20,12 +20,6 @@ func CreateWebRoutes() Routes {
 			LoginPage,
 		},
 		Route{
-			"TeamPage",
-			"GET",
-			"/teamPage",
-			TeamPage,
-		},
-		Route{
 			"Login",
 			"POST",
 			"/login",
@@ -40,19 +34,25 @@ func CreateWebRoutes() Routes {
 	}
 }
 
-func CreateAPIRoutes(SE *ScoreEngineAPI) Routes {
+func CreateTeamRoutes() Routes {
 	return Routes{
 		Route{
 			"GetFlags",
 			"GET",
-			"/flag/GetFlags",
-			SE.GetFlags,
+			"/flags",
+			GetFlags,
 		},
 		Route{
 			"CheckFlag",
 			"POST",
-			"/flag/CheckFlag",
-			SE.CheckFlag,
+			"/flag/verify",
+			CheckFlag,
+		},
+		Route{
+			"TeamPage",
+			"GET",
+			"/teamPage",
+			TeamPage,
 		},
 	}
 }
