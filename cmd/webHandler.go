@@ -23,7 +23,10 @@ var Store = sessions.NewCookieStore(
 
 func CheckCreds(r *http.Request) (bool, error) {
 	teamname, password := r.FormValue("teamname"), r.FormValue("password")
-	session, _ := Store.Get(r, "cyboard")
+	session, err := Store.Get(r, "cyboard")
+	if err != nil {
+		return false, err
+	}
 	t, err := GetTeamByTeamname(teamname)
 	if err != nil {
 		return false, err

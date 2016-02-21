@@ -2,25 +2,30 @@
     "flagname": "example",
     "challenge": "1",
     "points": 1,
+    "description": "this is an example flag",
     "value": "flag{flag1}"
 }, {
     "flagname": "flag",
     "challenge": "2",
     "points": 5,
+    "description": "this is an example flag",
     "value": "band3ra"
 }, {
     "flagname": "gotit",
     "challenge": "3",
     "points": 10,
+    "description": "this is an example flag",
     "value": "key"
 }, {
     "flagname": "James Flag",
     "challenge": "5",
     "points": 100,
+    "description": "this is an example flag",
     "value": "james"
 }, {
     "flagname": "bandera",
     "challenge": "4",
     "points": 15,
+    "description": "this is an example flag",
     "value": "1234"
 }]

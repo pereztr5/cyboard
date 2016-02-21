@@ -49,6 +49,6 @@ func serverRun(cmd *cobra.Command, args []string) {
 	l.Fatal(http.ListenAndServeTLS(":"+https_port, cert, key, app))
 }
 
-func redir(w http.ResponseWriter, req *http.Request) {
-	http.Redirect(w, req, "https://127.0.0.1:"+viper.GetString("https_port")+req.RequestURI, http.StatusMovedPermanently)
+func redir(w http.ResponseWriter, r *http.Request) {
+	http.Redirect(w, r, "https://127.0.0.1:"+viper.GetString("https_port")+r.RequestURI, http.StatusMovedPermanently)
 }
