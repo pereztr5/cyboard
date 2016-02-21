@@ -13,7 +13,6 @@ func CheckSessionID(w http.ResponseWriter, r *http.Request, next http.HandlerFun
 	session, err := Store.Get(r, "cyboard")
 	if err != nil {
 		http.Error(w, http.StatusText(400), 400)
-		//http.Redirect(w, r, "/login.html", 302)
 	}
 
 	// Get the ID from the session (if it exists) and
@@ -22,9 +21,8 @@ func CheckSessionID(w http.ResponseWriter, r *http.Request, next http.HandlerFun
 	if !ok {
 		// 403 - forbidden. No session ID! Invalid!
 		http.Error(w, http.StatusText(403), 403)
-		//http.Redirect(w, r, "/login.html", 302)
 	} else {
-		t, err := GetTeamById(id.(bson.ObjectId))
+		t, err := GetTeamById(id.(*bson.ObjectId))
 		if err != nil {
 			// context.Set(r, "team", nil)
 			// HTTP 500 here: GetTeamByID returning an error is probably a DB error?
@@ -55,9 +53,9 @@ func GetContext(w http.ResponseWriter, r *http.Request, next http.HandlerFunc) {
 		fmt.Println("Get context", err)
 	}
 	context.Set(r, "session", session)
-	fmt.Println(context.GetAll(r))
 	if id, ok := session.Values["id"]; ok {
-		t, err := GetTeamById(id.(bson.ObjectId))
+		fmt.Println(id)
+		t, err := GetTeamById(id.(*bson.ObjectId))
 		if err != nil {
 			context.Set(r, "team", nil)
 			fmt.Println(id)

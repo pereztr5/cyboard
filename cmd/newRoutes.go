@@ -54,11 +54,12 @@ func ShowLogin(w http.ResponseWriter, r *http.Request) {
 func SubmitLogin(w http.ResponseWriter, r *http.Request) {
 	session, err := Store.Get(r, "cyboard")
 	if err != nil {
+		log.Printf("Getting from Store failed: %v", err)
 		http.Error(w, http.StatusText(400), 400)
 		return
 	}
 
-	succ, err := CheckCreds(r)
+	succ, err := CheckCreds(w, r)
 	if err != nil {
 		// Print a more verbose error message for debugging purposes
 		log.Printf("CheckCreds failed: %v", err)

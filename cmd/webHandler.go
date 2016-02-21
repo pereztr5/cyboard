@@ -9,11 +9,12 @@ import (
 	"github.com/gorilla/securecookie"
 	"github.com/gorilla/sessions"
 	"golang.org/x/crypto/bcrypt"
-	_ "gopkg.in/mgo.v2/bson"
+	"gopkg.in/mgo.v2/bson"
 )
 
 func init() {
 	gob.Register(&Team{})
+	gob.Register(new(bson.ObjectId))
 }
 
 var Store = sessions.NewCookieStore(
@@ -23,7 +24,7 @@ var Store = sessions.NewCookieStore(
 	[]byte(securecookie.GenerateRandomKey(32)),
 )
 
-func CheckCreds(r *http.Request) (bool, error) {
+func CheckCreds(w http.ResponseWriter, r *http.Request) (bool, error) {
 	teamname, password := r.FormValue("teamname"), r.FormValue("password")
 	session, err := Store.Get(r, "cyboard")
 	if err != nil {
@@ -47,7 +48,7 @@ func CheckCreds(r *http.Request) (bool, error) {
 	err = session.Save(r, w)
 	if err != nil {
 		http.Error(w, http.StatusText(500), 500)
-		return
+		return false, err
 	}
 
 	return true, nil
