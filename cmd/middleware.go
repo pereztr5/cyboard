@@ -1,7 +1,7 @@
 package cmd
 
 import (
-	"fmt"
+	"log"
 	"net/http"
 
 	"github.com/gorilla/context"
@@ -12,59 +12,25 @@ import (
 func CheckSessionID(w http.ResponseWriter, r *http.Request, next http.HandlerFunc) {
 	session, err := Store.Get(r, "cyboard")
 	if err != nil {
+		log.Printf("Getting from Store failed: %v", err)
 		http.Error(w, http.StatusText(400), 400)
+		return
 	}
-
 	// Get the ID from the session (if it exists) and
 	// look up the associated team
 	id, ok := session.Values["id"]
-	if !ok {
-		// 403 - forbidden. No session ID! Invalid!
-		http.Error(w, http.StatusText(403), 403)
-	} else {
+	if ok {
 		t, err := GetTeamById(id.(*bson.ObjectId))
 		if err != nil {
 			// context.Set(r, "team", nil)
 			// HTTP 500 here: GetTeamByID returning an error is probably a DB error?
+			log.Printf("GetTeamById %v: %v", id, err)
 			http.Error(w, http.StatusText(500), 500)
-			//http.Redirect(w, r, "/login.html", 302)
-
-			// Do you return a nil t and no error? Probably not. If you do, this applies.
-			// Otherwise, just handle the error above.
-			//if t == nil {
-			//	// 403 - forbidden. The ID in the session isn't a valid team.
-			//	http.Error(w, http.StatusText(403), 403)
-			//	return
-			//}
-
-			// It's valid! Set it in the context to look it up later.
-			context.Set(r, "team", t)
+			return
 		}
-	}
 
-	next(w, r)
-	// If you're using mux it calls this for you.
-	// context.Clear(r)
-}
-
-func GetContext(w http.ResponseWriter, r *http.Request, next http.HandlerFunc) {
-	session, err := Store.Get(r, "cyboard")
-	if err != nil {
-		fmt.Println("Get context", err)
-	}
-	context.Set(r, "session", session)
-	if id, ok := session.Values["id"]; ok {
-		fmt.Println(id)
-		t, err := GetTeamById(id.(*bson.ObjectId))
-		if err != nil {
-			context.Set(r, "team", nil)
-			fmt.Println(id)
-		} else {
-			context.Set(r, "team", t)
-			fmt.Println(t.Teamname)
-		}
-	} else {
-		context.Set(r, "team", nil)
+		// It's valid! Set it in the context to look it up later.
+		context.Set(r, "team", t)
 	}
 	next(w, r)
 }

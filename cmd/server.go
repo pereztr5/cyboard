@@ -35,7 +35,7 @@ func serverRun(cmd *cobra.Command, args []string) {
 	))
 	app.Use(negroni.NewLogger())
 	app.Use(negroni.NewStatic(http.Dir("static")))
-	app.Use(negroni.HandlerFunc(GetContext))
+	app.Use(negroni.HandlerFunc(CheckSessionID))
 
 	app.UseHandler(webRouter)
 
