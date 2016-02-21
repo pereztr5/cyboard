@@ -1,12 +1,10 @@
 package cmd
 
 import (
-	"fmt"
+	"log"
 	"net/http"
 
-	"github.com/gorilla/context"
 	"github.com/gorilla/mux"
-	"github.com/gorilla/sessions"
 )
 
 func CreateWebRouter() *mux.Router {
@@ -14,9 +12,9 @@ func CreateWebRouter() *mux.Router {
 	// Public Routes
 	// Static Files
 	//router.Handle("/", http.FileServer(http.Dir("./static/")))
-	router.HandleFunc("/login", LoginForm).Methods("GET")
-	router.HandleFunc("/login", LoginSubmit).Methods("POST")
 	//router.HandleFunc("/scores", Score)
+	router.HandleFunc("/login", ShowLogin).Methods("GET")
+	router.HandleFunc("/login", SubmitLogin).Methods("POST")
 	// API Routes
 	router.HandleFunc("/flags", GetFlags).Methods("GET")
 	router.HandleFunc("/flags/verify", CheckFlag).Methods("POST")
@@ -48,32 +46,56 @@ func Score(w http.ResponseWriter, r *http.Request) {
 }
 */
 
-func LoginForm(w http.ResponseWriter, r *http.Request) {
+func ShowLogin(w http.ResponseWriter, r *http.Request) {
+	// TODO(pereztr5): Render a template instead of re-directing to a static page
 	http.Redirect(w, r, "/login.html", 302)
 }
 
-func LoginSubmit(w http.ResponseWriter, r *http.Request) {
-	session := context.Get(r, "session").(*sessions.Session)
-	switch {
-	case r.Method == "GET":
-		http.Redirect(w, r, "/login.html", 302)
-	case r.Method == "POST":
-		succ, err := CheckCreds(r)
-		if err != nil {
-			fmt.Println(err)
-		}
-		if succ {
-			session.Save(r, w)
-			http.Redirect(w, r, "/team/teamPage", 302)
-		} else {
-			http.Redirect(w, r, "/login.html", 302)
-		}
+func SubmitLogin(w http.ResponseWriter, r *http.Request) {
+	session, err := Store.Get(r, "cyboard")
+	if err != nil {
+		log.Printf("Getting from Store failed: %v", err)
+		http.Error(w, http.StatusText(400), 400)
+		return
 	}
+
+	succ, err := CheckCreds(w, r)
+	if err != nil {
+		// Print a more verbose error message for debugging purposes
+		log.Printf("CheckCreds failed: %v", err)
+		http.Error(w, http.StatusText(403), 403)
+		return
+	}
+
+	if succ {
+		err = session.Save(r, w)
+		if err != nil {
+			http.Error(w, http.StatusText(500), 500)
+			return
+		}
+
+		http.Redirect(w, r, "/team/teamPage", 302)
+		return
+	}
+
+	http.Redirect(w, r, "/login.html", 302)
 }
 
 func Logout(w http.ResponseWriter, r *http.Request) {
-	session := context.Get(r, "session").(*sessions.Session)
+	session, err := Store.Get(r, "cyboard")
+	if err != nil {
+		http.Error(w, http.StatusText(400), 400)
+		return
+	}
+
 	delete(session.Values, "id")
+	// Make sure we save the session after deleting the ID.
+	err = session.Save(r, w)
+	if err != nil {
+		http.Error(w, http.StatusText(500), 500)
+		return
+	}
+
 	http.Redirect(w, r, "/login.html", 302)
 }
 

@@ -51,7 +51,7 @@ func GetTeamByTeamname(teamname string) (Team, error) {
 	return t, err
 }
 
-func GetTeamById(id bson.ObjectId) (Team, error) {
+func GetTeamById(id *bson.ObjectId) (Team, error) {
 	var err error
 	t := Team{}
 
