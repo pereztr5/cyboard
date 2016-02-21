@@ -12,15 +12,16 @@ import (
 func CreateWebRouter() *mux.Router {
 	router := mux.NewRouter()
 	// Public Routes
+	// Static Files
+	//router.Handle("/", http.FileServer(http.Dir("./static/")))
+	router.HandleFunc("/login", LoginForm).Methods("GET")
+	router.HandleFunc("/login", LoginSubmit).Methods("POST")
 	//router.HandleFunc("/scores", Score)
-	router.HandleFunc("/login", Login)
 	// API Routes
 	router.HandleFunc("/flags", GetFlags).Methods("GET")
 	router.HandleFunc("/flags/verify", CheckFlag).Methods("POST")
 	// Team Routes
 	router.HandleFunc("/logout", Logout)
-	// Static Files
-	//router.PathPrefix("/").Handler(http.FileServer(http.Dir("./static/")))
 
 	return router
 }
@@ -47,7 +48,11 @@ func Score(w http.ResponseWriter, r *http.Request) {
 }
 */
 
-func Login(w http.ResponseWriter, r *http.Request) {
+func LoginForm(w http.ResponseWriter, r *http.Request) {
+	http.Redirect(w, r, "/login.html", 302)
+}
+
+func LoginSubmit(w http.ResponseWriter, r *http.Request) {
 	session := context.Get(r, "session").(*sessions.Session)
 	switch {
 	case r.Method == "GET":

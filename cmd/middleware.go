@@ -73,7 +73,6 @@ func GetContext(w http.ResponseWriter, r *http.Request, next http.HandlerFunc) {
 
 func RequireLogin(w http.ResponseWriter, r *http.Request, next http.HandlerFunc) {
 	t := context.Get(r, "team")
-	//fmt.Println("RequireLogin", t)
 	if t != nil {
 		next(w, r)
 	} else {

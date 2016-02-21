@@ -1,10 +1,13 @@
-[
-{
-    "name": "ping",
-    "timeout": 1,
-    "timer": 5,
-    "command": "ping",
-    "arguments": "-c 1 -t 1",
+[{
+    "commandName": "ping",
+    "options": "-c 1 -t 1",
+    "args": "127.0.0.1",
+    "expected": ""
     "points": 5
-}
-]
+}, {
+    "commandName": "curl",
+    "options": "-4"
+    "args": "http://127.0.0.1",
+    "expected": "",
+    "points": 5
+}]

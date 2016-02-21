@@ -1,3 +1,3 @@
-NetCats:password
-MVCC:password2
-UC:password3
+Team1:password
+Team2:password2
+Team3:password3

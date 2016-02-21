@@ -74,7 +74,7 @@ func DataGetFlags() ([]Flag, error) {
 
 	err := flagCollection.Find(nil).Select(bson.M{"_id": 0, "value": 0}).All(&result)
 	if err != nil {
-		fmt.Printf("Could not get flags\n")
+		return result, err
 	}
 	return result, nil
 }
@@ -88,13 +88,12 @@ func DataCheckFlag(chal, val string) (bool, error) {
 
 	err := flagCollection.Find(bson.M{"challenge": chal, "value": val}).Select(bson.M{"name": 1, "points": 1}).One(&result)
 	if err != nil {
-		// Log invalid flags here by team
-		fmt.Printf("Invalid flag\n")
+		return found, err
 	} else {
 		// Need to add points to the team who got the flag
 		found = true
+		return found, nil
 	}
-	return found, nil
 }
 
 /*

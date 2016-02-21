@@ -1,40 +1,28 @@
 [{
     "teamnumber": 1,
     "teamname": "Team1",
-    hash: "$2a$10$uETLwMbBLoaxlRIiPd/bmOrJOZRvPs4oSeihqpprEjCqM/I/VVRGm",
-    "services": [
-        {}
-    ]
+    "hash": "$2a$10$uETLwMbBLoaxlRIiPd/bmOrJOZRvPs4oSeihqpprEjCqM/I/VVRGm",
+    "services": [],
     "flags": [{
         "teamname": "flag"
-    }]
-    "check":[
-        {}
-    ]
+    }],
+    "check": []
 }, {
     "teamnumber": 2,
-    "teamname": "MVCC",
-    hash: "$2a$10$dExCf/g/LzG0usKb4sj1p.jcd83KaxVsbRdzSLzYDiIXWBB9Hnzca",
-    "services": [
-        {}
-    ]
+    "teamname": "Team2",
+    "hash": "$2a$10$dExCf/g/LzG0usKb4sj1p.jcd83KaxVsbRdzSLzYDiIXWBB9Hnzca",
+    "services": [],
     "flags": [{
         "teamname": "flag"
-    }]
-    "check":[
-        {}
-    ]
+    }],
+    "check": []
 }, {
     "teamnumber": 3,
-    "teamname": "UC",
-    hash: "$2a$10$IioOVWtP.gCBXCDjWkxYCO0f2f7T3EHdjQ/fZlVQMaUGGE8.zev4u",
-    "services": [
-        {}
-    ]
+    "teamname": "Team2",
+    "hash": "$2a$10$IioOVWtP.gCBXCDjWkxYCO0f2f7T3EHdjQ/fZlVQMaUGGE8.zev4u",
+    "services": [],
     "flags": [{
         "teamname": "flag"
-    }]
-    "check":[
-        {}
-    ]
+    }],
+    "check": []
 }]

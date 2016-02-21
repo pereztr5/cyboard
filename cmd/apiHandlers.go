@@ -8,12 +8,14 @@ import (
 
 func GetFlags(w http.ResponseWriter, r *http.Request) {
 	f, err := DataGetFlags()
-	// Handle errors better
 	if err != nil {
-		fmt.Fprintf(w, "Could not get flags")
+		http.Error(w, http.StatusText(500), 500)
+		fmt.Println("Error with DataGetFlags : %v", err)
+		return
 	}
 	if err := json.NewEncoder(w).Encode(f); err != nil {
-		fmt.Fprintf(w, "Could not get flags")
+		http.Error(w, http.StatusText(500), 500)
+		fmt.Println("Error encoding: %v", err)
 		return
 	}
 
@@ -25,15 +27,18 @@ func CheckFlag(w http.ResponseWriter, r *http.Request) {
 	challenge := r.FormValue("challenge")
 	flag := r.FormValue("flag")
 	var found bool
+	var err error
 
 	if len(flag) > 0 {
-		// Need to handle these errors better
-		// This needs to send the correct team who submitted the flag
-		found, _ = DataCheckFlag(challenge, flag)
-		fmt.Fprint(w, found)
-		w.WriteHeader(http.StatusOK)
-	} else {
-		fmt.Fprint(w, found)
-		w.WriteHeader(http.StatusOK)
+		found, err = DataCheckFlag(challenge, flag)
+		// Logging found and not found flags
+		if err != nil {
+			// Once sessions work include the teamname here
+			fmt.Printf("Team: team flag: %v\n", err)
+		} else {
+			fmt.Printf("Team: team flag: found\n")
+		}
 	}
+	fmt.Fprint(w, found)
+	w.WriteHeader(http.StatusOK)
 }
