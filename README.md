@@ -24,3 +24,21 @@ There are multiple ways to configure the MongoDB URI(Last location found will be
     - `MONGODB_URI`  
 
 Flags will overwrite setting in the configuration file
+
+### Installation
+
+To get **cyboard** up and running with some testing data:
+
+1. Ensure **mongodb** is installed and active
+2. Configure **_config.toml_** with the correct settings for your installation of mongodb
+3. Import test data:
+    - `sh ./dbcommands.sh`
+4. Build cyboard:
+    - `go build`
+5. Start the server:
+    - `./cyboard server`
+6. Take it for a spin:
+    - ex: `http://127.0.0.1:8080`
+
+_Note on SSL:_ To quickly enable ssl using self-signed certs, you may run:
+    `go run ./certs/generate_cert.go --host https://127.0.0.1:5433 --rsa-bits 4048`
