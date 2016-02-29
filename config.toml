@@ -6,6 +6,8 @@ http_port = "8080"
 https_port = "8081"
 cert = "certs/cert.pem"
 key = "certs/key.pem"
+hashkey  = "9dfecf56d7e8ee2ffb084b9e19f7fcbf6f3bdb998ad454bd6b8e6b6606f98123d62ded50cdf0778c19d37799aba605a9340a22a86e122d25f34ee29467c4755c"
+blockkey = "c4d1ba99649ba1bbc73c79e723d1922c9167f21d28bbe3ed6ceb58e8af0d2dfd"
 
 [database]
 mongodb_uri = "mongodb://127.0.0.1"
@@ -15,6 +17,3 @@ dbname = "scorengine"
     [teams.1]
     name = "test"
     password = "password"
-    [teams.2]
-    name = "Leet Hackers"
-    password = "SuperSecret"

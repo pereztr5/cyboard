@@ -25,6 +25,10 @@ func init() {
 }
 
 func serverRun(cmd *cobra.Command, args []string) {
+	CreateStore(
+		viper.GetString("server.hashkey"),
+		viper.GetString("server.blockkey"),
+	)
 	webRouter := CreateWebRouter()
 	teamRouter := CreateTeamRouter()
 

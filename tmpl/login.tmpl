@@ -1,0 +1,21 @@
+{{ template "header" }}
+<div class="container">
+    <div class="row">
+        <div class="col-lg-4 col-lg-offset-4 col-md-4 col-md-offset-4 col-sm-6 col-sm-offset-3">
+            <form action="/login" method="POST">
+                <h4 class="text-center">Login</h4>
+                <hr>
+                <div class="form-group">
+                    <label class="control-label" for="teamName">Team Name:</label>
+                    <input class="form-control input-sm" type="text" name="teamname" required="" placeholder="HAC3Rz" minlength="1" autofocus="" autocomplete="off">
+                </div>
+                <div class="form-group">
+                    <label class="control-label" for="password">Password: </label>
+                    <input class="form-control input-sm" type="password" name="password" required="" placeholder="superSecret123" minlength="1" autocomplete="off">
+                </div>
+                <button class="btn btn-default btn-block" type="submit">Submit </button>
+            </form>
+        </div>
+    </div>
+</div>
+{{ template "footer" }}

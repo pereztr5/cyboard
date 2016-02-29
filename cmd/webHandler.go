@@ -2,11 +2,12 @@ package cmd
 
 import (
 	"encoding/gob"
+	"encoding/hex"
 	"errors"
+	"log"
 	"net/http"
 
 	"github.com/gorilla/context"
-	"github.com/gorilla/securecookie"
 	"github.com/gorilla/sessions"
 	"golang.org/x/crypto/bcrypt"
 	"gopkg.in/mgo.v2/bson"
@@ -17,12 +18,19 @@ func init() {
 	gob.Register(new(bson.ObjectId))
 }
 
-var Store = sessions.NewCookieStore(
-	// TODO(pereztr5): Store these in the environment as sessions cannot be read
-	// between server restarts (new keys on each restart).
-	[]byte(securecookie.GenerateRandomKey(64)), //Signing key
-	[]byte(securecookie.GenerateRandomKey(32)),
-)
+var Store *sessions.CookieStore
+
+func CreateStore(hashkey, blockkey string) {
+	hk, err := hex.DecodeString(hashkey)
+	if err != nil {
+		log.Fatalf("Could not decode hashkey: %v", err)
+	}
+	bk, err := hex.DecodeString(blockkey)
+	if err != nil {
+		log.Fatalf("Could not decode blockkey: %v", err)
+	}
+	Store = sessions.NewCookieStore([]byte(hk), []byte(bk))
+}
 
 func CheckCreds(w http.ResponseWriter, r *http.Request) (bool, error) {
 	teamname, password := r.FormValue("teamname"), r.FormValue("password")

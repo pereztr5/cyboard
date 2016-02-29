@@ -1,11 +1,19 @@
 package cmd
 
 import (
+	"html/template"
 	"log"
 	"net/http"
 
 	"github.com/gorilla/mux"
 )
+
+// Logger is used to send logging messages to stdout.
+//var Logger = log.New(os.Stdout, " ", log.Ldate|log.Ltime|log.Lshortfile)
+
+// Parse templates at startup
+// TODO Load all template files in the tmpl/ dir
+var templates = template.Must(template.ParseFiles("tmpl/header.tmpl", "tmpl/footer.tmpl", "tmpl/login.tmpl"))
 
 func CreateWebRouter() *mux.Router {
 	router := mux.NewRouter()
@@ -48,7 +56,7 @@ func Score(w http.ResponseWriter, r *http.Request) {
 
 func ShowLogin(w http.ResponseWriter, r *http.Request) {
 	// TODO(pereztr5): Render a template instead of re-directing to a static page
-	http.Redirect(w, r, "/login.html", 302)
+	renderTemplate(w, "login", nil)
 }
 
 func SubmitLogin(w http.ResponseWriter, r *http.Request) {
@@ -101,4 +109,11 @@ func Logout(w http.ResponseWriter, r *http.Request) {
 
 func TeamPage(w http.ResponseWriter, r *http.Request) {
 	http.Redirect(w, r, "/teamPage.html", 302)
+}
+
+func renderTemplate(w http.ResponseWriter, tmpl string, team *Team) {
+	err := templates.ExecuteTemplate(w, tmpl+".tmpl", team)
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+	}
 }
