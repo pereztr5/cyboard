@@ -11,7 +11,7 @@ import (
 var RootCmd = &cobra.Command{
 	Use:   "cyboard",
 	Short: "Scoring Engine",
-	Long:  `This will start the Scorign Engine`,
+	Long:  `This will start the Scoring Engine`,
 	Run:   rootRun,
 }
 
@@ -19,7 +19,7 @@ var CfgFile string
 
 func init() {
 	cobra.OnInitialize(initConfig)
-	RootCmd.PersistentFlags().StringVar(&CfgFile, "config", "", "config file (default is $HOME/cyboard/config.toml)")
+	RootCmd.PersistentFlags().StringVar(&CfgFile, "config", "", "config file (default is $HOME/.cyboard/config.toml)")
 }
 
 func initConfig() {
