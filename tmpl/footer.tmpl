@@ -1,6 +1,9 @@
-{{ define "footer" }}
-    <script src="assets/js/jquery.min.js"></script>
-    <script src="assets/bootstrap/js/bootstrap.min.js"></script>
+{{- define "footer" }}
+    <script src="/assets/js/jquery.min.js"></script>
+    <script src="/assets/bootstrap/js/bootstrap.min.js"></script>
+    {{- if eq .Title "flags" }}
+    <script src="/assets/js/flag.js"></script>
+    {{- end }}
 </body>
 </html>
-{{ end }}
+{{- end }}

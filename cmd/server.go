@@ -33,7 +33,7 @@ func serverRun(cmd *cobra.Command, args []string) {
 	teamRouter := CreateTeamRouter()
 
 	app := negroni.New()
-	webRouter.PathPrefix("/team").Handler(negroni.New(
+	webRouter.PathPrefix("/").Handler(negroni.New(
 		negroni.HandlerFunc(RequireLogin),
 		negroni.Wrap(teamRouter),
 	))

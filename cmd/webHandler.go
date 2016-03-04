@@ -3,8 +3,6 @@ package cmd
 import (
 	"encoding/gob"
 	"encoding/hex"
-	"errors"
-	"log"
 	"net/http"
 
 	"github.com/gorilla/context"
@@ -23,32 +21,32 @@ var Store *sessions.CookieStore
 func CreateStore(hashkey, blockkey string) {
 	hk, err := hex.DecodeString(hashkey)
 	if err != nil {
-		log.Fatalf("Could not decode hashkey: %v", err)
+		Logger.Fatalf("Could not decode hashkey: %v", err)
 	}
 	bk, err := hex.DecodeString(blockkey)
 	if err != nil {
-		log.Fatalf("Could not decode blockkey: %v", err)
+		Logger.Fatalf("Could not decode blockkey: %v", err)
 	}
 	Store = sessions.NewCookieStore([]byte(hk), []byte(bk))
 }
 
-func CheckCreds(w http.ResponseWriter, r *http.Request) (bool, error) {
+func CheckCreds(w http.ResponseWriter, r *http.Request) bool {
 	teamname, password := r.FormValue("teamname"), r.FormValue("password")
 	session, err := Store.Get(r, "cyboard")
 	if err != nil {
-		return false, err
+		Logger.Printf("Error getting session: %v\n", err)
+		return false
 	}
 
 	t, err := GetTeamByTeamname(teamname)
 	if err != nil {
-		return false, err
+		return false
 	}
 
 	err = bcrypt.CompareHashAndPassword([]byte(t.Hash), []byte(password))
 	if err != nil {
-		// Don't set the team to nil when authentication fails.
-		// context.Set(r, "team", nil)
-		return false, errors.New("Invalid Creds")
+		Logger.Printf("Invalid credentials: %v\n", err)
+		return false
 	}
 
 	context.Set(r, "team", t)
@@ -56,8 +54,9 @@ func CheckCreds(w http.ResponseWriter, r *http.Request) (bool, error) {
 	err = session.Save(r, w)
 	if err != nil {
 		http.Error(w, http.StatusText(500), 500)
-		return false, err
+		Logger.Printf("Error saving session: %v\n", err)
+		return false
 	}
 
-	return true, nil
+	return true
 }

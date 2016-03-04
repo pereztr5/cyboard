@@ -1,0 +1,27 @@
+{{- template "header" . }}
+        <div class="row">
+            <div class="col-lg-6 col-lg-offset-3 col-md-6 col-md-offset-3 col-sm-8 col-sm-offset-2">
+                <form>
+                    <h4 class="text-center">New Flag</h4>
+                    <hr>
+                    <div class="form-group">
+                        <label class="control-label" for="challenge">Challenge Name</label>
+                        <input class="form-control input-sm" type="text" name="challenge" required="" placeholder="Crypto 101" minlength="1">
+                    </div>
+                    <div class="form-group">
+                        <label class="control-label" for="flagName">Flag </label>
+                        <input class="form-control input-sm" type="text" name="flagName" required="" placeholder="flag{k3yW0rd}" minlength="1">
+                    </div>
+                    <div class="form-group">
+                        <label class="control-label" for="points">Points </label>
+                        <input class="form-control input-sm" type="text" name="points" required="" placeholder="77" minlength="1">
+                    </div>
+                    <div class="form-group">
+                        <label class="control-label" for="description">Description </label>
+                        <input class="form-control input-sm" type="text" name="description" required="" placeholder="0110100001101001" minlength="1">
+                    </div>
+                    <button class="btn btn-default btn-block" type="submit">Submit </button>
+                </form>
+            </div>
+        </div>
+{{- template "footer" }}

@@ -16,30 +16,23 @@ func CheckSessionID(w http.ResponseWriter, r *http.Request, next http.HandlerFun
 		http.Error(w, http.StatusText(400), 400)
 		return
 	}
-	// Get the ID from the session (if it exists) and
-	// look up the associated team
 	id, ok := session.Values["id"]
 	if ok {
 		t, err := GetTeamById(id.(*bson.ObjectId))
 		if err != nil {
-			// context.Set(r, "team", nil)
-			// HTTP 500 here: GetTeamByID returning an error is probably a DB error?
 			log.Printf("GetTeamById %v: %v", id, err)
 			http.Error(w, http.StatusText(500), 500)
 			return
 		}
-
-		// It's valid! Set it in the context to look it up later.
 		context.Set(r, "team", t)
 	}
 	next(w, r)
 }
 
 func RequireLogin(w http.ResponseWriter, r *http.Request, next http.HandlerFunc) {
-	t := context.Get(r, "team")
-	if t != nil {
+	if context.Get(r, "team") != nil {
 		next(w, r)
 	} else {
-		http.Redirect(w, r, "/login.html", 302)
+		http.Redirect(w, r, "/login", 302)
 	}
 }

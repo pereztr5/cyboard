@@ -1,8 +1,6 @@
 package cmd
 
 import (
-	"fmt"
-
 	"gopkg.in/mgo.v2/bson"
 )
 
@@ -22,8 +20,8 @@ type Flag struct {
 	Challenge   string        `json:"challenge"`
 	Points      int           `json:"points"`
 	Description string        `json:"description"`
-	Value       string        `json:"value"`
-	Hints       []string      `json:"hints"`
+	Value       string        `json:"value" bson:"-"`
+	Hints       []string      `json:"hints" bson:"-"`
 }
 
 type Service struct {
@@ -46,9 +44,10 @@ func GetTeamByTeamname(teamname string) (Team, error) {
 
 	err := teamCollection.Find(bson.M{"teamname": teamname}).Select(bson.M{"_id": 1, "teamnumber": 1, "teamname": 1, "hash": 1}).One(&t)
 	if err != nil {
-		fmt.Printf("Error finding team %s err: %v\n", teamname, err)
+		Logger.Printf("Error finding team by Teamname %s err: %v\n", teamname, err)
+		return t, err
 	}
-	return t, err
+	return t, nil
 }
 
 func GetTeamById(id *bson.ObjectId) (Team, error) {
@@ -60,9 +59,10 @@ func GetTeamById(id *bson.ObjectId) (Team, error) {
 
 	err = teamCollection.Find(bson.M{"_id": id}).One(&t)
 	if err != nil {
-		fmt.Printf("Error finding team %s err: %v\n", t.Teamname, err)
+		Logger.Printf("Error finding team by ID %v err: %v\n", id, err)
+		return t, err
 	}
-	return t, err
+	return t, nil
 }
 
 // Query statements
@@ -79,20 +79,19 @@ func DataGetFlags() ([]Flag, error) {
 	return result, nil
 }
 
-func DataCheckFlag(chal, val string) (bool, error) {
-	var found bool
+func DataCheckFlag(teamname, chal, val string) (int, error) {
 	result := Flag{}
 
 	session, flagCollection := GetSessionAndCollection("flags")
 	defer session.Close()
 
-	err := flagCollection.Find(bson.M{"challenge": chal, "value": val}).Select(bson.M{"name": 1, "points": 1}).One(&result)
+	err := flagCollection.Find(bson.M{"challenge": chal, "value": val}).Select(bson.M{"_id": 0, "value": 0, "hints": 0}).One(&result)
 	if err != nil {
-		return found, err
+		// Wrong flag = 1
+		return 1, err
 	} else {
-		// Need to add points to the team who got the flag
-		found = true
-		return found, nil
+		// Correct flag = 0
+		return 0, DataAddFlag(teamname, result)
 	}
 }
 
@@ -100,3 +99,18 @@ func DataCheckFlag(chal, val string) (bool, error) {
 func DataGetTeamScore() ([]Team, err) {
 }
 */
+
+// Insert statements
+func DataAddFlag(teamname string, flag Flag) error {
+	session, teamCollection := GetSessionAndCollection("teams")
+	defer session.Close()
+	err := teamCollection.Update(
+		bson.M{"teamname": teamname},
+		bson.M{"$push": bson.M{"flags": flag}},
+	)
+	if err != nil {
+		Logger.Printf("Error inserting flag %s to team %s: %v", flag.Flagname, teamname, err)
+		return err
+	}
+	return nil
+}

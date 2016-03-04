@@ -1,0 +1,34 @@
+{{ template "header" . }}
+<div class="container">
+    <div class="row">
+        <div class="col-xs-12 col-sm-6 col-md-8">
+        {{- $flags := getFlags }}
+        {{- $teamFlags := .FlagMap }}
+        {{- range $flags }}
+            {{- if  index $teamFlags .Flagname | not }}
+            <div class="panel panel-primary">
+            {{- else }}
+            <div class="panel panel-default">
+            {{- end }}
+                <div class="panel-heading">
+                    <h3 class="panel-title">{{ .Flagname }}</h3>
+                </div>
+                <div class="panel-body">
+                    {{- .Description }}
+                </div>
+                <div class="panel-footer">
+                    <form action="/flags/verify" method="POST">
+                        <div class="form-group">
+                            <input type=hidden name="challenge" value="{{ .Challenge }}">
+                            <label class="control-label" for="flag">Enter Flag:</label>
+                            <input class="form-control" name="flag" type="text" placeholder="Flag{123}">
+                        </div>
+                        <button class="btn btn-default btn-block" type="submit">Submit </button>
+                    </form>
+                </div>
+            </div> 
+        {{- end }}
+        </div>
+    </div>
+</div>
+{{ template "footer" }}
