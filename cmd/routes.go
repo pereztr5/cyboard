@@ -5,7 +5,6 @@ import (
 	"log"
 	"net/http"
 	"os"
-	"strings"
 
 	"github.com/gorilla/context"
 	"github.com/gorilla/mux"
@@ -158,15 +157,12 @@ func GetTeamFlags() []Flag {
 	return flags
 }
 
-func TeamHasFlag(teamFlags []Flag, flag string) bool {
-	var tFlags string
-	var found bool
-	for i := 0; !found; i++ {
+func TeamHasFlag(teamFlags []Flag) map[string]bool {
+	flagMap := make(map[string]bool)
+	for _, f := range teamFlags {
+		flagMap[f.Flagname] = true
 	}
-	if strings.Contains(tFlags, flag) {
-		return true
-	}
-	return false
+	return flagMap
 }
 
 func renderTemplate(w http.ResponseWriter, p Page) {

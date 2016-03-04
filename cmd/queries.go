@@ -20,8 +20,9 @@ type Flag struct {
 	Challenge   string        `json:"challenge"`
 	Points      int           `json:"points"`
 	Description string        `json:"description"`
-	Value       string        `json:"value" bson:"-"`
-	Hints       []string      `json:"hints" bson:"-"`
+	//Value       string        `json:"value" bson:"-"`
+	Value string   `json:"value"`
+	Hints []string `json:"hints" bson:"-"`
 }
 
 type Service struct {
@@ -72,7 +73,8 @@ func DataGetFlags() ([]Flag, error) {
 	session, flagCollection := GetSessionAndCollection("flags")
 	defer session.Close()
 
-	err := flagCollection.Find(nil).Select(bson.M{"_id": 0, "value": 0}).All(&result)
+	//err := flagCollection.Find(nil).Select(bson.M{"_id": 0, "value": 0}).All(&result)
+	err := flagCollection.Find(nil).Select(bson.M{"_id": 0}).All(&result)
 	if err != nil {
 		return result, err
 	}

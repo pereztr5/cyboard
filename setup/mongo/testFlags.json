@@ -6,21 +6,21 @@
     "value": "flag{flag1}"
 }, {
     "flagname": "flag",
-    "challenge": "2",
+    "challenge": "simple",
     "points": 5,
     "description": "this is an example flag",
     "value": "band3ra"
 }, {
     "flagname": "gotit",
-    "challenge": "3",
+    "challenge": "gotheflag",
     "points": 10,
-    "description": "this is an example flag",
+    "description": "Get the flag",
     "value": "key"
 }, {
-    "flagname": "James Flag",
-    "challenge": "5",
+    "flagname": "Mike's flag",
+    "challenge": "mike",
     "points": 100,
-    "description": "this is an example flag",
+    "description": "Descriptions goes here",
     "value": "james"
 }, {
     "flagname": "bandera",
