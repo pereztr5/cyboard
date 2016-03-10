@@ -1,4 +1,4 @@
-appname = "cyboard"
+brandname = "CNY Hackathon"
 
 [server]
 ip = "127.0.0.1"
@@ -12,8 +12,3 @@ blockkey = "c4d1ba99649ba1bbc73c79e723d1922c9167f21d28bbe3ed6ceb58e8af0d2dfd"
 [database]
 mongodb_uri = "mongodb://127.0.0.1"
 dbname = "scorengine"
-
-[teams]
-    [teams.1]
-    name = "test"
-    password = "password"

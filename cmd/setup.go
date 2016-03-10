@@ -49,7 +49,6 @@ func addCommands() {
 	RootCmd.AddCommand(serverCmd)
 }
 
-// Used for debugging purposes
 func Execute() {
 	addCommands()
 	err := RootCmd.Execute()

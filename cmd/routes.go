@@ -16,7 +16,6 @@ var Logger = log.New(os.Stdout, " ", log.Ldate|log.Ltime|log.Lshortfile)
 type Page struct {
 	Title string
 	T     Team
-	Map   map[string]bool
 }
 
 var templates map[string]*template.Template

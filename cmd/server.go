@@ -13,7 +13,7 @@ import (
 var serverCmd = &cobra.Command{
 	Use:   "server",
 	Short: "Web server for static pages and api",
-	Long:  `This will run the web server, api and service checker`,
+	Long:  `This will run the web server`,
 	Run:   serverRun,
 }
 
