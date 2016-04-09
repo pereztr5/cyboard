@@ -1,7 +1,9 @@
 package main
 
-import "github.com/pereztr5/cyboard/cmd"
+import (
+	"github.com/pereztr5/cyboard/server"
+)
 
 func main() {
-	cmd.Execute()
+	server.Execute()
 }

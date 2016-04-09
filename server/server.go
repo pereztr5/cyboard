@@ -1,4 +1,4 @@
-package cmd
+package server
 
 import (
 	"log"
@@ -10,7 +10,7 @@ import (
 	"github.com/spf13/viper"
 )
 
-var serverCmd = &cobra.Command{
+var ServerCmd = &cobra.Command{
 	Use:   "server",
 	Short: "Web server for static pages and api",
 	Long:  `This will run the web server`,
@@ -18,13 +18,14 @@ var serverCmd = &cobra.Command{
 }
 
 func init() {
-	serverCmd.Flags().Int("http_port", 8080, "HTTP Port for cyboard used for redirect")
-	serverCmd.Flags().Int("https_port", 1443, "HTTPS Port for cyboard")
-	viper.BindPFlag("server.http_port", serverCmd.Flags().Lookup("http_port"))
-	viper.BindPFlag("server.https_port", serverCmd.Flags().Lookup("https_port"))
+	ServerCmd.Flags().Int("http_port", 8080, "HTTP Port for cyboard used for redirect")
+	ServerCmd.Flags().Int("https_port", 1443, "HTTPS Port for cyboard")
+	viper.BindPFlag("server.http_port", ServerCmd.Flags().Lookup("http_port"))
+	viper.BindPFlag("server.https_port", ServerCmd.Flags().Lookup("https_port"))
 }
 
 func serverRun(cmd *cobra.Command, args []string) {
+	//TODO How to generate random hashkey without having to delete previous client side cookies
 	CreateStore(
 		viper.GetString("server.hashkey"),
 		viper.GetString("server.blockkey"),
@@ -50,9 +51,26 @@ func serverRun(cmd *cobra.Command, args []string) {
 	key := viper.GetString("server.key")
 	l.Printf("listening on %s", https_port)
 	go http.ListenAndServe(":"+http_port, http.HandlerFunc(redir))
+	go runChecks()
 	l.Fatal(http.ListenAndServeTLS(":"+https_port, cert, key, app))
 }
 
+func runChecks() {
+	getConfig()
+	checks := getChecks()
+	teams := []Team{
+		Team{
+			Teamname: "NetCats",
+			Ips:      []string{"127.0.0.1"},
+		},
+		Team{
+			Teamname: "Eagles",
+			Ips:      []string{"8.8.8.8"},
+		},
+	}
+	start(teams, checks)
+}
+
 func redir(w http.ResponseWriter, r *http.Request) {
-	http.Redirect(w, r, "https://127.0.0.1:"+viper.GetString("https_port")+r.RequestURI, http.StatusMovedPermanently)
+	http.Redirect(w, r, "https://"+viper.GetString("server.ip")+":"+viper.GetString("https_port")+r.RequestURI, http.StatusMovedPermanently)
 }

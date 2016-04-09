@@ -1,7 +1,6 @@
-package cmd
+package server
 
 import (
-	"fmt"
 	"log"
 	"os"
 
@@ -12,14 +11,14 @@ import (
 var mongodbSession *mgo.Session
 
 func init() {
-	RootCmd.PersistentFlags().String("mongodb_uri", "mongodb://127.0.0.1", "Address of MongoDB in use")
-	viper.BindPFlag("database.mongodb_uri", RootCmd.PersistentFlags().Lookup("mongodb_uri"))
+	ServerCmd.PersistentFlags().String("mongodb_uri", "mongodb://127.0.0.1", "Address of MongoDB in use")
+	viper.BindPFlag("database.mongodb_uri", ServerCmd.PersistentFlags().Lookup("mongodb_uri"))
 	CreateUniqueIndexes()
 }
 
 func DBSession() *mgo.Session {
 	if mongodbSession == nil {
-		fmt.Println("Making new MongoDB Session")
+		log.Println("Making new MongoDB Session")
 		uri := os.Getenv("MONGODB_URI")
 		if uri == "" {
 			uri = viper.GetString("database.mongodb_uri")
@@ -64,10 +63,10 @@ func CreateUniqueIndexes() {
 	flagInx.Key = []string{"flagname"}
 
 	if err := Teams().EnsureIndex(teamInx); err != nil {
-		fmt.Println(err)
+		log.Println(err)
 	}
 	if err := Flags().EnsureIndex(flagInx); err != nil {
-		fmt.Println(err)
+		log.Println(err)
 	}
 }
 
@@ -75,7 +74,7 @@ func GetSessionAndCollection(collectionName string) (sessionCopy *mgo.Session, c
 	if mongodbSession != nil {
 		sessionCopy = mongodbSession.Copy()
 	} else {
-		fmt.Println("No sessions available making new one")
+		log.Println("No sessions available making new one")
 		sessionCopy = DBSession().Copy()
 	}
 	collection = sessionCopy.DB("scorengine").C(collectionName)

@@ -5,3 +5,4 @@ event
 *.pem
 *.key
 cyboard
+scripts/*

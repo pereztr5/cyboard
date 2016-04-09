@@ -1,4 +1,4 @@
-package cmd
+package server
 
 import (
 	"log"
@@ -16,8 +16,8 @@ func CheckSessionID(w http.ResponseWriter, r *http.Request, next http.HandlerFun
 		http.Error(w, http.StatusText(400), 400)
 		return
 	}
-	id, ok := session.Values["id"]
-	if ok {
+	context.Set(r, "session", session)
+	if id, ok := session.Values["id"]; ok {
 		t, err := GetTeamById(id.(*bson.ObjectId))
 		if err != nil {
 			log.Printf("GetTeamById %v: %v", id, err)

@@ -1,7 +1,8 @@
-package cmd
+package server
 
 import (
 	"fmt"
+	"log"
 	"os"
 
 	"github.com/spf13/cobra"
@@ -29,11 +30,13 @@ func initConfig() {
 	viper.SetConfigName("config")
 	viper.AddConfigPath("$HOME/.cyboard/")
 	viper.AddConfigPath(".")
-	viper.ReadInConfig()
+	err := viper.ReadInConfig()
+	if err != nil {
+		log.Fatal(fmt.Errorf("Fatal error config file: %s \n", err))
+	}
 }
 
 func rootRun(cmd *cobra.Command, args []string) {
-	fmt.Println(viper.GetStringMap("teams"))
 	fmt.Println(viper.GetString("appname"))
 	fmt.Println(viper.GetString("server.ip"))
 	fmt.Println(viper.GetString("server.http_port"))
@@ -46,7 +49,7 @@ func rootRun(cmd *cobra.Command, args []string) {
 }
 
 func addCommands() {
-	RootCmd.AddCommand(serverCmd)
+	RootCmd.AddCommand(ServerCmd)
 }
 
 func Execute() {

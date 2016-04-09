@@ -1,4 +1,4 @@
-brandname = "CNY Hackathon"
+appname = "CNY Hackathon"
 
 [server]
 ip = "127.0.0.1"

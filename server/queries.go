@@ -1,17 +1,15 @@
-package cmd
+package server
 
-import (
-	"gopkg.in/mgo.v2/bson"
-)
+import "gopkg.in/mgo.v2/bson"
 
 type Team struct {
 	Id         bson.ObjectId `json:"id,omitempty" bson:"_id,omitempty"`
 	Teamname   string        `json:"teamname"`
+	Ips        []string      `json:"ips"`
 	Hash       string        `json:"-"`
 	Teamnumber int           `json:"teamnumber"`
-	Services   []Service     `json:"services"`
 	Flags      []Flag        `json:"flags"`
-	Checks     []Check       `json:"checks"`
+	Checks     []CheckResult `json:"checkresult"`
 }
 
 type Flag struct {
@@ -20,20 +18,14 @@ type Flag struct {
 	Challenge   string        `json:"challenge"`
 	Points      int           `json:"points"`
 	Description string        `json:"description"`
-	//Value       string        `json:"value" bson:"-"`
-	Value string   `json:"value"`
-	Hints []string `json:"hints" bson:"-"`
+	Value       string        `json:"value" bson:"-"`
 }
 
-type Service struct {
-	Service string `json:"service"`
-	Ip      string `json:"ip"`
-}
-
-type Check struct {
-	Service string `json:"service"`
-	Status  string `json:"status"`
-	Points  int    `json:"points"`
+type CheckResult struct {
+	Team    Team
+	Service string
+	Status  int
+	Output  string
 }
 
 // Authentication Queries
@@ -116,3 +108,19 @@ func DataAddFlag(teamname string, flag Flag) error {
 	}
 	return nil
 }
+
+/*
+func DataAddCheck(teamId bson.ObjectId) error {
+	session, teamCollection := GetSessionAndCollection("teams")
+	defer session.Close()
+	err := teamCollection.Update(
+		bson.M{"teamname": teamname},
+		bson.M{"$push": bson.M{"flags": flag}},
+	)
+	if err != nil {
+		Logger.Printf("Error inserting flag %s to team %s: %v", flag.Flagname, teamname, err)
+		return err
+	}
+	return nil
+}
+*/
