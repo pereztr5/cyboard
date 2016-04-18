@@ -87,42 +87,16 @@ func DataGetChallenges(group string) ([]Challenge, error) {
 	return challenges, nil
 }
 
-func DataCheckAllFlags(team Team, flag string) (int, error) {
-	chal := Challenge{}
-
+func DataCheckFlag(team Team, chal Challenge) (int, error) {
 	session, chalCollection := GetSessionAndCollection("challenges")
 	defer session.Close()
+	var err error
 
-	err := chalCollection.Find(bson.M{"flag": flag}).Select(bson.M{"_id": 0, "flag": 0}).One(&chal)
-	if err != nil {
-		// Wrong flag = 1
-		return 1, err
+	if len(chal.Name) > 0 {
+		err = chalCollection.Find(bson.M{"flag": chal.Flag, "name": chal.Name}).Select(bson.M{"_id": 0, "flag": 0}).One(&chal)
 	} else {
-		if !HasFlag(team.Name, chal.Name) {
-			// Correct flag = 0
-			result := Result{
-				Type:       "CTF",
-				Group:      chal.Group,
-				Teamname:   team.Name,
-				Teamnumber: team.Number,
-				Details:    chal.Name,
-				Points:     chal.Points,
-			}
-			return 0, DataAddResult(result)
-		} else {
-			// Got challenge already
-			return 2, nil
-		}
+		err = chalCollection.Find(bson.M{"flag": chal.Flag}).Select(bson.M{"_id": 0, "flag": 0}).One(&chal)
 	}
-}
-
-func DataCheckFlag(team Team, challengeName, flag string) (int, error) {
-	chal := Challenge{}
-
-	session, chalCollection := GetSessionAndCollection("challenges")
-	defer session.Close()
-
-	err := chalCollection.Find(bson.M{"flag": flag, "name": challengeName}).Select(bson.M{"_id": 0, "flag": 0}).One(&chal)
 	if err != nil {
 		// Wrong flag = 1
 		return 1, err
