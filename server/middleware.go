@@ -1,7 +1,6 @@
 package server
 
 import (
-	"log"
 	"net/http"
 
 	"github.com/gorilla/context"
@@ -12,7 +11,7 @@ import (
 func CheckSessionID(w http.ResponseWriter, r *http.Request, next http.HandlerFunc) {
 	session, err := Store.Get(r, "cyboard")
 	if err != nil {
-		log.Printf("Getting from Store failed: %v", err)
+		Logger.Printf("Getting from Store failed: %v", err)
 		http.Error(w, http.StatusText(400), 400)
 		return
 	}
@@ -20,7 +19,9 @@ func CheckSessionID(w http.ResponseWriter, r *http.Request, next http.HandlerFun
 	if id, ok := session.Values["id"]; ok {
 		t, err := GetTeamById(id.(*bson.ObjectId))
 		if err != nil {
-			log.Printf("GetTeamById %v: %v", id, err)
+			Logger.Printf("GetTeamById %v: %v", id, err)
+			// TODO: If this fails we should remove that session and
+			// have them re-login
 			http.Error(w, http.StatusText(500), 500)
 			return
 		}

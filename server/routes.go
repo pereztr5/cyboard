@@ -1,6 +1,7 @@
 package server
 
 import (
+	"encoding/json"
 	"html/template"
 	"log"
 	"net/http"
@@ -30,6 +31,7 @@ func init() {
 		"totalChallenges": getChallenges,
 		"teamChallenges":  getTeamChallenges,
 		"teamScore":       getTeamScore,
+		"allTeamScores":   getAllTeamScores,
 	}
 
 	templates["login"] = template.Must(template.New("login").Funcs(funcMap).ParseFiles("tmpl/header.tmpl", "tmpl/login.tmpl", "tmpl/footer.tmpl"))
@@ -44,38 +46,31 @@ func CreateWebRouter() *mux.Router {
 	router.HandleFunc("/login", ShowLogin).Methods("GET")
 	router.HandleFunc("/login", SubmitLogin).Methods("POST")
 	router.HandleFunc("/logout", Logout).Methods("GET")
-	router.HandleFunc("/showflags", ShowFlags).Methods("GET")
 	router.HandleFunc("/scoreboard", ShowScoreboard).Methods("GET")
 	// Public API
 	// TODO: Make this the name of AIS challenge
 	router.HandleFunc("/challenges", GetChallenges).Methods("GET")
-	//router.HandleFunc("/scores", Score)
+	router.HandleFunc("/team/scores", GetScores).Methods("GET")
 	return router
 }
 
 func CreateTeamRouter() *mux.Router {
 	router := mux.NewRouter()
-	router.HandleFunc("/teampage", TeamPage)
+	router.HandleFunc("/teampage", TeamPage).Methods("GET")
+	router.HandleFunc("/showflags", ShowFlags).Methods("GET")
 	router.HandleFunc("/challenge/verify", CheckFlag).Methods("POST")
 	router.HandleFunc("/challenge/verify/all", CheckAllFlags).Methods("POST")
 	return router
 }
 
-/*
 func GetScores(w http.ResponseWriter, r *http.Request) {
-	scores, err := DataGetTeamScores()
-	if err != nil {
-		Logger.Printf("Error getting Team scores: %v\n", err)
-	}
+	scores := DataGetAllScore()
+	w.Header().Set("Content-Type", "application/json; charset=UTF-8")
 	if err := json.NewEncoder(w).Encode(scores); err != nil {
 		Logger.Printf("Error encoding json: %v\n", err)
-		http.Error(w, http.StatusText(500), 500)
 		return
 	}
-	w.Header().Set("Content-Type", "application/json; charset=UTF-8")
-	w.WriteHeader(http.StatusOK)
 }
-*/
 
 func ShowLogin(w http.ResponseWriter, r *http.Request) {
 	if context.Get(r, "team") == nil {
@@ -178,6 +173,11 @@ func getTeamChallenges(teamname string) map[string]int {
 
 func getTeamScore(teamname string) int {
 	return DataGetTeamScore(teamname)
+}
+
+func getAllTeamScores() []Result {
+	scores := DataGetAllScore()
+	return scores
 }
 
 func renderTemplate(w http.ResponseWriter, p Page) {

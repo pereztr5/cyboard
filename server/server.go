@@ -53,28 +53,20 @@ func serverRun(cmd *cobra.Command, args []string) {
 	l.Printf("Server running at: https://%s:%s", viper.GetString("server.ip"), https_port)
 
 	go http.ListenAndServe(":"+http_port, http.HandlerFunc(redir))
-	//go runChecks()
+	go runChecks()
 
 	l.Fatal(http.ListenAndServeTLS(":"+https_port, cert, key, app))
 }
 
-/*
 func runChecks() {
 	getConfig()
 	checks := getChecks()
-	teams := []Team{
-		Team{
-			Teamname: "NetCats",
-			Ips:      []string{"127.0.0.1"},
-		},
-		Team{
-			Teamname: "Eagles",
-			Ips:      []string{"8.8.8.8"},
-		},
+	teams, err := DataGetTeamIps()
+	if err != nil {
+		Logger.Fatalf("Could not get teams for service checks: %v\n", err)
 	}
 	start(teams, checks)
 }
-*/
 
 func redir(w http.ResponseWriter, r *http.Request) {
 	http.Redirect(w, r, "https://"+viper.GetString("server.ip")+":"+viper.GetString("https_port")+r.RequestURI, http.StatusMovedPermanently)

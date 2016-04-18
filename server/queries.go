@@ -6,7 +6,7 @@ type Team struct {
 	Id     bson.ObjectId `json:"id,omitempty" bson:"_id,omitempty"`
 	Number int           `json:"number"`
 	Name   string        `json:"name"`
-	Ips    []string      `json:"ips"`
+	Ip     string        `json:"ip"`
 	Hash   string        `json:"-"`
 }
 
@@ -20,12 +20,13 @@ type Challenge struct {
 }
 
 type Result struct {
-	Id       bson.ObjectId `json:"id,omitempty" bson:"_id,omitempty"`
-	Type     string        `json:"type" bson:"type"`
-	Group    string        `json:"group" bson:"group"`
-	Teamname string        `json:"teamname" bson:"teamname"`
-	Details  string        `json:"details" bson:"details"`
-	Points   int           `json:"points" bson:"points"`
+	Id         bson.ObjectId `json:"id,omitempty" bson:"_id,omitempty"`
+	Type       string        `json:"type" bson:"type"`
+	Group      string        `json:"group" bson:"group"`
+	Teamname   string        `json:"teamname" bson:"teamname"`
+	Teamnumber int           `json:"teamnumber" bson:"teamnumber"`
+	Details    string        `json:"details" bson:"details"`
+	Points     int           `json:"points" bson:"points"`
 }
 
 // Authentication Queries
@@ -44,15 +45,29 @@ func GetTeamByTeamname(teamname string) (Team, error) {
 }
 
 func GetTeamById(id *bson.ObjectId) (Team, error) {
-	var err error
 	t := Team{}
 
 	session, teamCollection := GetSessionAndCollection("teams")
 	defer session.Close()
 
-	err = teamCollection.Find(bson.M{"_id": id}).One(&t)
+	err := teamCollection.Find(bson.M{"_id": id}).One(&t)
 	if err != nil {
 		Logger.Printf("Error finding team by ID %v err: %v\n", id, err)
+		return t, err
+	}
+	return t, nil
+}
+
+// Get Team name and ip only used for service checking
+func DataGetTeamIps() ([]Team, error) {
+	t := []Team{}
+
+	session, teamCollection := GetSessionAndCollection("teams")
+	defer session.Close()
+
+	err := teamCollection.Find(nil).Select(bson.M{"_id": false, "name": true, "number": true, "ip": true}).All(&t)
+	if err != nil {
+		//Logger.Printf("Error finding teams: %v\n", err)
 		return t, err
 	}
 	return t, nil
@@ -72,7 +87,7 @@ func DataGetChallenges(group string) ([]Challenge, error) {
 	return challenges, nil
 }
 
-func DataCheckAllFlags(teamname, flag string) (int, error) {
+func DataCheckAllFlags(team Team, flag string) (int, error) {
 	chal := Challenge{}
 
 	session, chalCollection := GetSessionAndCollection("challenges")
@@ -83,14 +98,15 @@ func DataCheckAllFlags(teamname, flag string) (int, error) {
 		// Wrong flag = 1
 		return 1, err
 	} else {
-		if !HasFlag(teamname, chal.Name) {
+		if !HasFlag(team.Name, chal.Name) {
 			// Correct flag = 0
 			result := Result{
-				Type:     "CTF",
-				Group:    chal.Group,
-				Teamname: teamname,
-				Details:  chal.Name,
-				Points:   chal.Points,
+				Type:       "CTF",
+				Group:      chal.Group,
+				Teamname:   team.Name,
+				Teamnumber: team.Number,
+				Details:    chal.Name,
+				Points:     chal.Points,
 			}
 			return 0, DataAddResult(result)
 		} else {
@@ -100,7 +116,7 @@ func DataCheckAllFlags(teamname, flag string) (int, error) {
 	}
 }
 
-func DataCheckFlag(teamname, challengeName, flag string) (int, error) {
+func DataCheckFlag(team Team, challengeName, flag string) (int, error) {
 	chal := Challenge{}
 
 	session, chalCollection := GetSessionAndCollection("challenges")
@@ -111,14 +127,15 @@ func DataCheckFlag(teamname, challengeName, flag string) (int, error) {
 		// Wrong flag = 1
 		return 1, err
 	} else {
-		if !HasFlag(teamname, chal.Name) {
+		if !HasFlag(team.Name, chal.Name) {
 			// Correct flag = 0
 			result := Result{
-				Type:     "CTF",
-				Group:    chal.Group,
-				Teamname: teamname,
-				Details:  chal.Name,
-				Points:   chal.Points,
+				Type:       "CTF",
+				Group:      chal.Group,
+				Teamname:   team.Name,
+				Teamnumber: team.Number,
+				Details:    chal.Name,
+				Points:     chal.Points,
 			}
 			return 0, DataAddResult(result)
 		} else {
@@ -205,13 +222,43 @@ func DataGetTeamScore(teamname string) int {
 	return p
 }
 
+func DataGetAllScore() []Result {
+	session, collection := GetSessionAndCollection("results")
+	defer session.Close()
+	tmScore := []Result{}
+
+	pipe := collection.Pipe([]bson.M{
+		{"$group": bson.M{"_id": bson.M{"tname": "$teamname", "tnum": "$teamnumber"}, "points": bson.M{"$sum": "$points"}}},
+		{"$project": bson.M{"_id": 0, "points": 1, "teamnumber": "$_id.tnum", "teamname": "$_id.tname"}},
+		{"$sort": bson.M{"teamnumber": 1}},
+	})
+	err := pipe.All(&tmScore)
+	if err != nil {
+		Logger.Printf("Error getting all team scores: %v\n", err)
+	}
+	return tmScore
+}
+
+func DataGetServiceStatus() []Result {
+	r := []Result{}
+
+	session, results := GetSessionAndCollection("results")
+	defer session.Close()
+
+	err := results.Find(bson.M{"type": "Service"}).All(&r)
+	if err != nil {
+		Logger.Printf("Error getting service status: %v\n", err)
+	}
+	return r
+}
+
 // Insert statements
 func DataAddResult(result Result) error {
 	session, collection := GetSessionAndCollection("results")
 	defer session.Close()
 	err := collection.Insert(result)
 	if err != nil {
-		Logger.Printf("Error inserting %s to team %s: %v", result.Details, result.Teamname, err)
+		//Logger.Printf("Error inserting %s to team %s: %v", result.Details, result.Teamname, err)
 		return err
 	}
 	return nil

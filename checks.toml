@@ -1,5 +1,5 @@
 checks_dir = "/Users/Tony/tech/golangP/src/github.com/pereztr5/cyboard/scripts"
-event_end_time = "Thu Apr  7 23:50:11 EDT 2016"
+event_end_time = "Mon Apr 18 05:30:59 EDT 2016"
 intervals = "10s"
 timeout = "10s"
 
@@ -7,11 +7,11 @@ timeout = "10s"
     [checks.1]
     check_name = "ping"
     filename = "check_ping"
-    points = [ 1, 0 ]
+    points = [ 1, 0, 0 ]
     args = "-w 200,50% -c 500,100% -t 5 -p 1 -H"
 
     [checks.2]
     check_name = "web"
     filename = "check_http"
-    points = [ 10, 0 ]
+    points = [ 10, 0, 0 ]
     args = "-t 5 -I"

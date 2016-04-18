@@ -34,7 +34,7 @@ func CheckFlag(w http.ResponseWriter, r *http.Request) {
 	// Wrong flag = 1
 	// Got challenge already = 2
 	if len(flag) > 0 {
-		found, err = DataCheckFlag(t.Name, challenge, flag)
+		found, err = DataCheckFlag(t, challenge, flag)
 		if err != nil {
 			Logger.Printf("Error checking flag: %s for team: %s: %v\n", flag, t.Name, err)
 		}
@@ -52,7 +52,7 @@ func CheckAllFlags(w http.ResponseWriter, r *http.Request) {
 	// Wrong flag = 1
 	// Got challenge already = 2
 	if len(flag) > 0 {
-		found, err = DataCheckAllFlags(t.Name, flag)
+		found, err = DataCheckAllFlags(t, flag)
 		if err != nil {
 			Logger.Printf("Error checking flag: %s for team: %s: %v\n", flag, t.Name, err)
 		}
