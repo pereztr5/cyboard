@@ -71,3 +71,17 @@ body {
     color: #64CB2D;
     background-color: #060606;
 }
+
+.badge {
+    color: #060606;
+    background-color: #64CB2D;
+}
+
+#flag-panel {
+    color: #64CB2D;
+}
+
+.huge {
+    font-size: 30px;
+    line-height: normal;
+}

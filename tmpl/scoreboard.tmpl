@@ -1,5 +1,3 @@
-{{ template "header" . }}
-<div class="container">
-    <h3>Scoreboard</h3>
-</div>
-{{ template "footer" }}
+{{- template "header" . }}
+<h3 class="page-header">{{ title .Title }}</h3>
+{{- template "footer" . }}

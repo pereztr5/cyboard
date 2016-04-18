@@ -16,12 +16,12 @@ function submitFlag() {
 
     if (flagValue.length > 0) {
         $.ajax({
-            url: '/flags/verify',
+            url: '/challenge/verify',
             type: 'POST',
             dataType: 'html',
             data: {
+                flag: flagValue,
                 challenge: challengeValue,
-                flag: flagValue
             },
             success: function(value) {
                 if (value == '0') {
@@ -39,7 +39,6 @@ function submitFlag() {
     }
 }
 
-
 $('input#flag-value').keypress(function(e) {
     if (e.which == 13) {
         $('#flag-submit').submit();
@@ -47,33 +46,40 @@ $('input#flag-value').keypress(function(e) {
     }
 });
 
+var challenges;
+
 function getList() {
-    var url = '/flags'
+    var url = '/challenges'
     $.getJSON(url, function(json) {
+        challenges = json;
+        $('.page-header').append(' <small>' + challenges[0].group + '</small>');
         makeList(json);
     });
 }
 
-function makeList(flags) {
-    for (i = 0; i < flags.length; i++) {
+function makeList(chal) {
+    for (i = 0; i < chal.length; i++) {
         var list = $('<button/>').attr({
             type: 'button',
             class: 'btn btn-default btn-block',
             'data-toggle': 'modal',
-            'data-target': '#currentFlag',
-            onclick: 'makeModal("' + flags[i].flagname + '", "' + flags[i].challenge + '")'
+            'data-target': '#currentChallenge',
+            onclick: 'makeModal(challenges[' + i + '])'
         });
-        list.append(flags[i].flagname);
-        $('#flag-list').append(list);
+        list.append(chal[i].name);
+        //list.append('<span class="badge">' + chal[i].points + '</span>');
+        $('#challenge-list').append(list);
     }
 }
 
-function makeModal(name, challenge) {
+function makeModal(chal) {
+    var titleName = escapeHtml(chal.name);
+    var description = chal.points;
     $('#hiddenModal').empty();
 
     var modal = $('<div/>').attr({
         class: 'modal fade',
-        id: 'currentFlag',
+        id: 'currentChallenge',
         tabindex: '-1',
         role: 'dialog',
         'aria-labelledby': 'myModalLabel'
@@ -90,25 +96,25 @@ function makeModal(name, challenge) {
     var hButton = $('<button type="button" class="close" data-dismiss="modal" aria-label="Close"><span aria-hidden="true">&times;</span></button>');
 
     var title = $('<h4/>').attr({
-        class: 'modal-title',
+        class: 'modal-title'
     });
 
     var dialog = $('<div/>').attr({
-        class: 'modal-dialog',
+        class: 'modal-dialog'
     });
 
     var body = $('<div/>').attr({
         class: 'modal-body'
     });
 
-    var flagForm = $('<div/>').attr({
-        class: 'form-group has-feedback',
+    var challengeForm = $('<div/>').attr({
         id: 'flag-form',
+        class: 'form-group has-feedback'
     });
 
     var flagLabel = $('<label/>').attr({
         class: 'control-label',
-        'for': 'flag-value',
+        'for': 'flag-value'
     });
 
     var flagInput = $('<input/>').attr({
@@ -132,7 +138,7 @@ function makeModal(name, challenge) {
         type: 'submit',
         id: 'flag-submit',
         class: 'btn btn-primary',
-        'data-challenge': challenge
+        'data-challenge': chal.name
     });
 
     // Append each tag into each other making sure they are in order as well
@@ -140,14 +146,15 @@ function makeModal(name, challenge) {
     footer.append(closeButton);
     submitButton.append('Submit');
     footer.append(submitButton);
-    title.append(name);
+    title.append(titleName);
     header.append(hButton);
     header.append(title);
+    body.append('<h5>Points: ' + description + '</h5>');
     flagLabel.append('Enter Flag:');
-    flagForm.append(flagLabel);
-    flagForm.append(flagInput);
-    flagForm.append('<span class="glyphicon form-control-feedback" aria-hidden="true"></span><span id="inputSuccess2Status" class="sr-only"></span>');
-    body.append(flagForm);
+    challengeForm.append(flagLabel);
+    challengeForm.append(flagInput);
+    challengeForm.append('<span class="glyphicon form-control-feedback" aria-hidden="true"></span><span id="inputSuccess2Status" class="sr-only"></span>');
+    body.append(challengeForm);
     content.append(header);
     content.append(body);
     content.append(footer);
@@ -155,5 +162,19 @@ function makeModal(name, challenge) {
     modal.append(dialog);
 
     $('#hiddenModal').append(modal);
+}
 
+var entityMap = {
+    "&": "&amp;",
+    "<": "&lt;",
+    ">": "&gt;",
+    '"': '&quot;',
+    "'": '&#39;',
+    "/": '&#x2F;'
+};
+
+function escapeHtml(string) {
+    return String(string).replace(/[&<>"'\/]/g, function(s) {
+        return entityMap[s];
+    });
 }

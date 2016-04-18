@@ -1,90 +1,16 @@
 [{
-    "teamnumber": 1,
-    "teamname": "Team1",
+    "number": 1,
+    "name": "Team1",
     "hash": "$2a$10$uETLwMbBLoaxlRIiPd/bmOrJOZRvPs4oSeihqpprEjCqM/I/VVRGm",
-    "services": [],
-    "ip": "10.0.1.0",
-    "flags": [{
-        "flagname": "flag",
-        "challenge": "2",
-        "points": 5,
-        "description": "this is an example flag"
-    }, {
-        "flagname": "gotit",
-        "challenge": "3",
-        "points": 10,
-        "description": "this is an example flag"
-    }],
-    "check": [{
-         "name": "http",
-         "points": 5,
-         "output": "HTTP OK: HTTP/1.1 200 OK - 4570 bytes in 0.053 second response time |time=0.052612s;;;0.000000 size=4570B;;;0"
-    }, {
-         "name": "ping",
-         "points": 1,
-         "output": "PING OK - Packet loss = 0%, RTA = 39.64 ms|rta=39.636002ms;200.000000;500.000000;0.000000 pl=0%;50;100;0"
-    }, {
-         "name": "http",
-         "points": 5,
-         "output": "HTTP OK: HTTP/1.1 200 OK - 4570 bytes in 0.053 second response time |time=0.052612s;;;0.000000 size=4570B;;;0"
-    }]
+    "ip": ["10.0.1.0"]
 }, {
-    "teamnumber": 2,
-    "teamname": "Team2",
+    "number": 2,
+    "name": "Team2",
     "hash": "$2a$10$dExCf/g/LzG0usKb4sj1p.jcd83KaxVsbRdzSLzYDiIXWBB9Hnzca",
-    "services": [],
-    "ip": "10.0.2.0",
-    "flags": [{
-        "flagname": "example",
-        "challenge": "1",
-        "points": 1,
-        "description": "this is an example flag"
-    }, {
-        "flagname": "gotit",
-        "challenge": "3",
-        "points": 10,
-        "description": "this is an example flag"
-    }],
-    "check": [{
-         "name": "http",
-         "points": 5,
-         "output": "HTTP OK: HTTP/1.1 200 OK - 4570 bytes in 0.053 second response time |time=0.052612s;;;0.000000 size=4570B;;;0"
-    }, {
-         "name": "ping",
-         "points": 1,
-         "output": "PING OK - Packet loss = 0%, RTA = 39.64 ms|rta=39.636002ms;200.000000;500.000000;0.000000 pl=0%;50;100;0"
-    }, {
-         "name": "http",
-         "points": 5,
-         "output": "HTTP OK: HTTP/1.1 200 OK - 4570 bytes in 0.053 second response time |time=0.052612s;;;0.000000 size=4570B;;;0"
-    }]
+    "ip": ["10.0.2.0"]
 }, {
-    "teamnumber": 3,
-    "teamname": "Team3",
+    "number": 3,
+    "name": "Team3",
     "hash": "$2a$10$IioOVWtP.gCBXCDjWkxYCO0f2f7T3EHdjQ/fZlVQMaUGGE8.zev4u",
-    "services": [],
-    "ip": "10.0.3.0",
-    "flags": [{
-        "flagname": "flag",
-        "challenge": "2",
-        "points": 5,
-        "description": "this is an example flag"
-    }],
-    "check": [{
-         "name": "http",
-         "points": 0,
-         "output": "HTTP OK: HTTP/1.1 200 OK - 4570 bytes in 0.053 second response time |time=0.052612s;;;0.000000 size=4570B;;;0"
-    }, {
-         "name": "ping",
-         "points": 1,
-         "output": "PING OK - Packet loss = 0%, RTA = 39.64 ms|rta=39.636002ms;200.000000;500.000000;0.000000 pl=0%;50;100;0"
-    }, {
-         "name": "ping",
-         "points": 1,
-         "output": "PING OK - Packet loss = 0%, RTA = 39.64 ms|rta=39.636002ms;200.000000;500.000000;0.000000 pl=0%;50;100;0"
-    }, {
-         "name": "http",
-         "points": 5,
-         "output": "HTTP OK: HTTP/1.1 200 OK - 4570 bytes in 0.053 second response time |time=0.052612s;;;0.000000 size=4570B;;;0"
-    }]
+    "ip": ["10.0.2.0"]
 }]

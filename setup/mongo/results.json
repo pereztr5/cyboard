@@ -1,0 +1,68 @@
+[{
+    "type": "CTF",
+    "group": "custom",
+    "teamname": "Team1",
+    "details": "ex1",
+    "points": 50
+}, {
+    "type": "CTF",
+    "group": "Hard Examples",
+    "teamname": "Team1",
+    "details": "ex1",
+    "points": 50
+}, {
+    "type": "CTF",
+    "group": "example group 1",
+    "teamname": "Team1",
+    "details": "ex1",
+    "points": 50
+}, {
+    "type": "CTF",
+    "teamname": "Team2",
+    "group": "Hard Examples",
+    "details": "ex2",
+    "points": 50
+}, {
+    "type": "CTF",
+    "group": "custom",
+    "teamname": "Team3",
+    "details": "ex3",
+    "points": 50
+}, {
+    "type": "CTF",
+    "group": "custom",
+    "teamname": "Team1",
+    "details": "ex2",
+    "points": 50
+}, {
+    "type": "CTF",
+    "group": "Hard Examples",
+    "teamname": "Team2",
+    "details": "ex3",
+    "points": 50
+}, {
+    "type": "service",
+    "teamname": "Team3",
+    "details": "Ping: 0",
+    "points": 5
+}, {
+    "type": "service",
+    "teamname": "Team1",
+    "details": "Ping: 0",
+    "points": 5
+}, {
+    "type": "service",
+    "teamname": "Team1",
+    "details": "Ping: 0",
+    "points": 5
+}, {
+    "type": "service",
+    "teamname": "Team2",
+    "details": "Ping: 0",
+    "points": 5
+}, {
+    "type": "service",
+    "teamname": "Team2",
+    "details": "Ping: 0",
+    "points": 5
+}]

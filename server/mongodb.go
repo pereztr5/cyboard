@@ -44,8 +44,8 @@ func Teams() *mgo.Collection {
 	return DB().C("teams")
 }
 
-func Flags() *mgo.Collection {
-	return DB().C("flags")
+func Challenges() *mgo.Collection {
+	return DB().C("challenges")
 }
 
 func CreateUniqueIndexes() {
@@ -57,16 +57,16 @@ func CreateUniqueIndexes() {
 	}
 
 	teamInx := inx
-	teamInx.Key = []string{"teamname"}
+	teamInx.Key = []string{"number", "name"}
 
-	flagInx := inx
-	flagInx.Key = []string{"flagname"}
+	chalInx := inx
+	chalInx.Key = []string{"name"}
 
 	if err := Teams().EnsureIndex(teamInx); err != nil {
-		log.Println(err)
+		Logger.Println(err)
 	}
-	if err := Flags().EnsureIndex(flagInx); err != nil {
-		log.Println(err)
+	if err := Challenges().EnsureIndex(chalInx); err != nil {
+		Logger.Println(err)
 	}
 }
 

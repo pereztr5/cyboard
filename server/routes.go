@@ -5,6 +5,7 @@ import (
 	"log"
 	"net/http"
 	"os"
+	"strings"
 
 	"github.com/gorilla/context"
 	"github.com/gorilla/mux"
@@ -23,19 +24,18 @@ var templates map[string]*template.Template
 // Parse templates at startup
 // TODO Loop through all templates in directory
 func init() {
-	if templates == nil {
-		templates = make(map[string]*template.Template)
-	}
+	templates = make(map[string]*template.Template)
 	funcMap := template.FuncMap{
-		"getFlags": GetTeamFlags,
-		"hasFlag":  TeamHasFlag,
+		"title":           strings.Title,
+		"totalChallenges": getChallenges,
+		"teamChallenges":  getTeamChallenges,
+		"teamScore":       getTeamScore,
 	}
 
-	templates["login"] = template.Must(template.ParseFiles("tmpl/header.tmpl", "tmpl/login.tmpl", "tmpl/footer.tmpl"))
-	templates["teampage"] = template.Must(template.ParseFiles("tmpl/header.tmpl", "tmpl/teampage.tmpl", "tmpl/footer.tmpl"))
-	t := template.New("flags")
-	t.Funcs(funcMap)
-	templates["flags"] = template.Must(t.ParseFiles("tmpl/header.tmpl", "tmpl/flags.tmpl", "tmpl/footer.tmpl"))
+	templates["login"] = template.Must(template.New("login").Funcs(funcMap).ParseFiles("tmpl/header.tmpl", "tmpl/login.tmpl", "tmpl/footer.tmpl"))
+	templates["scoreboard"] = template.Must(template.New("scoreboard").Funcs(funcMap).ParseFiles("tmpl/header.tmpl", "tmpl/scoreboard.tmpl", "tmpl/footer.tmpl"))
+	templates["teampage"] = template.Must(template.New("teampage").Funcs(funcMap).ParseFiles("tmpl/header.tmpl", "tmpl/teampage.tmpl", "tmpl/footer.tmpl"))
+	templates["challenges"] = template.Must(template.New("challenges").Funcs(funcMap).ParseFiles("tmpl/header.tmpl", "tmpl/challenges.tmpl", "tmpl/footer.tmpl"))
 }
 
 func CreateWebRouter() *mux.Router {
@@ -43,10 +43,12 @@ func CreateWebRouter() *mux.Router {
 	// Public Routes
 	router.HandleFunc("/login", ShowLogin).Methods("GET")
 	router.HandleFunc("/login", SubmitLogin).Methods("POST")
-	router.HandleFunc("/logout", Logout)
+	router.HandleFunc("/logout", Logout).Methods("GET")
 	router.HandleFunc("/showflags", ShowFlags).Methods("GET")
+	router.HandleFunc("/scoreboard", ShowScoreboard).Methods("GET")
 	// Public API
-	router.HandleFunc("/flags", GetFlags).Methods("GET")
+	// TODO: Make this the name of AIS challenge
+	router.HandleFunc("/challenges", GetChallenges).Methods("GET")
 	//router.HandleFunc("/scores", Score)
 	return router
 }
@@ -54,7 +56,8 @@ func CreateWebRouter() *mux.Router {
 func CreateTeamRouter() *mux.Router {
 	router := mux.NewRouter()
 	router.HandleFunc("/teampage", TeamPage)
-	router.HandleFunc("/flags/verify", CheckFlag).Methods("POST")
+	router.HandleFunc("/challenge/verify", CheckFlag).Methods("POST")
+	router.HandleFunc("/challenge/verify/all", CheckAllFlags).Methods("POST")
 	return router
 }
 
@@ -139,7 +142,7 @@ func ShowFlags(w http.ResponseWriter, r *http.Request) {
 	t := context.Get(r, "team")
 	if t != nil {
 		p := Page{
-			Title: "flags",
+			Title: "challenges",
 			T:     t.(Team),
 		}
 		renderTemplate(w, p)
@@ -148,20 +151,33 @@ func ShowFlags(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
-func GetTeamFlags() []Flag {
-	flags, err := DataGetFlags()
-	if err != nil {
-		Logger.Printf("Error getting Flags: %v\n", err)
+func ShowScoreboard(w http.ResponseWriter, r *http.Request) {
+	t := context.Get(r, "team")
+	p := Page{
+		Title: "scoreboard",
+		T:     t.(Team),
 	}
-	return flags
+	renderTemplate(w, p)
 }
 
-func TeamHasFlag(teamFlags []Flag) map[string]bool {
-	flagMap := make(map[string]bool)
-	for _, f := range teamFlags {
-		flagMap[f.Flagname] = true
+func getChallenges() map[string]int {
+	totals, err := DataGetTotalChallenges()
+	if err != nil {
+		Logger.Printf("Could not get challenges: %v\n", err)
 	}
-	return flagMap
+	return totals
+}
+
+func getTeamChallenges(teamname string) map[string]int {
+	acquired, err := DataGetTeamChallenges(teamname)
+	if err != nil {
+		Logger.Printf("Could not get team challenges: %v\n", err)
+	}
+	return acquired
+}
+
+func getTeamScore(teamname string) int {
+	return DataGetTeamScore(teamname)
 }
 
 func renderTemplate(w http.ResponseWriter, p Page) {

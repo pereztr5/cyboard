@@ -7,6 +7,7 @@
     <title>CNYHackathon</title>
     <link rel="stylesheet" href="/assets/bootstrap/css/bootstrap.min.css">
     <link rel="stylesheet" href="/assets/css/custom.css">
+    <link rel="stylesheet" href="/assets/css/font-awesome.css">
     <link rel="stylesheet" href="/assets/css/styles.css">
 </head>
 <body>
@@ -24,10 +25,10 @@
                         <!-- <li role="presentation"><a href="/newFlag.html">New Flag</a></li> -->
                     </ul>
                     <ul class="nav navbar-nav navbar-right">
-                        {{- if .T.Teamname }}
+                        {{- if .T.Name }}
                         <li role="presentation" class="dropdown">
                             <a class="dropdown-toggle" data-toggle="dropdown" href="#" aria-expanded="flase">
-                                {{- .T.Teamname }}<span class="caret"></span>
+                                {{- .T.Name }}<span class="caret"></span>
                             </a>
                             <ul class="dropdown-menu" aria-labelledy="download">
                                 <li><a href="/teampage">Dashboard</a></li>
@@ -41,5 +42,4 @@
                 </div>
             </div>
         </nav>
-    </div>
 {{- end }}
