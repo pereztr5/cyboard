@@ -1,6 +1,10 @@
 package server
 
-import "gopkg.in/mgo.v2/bson"
+import (
+	"time"
+
+	"gopkg.in/mgo.v2/bson"
+)
 
 type Team struct {
 	Id     bson.ObjectId `json:"id,omitempty" bson:"_id,omitempty"`
@@ -71,6 +75,20 @@ func DataGetTeamIps() ([]Team, error) {
 		return t, err
 	}
 	return t, nil
+}
+
+func DataGetTeams() []Team {
+	t := []Team{}
+
+	session, chalCollection := GetSessionAndCollection("teams")
+	defer session.Close()
+
+	err := chalCollection.Find(nil).Sort("number").Select(bson.M{"_id": 0, "number": 1, "name": 1}).All(&t)
+	if err != nil {
+		Logger.Printf("Could not get team info: %v\n", err)
+		return t
+	}
+	return t
 }
 
 // Query statements
@@ -210,6 +228,12 @@ func DataGetAllScore() []Result {
 	if err != nil {
 		Logger.Printf("Error getting all team scores: %v\n", err)
 	}
+	if len(tmScore) == 0 {
+		teams := DataGetTeams()
+		for _, t := range teams {
+			tmScore = append(tmScore, Result{Teamname: t.Name, Teamnumber: t.Number, Points: 0})
+		}
+	}
 	return tmScore
 }
 
@@ -224,6 +248,43 @@ func DataGetServiceStatus() []Result {
 		Logger.Printf("Error getting service status: %v\n", err)
 	}
 	return r
+}
+
+func DataGetLastServiceResult() time.Time {
+	session, results := GetSessionAndCollection("results")
+	defer session.Close()
+	id := bson.M{}
+	pipe := results.Pipe([]bson.M{
+		{"$match": bson.M{"type": "Service"}},
+		{"$sort": bson.M{"_id": 1}},
+		{"$group": bson.M{"_id": nil, "last": bson.M{"$last": "$_id"}}},
+		{"$project": bson.M{"_id": 0, "last": 1}},
+	})
+	err := pipe.One(&id)
+	if err != nil {
+		Logger.Printf("Error getting last Service result: %v\n", err)
+	}
+	time := id["last"].(bson.ObjectId).Time()
+	return time
+}
+
+func DataGetLastResult() time.Time {
+	session, results := GetSessionAndCollection("results")
+	defer session.Close()
+	id := bson.M{}
+	pipe := results.Pipe([]bson.M{
+		{"$sort": bson.M{"_id": 1}},
+		{"$group": bson.M{"_id": nil, "last": bson.M{"$last": "$_id"}}},
+		{"$project": bson.M{"_id": 0, "last": 1}},
+	})
+	err := pipe.One(&id)
+	var time time.Time
+	if err != nil {
+		Logger.Printf("Error getting last document: %v\n", err)
+	} else {
+		time = id["last"].(bson.ObjectId).Time()
+	}
+	return time
 }
 
 // Insert statements

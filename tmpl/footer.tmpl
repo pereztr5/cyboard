@@ -6,6 +6,8 @@
     <script src="/assets/js/flag.js"></script>
     {{- else if eq .Title "teampage" }}
     <script src="/assets/js/dashboard.js"></script>
+    {{- else if eq .Title "scoreboard" }}
+    <script src="/assets/js/ws.js"></script>
     {{- end }}
 </body>
 </html>

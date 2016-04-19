@@ -1,6 +1,5 @@
 {{- template "header" . }}
 <h3 class="page-header">{{ title .Title }}</h3>
-{{- with allTeamScores }}
 <table class="table table-striped table-hover ">
     <thead>
         <tr>
@@ -9,15 +8,14 @@
             <th>Points</th>
         </tr>
     </thead>
-    <tbody>
-    {{- range . }}
-        <tr>
-            <td>{{ .Teamnumber }}</td>
-            <td>{{ .Teamname }}</td>
-            <td>{{ .Points }}</td>
+    <tbody id="result-list">
+    {{- range allTeamScores }}
+        <tr id="{{ .Teamname }}">
+            <td class="teamnumber">{{ .Teamnumber }}</td>
+            <td class="teamname">{{ .Teamname }}</td>
+            <td class="points">{{ .Points }}</td>
         </tr>
     {{- end }}
     </tbody>
 </table>
-{{- end }}
 {{- template "footer" . }}

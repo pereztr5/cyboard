@@ -51,6 +51,7 @@ func CreateWebRouter() *mux.Router {
 	// TODO: Make this the name of AIS challenge
 	router.HandleFunc("/challenges", GetChallenges).Methods("GET")
 	router.HandleFunc("/team/scores", GetScores).Methods("GET")
+	router.HandleFunc("/team/scores/live", ServeWs).Methods("GET")
 	return router
 }
 
@@ -148,9 +149,9 @@ func ShowFlags(w http.ResponseWriter, r *http.Request) {
 
 func ShowScoreboard(w http.ResponseWriter, r *http.Request) {
 	t := context.Get(r, "team")
-	p := Page{
-		Title: "scoreboard",
-		T:     t.(Team),
+	p := Page{Title: "scoreboard"}
+	if t != nil {
+		p.T = t.(Team)
 	}
 	renderTemplate(w, p)
 }
@@ -181,7 +182,7 @@ func getAllTeamScores() []Result {
 }
 
 func renderTemplate(w http.ResponseWriter, p Page) {
-	err := templates[p.Title].ExecuteTemplate(w, p.Title+".tmpl", p)
+	err := templates[p.Title].ExecuteTemplate(w, p.Title+".tmpl", &p)
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 	}
