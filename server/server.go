@@ -25,11 +25,7 @@ func init() {
 }
 
 func serverRun(cmd *cobra.Command, args []string) {
-	//TODO How to generate random hashkey without having to delete previous client side cookies
-	CreateStore(
-		viper.GetString("server.hashkey"),
-		viper.GetString("server.blockkey"),
-	)
+	CreateStore()
 	webRouter := CreateWebRouter()
 	teamRouter := CreateTeamRouter()
 

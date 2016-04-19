@@ -2,10 +2,10 @@ package server
 
 import (
 	"encoding/gob"
-	"encoding/hex"
 	"net/http"
 
 	"github.com/gorilla/context"
+	"github.com/gorilla/securecookie"
 	"github.com/gorilla/sessions"
 	"golang.org/x/crypto/bcrypt"
 	"gopkg.in/mgo.v2/bson"
@@ -18,16 +18,13 @@ func init() {
 
 var Store *sessions.CookieStore
 
-func CreateStore(hashkey, blockkey string) {
-	hk, err := hex.DecodeString(hashkey)
-	if err != nil {
-		Logger.Fatalf("Could not decode hashkey: %v", err)
+func CreateStore() {
+	Store = sessions.NewCookieStore([]byte(securecookie.GenerateRandomKey(64)), []byte(securecookie.GenerateRandomKey(32)))
+	Store.Options = &sessions.Options{
+		// Cookie will last for 1 hour
+		MaxAge:   3600,
+		HttpOnly: true,
 	}
-	bk, err := hex.DecodeString(blockkey)
-	if err != nil {
-		Logger.Fatalf("Could not decode blockkey: %v", err)
-	}
-	Store = sessions.NewCookieStore([]byte(hk), []byte(bk))
 }
 
 func CheckCreds(w http.ResponseWriter, r *http.Request) bool {
@@ -35,7 +32,6 @@ func CheckCreds(w http.ResponseWriter, r *http.Request) bool {
 	session, err := Store.Get(r, "cyboard")
 	if err != nil {
 		Logger.Printf("Error getting session: %v\n", err)
-		return false
 	}
 
 	t, err := GetTeamByTeamname(teamname)
@@ -57,6 +53,5 @@ func CheckCreds(w http.ResponseWriter, r *http.Request) bool {
 		Logger.Printf("Error saving session: %v\n", err)
 		return false
 	}
-
 	return true
 }

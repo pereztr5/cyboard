@@ -2,7 +2,7 @@
     "number": 1,
     "name": "Team1",
     "hash": "$2a$10$uETLwMbBLoaxlRIiPd/bmOrJOZRvPs4oSeihqpprEjCqM/I/VVRGm",
-    "ip": "10.0.1.0"
+    "ip": "127.0.0.1"
 }, {
     "number": 2,
     "name": "Team2",

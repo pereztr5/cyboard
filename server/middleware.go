@@ -12,20 +12,18 @@ func CheckSessionID(w http.ResponseWriter, r *http.Request, next http.HandlerFun
 	session, err := Store.Get(r, "cyboard")
 	if err != nil {
 		Logger.Printf("Getting from Store failed: %v", err)
-		http.Error(w, http.StatusText(400), 400)
-		return
 	}
 	context.Set(r, "session", session)
 	if id, ok := session.Values["id"]; ok {
 		t, err := GetTeamById(id.(*bson.ObjectId))
 		if err != nil {
 			Logger.Printf("GetTeamById %v: %v", id, err)
-			// TODO: If this fails we should remove that session and
-			// have them re-login
-			http.Error(w, http.StatusText(500), 500)
-			return
+			context.Set(r, "team", nil)
+		} else {
+			context.Set(r, "team", t)
 		}
-		context.Set(r, "team", t)
+	} else {
+		context.Set(r, "team", nil)
 	}
 	next(w, r)
 }
