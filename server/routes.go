@@ -34,22 +34,25 @@ func init() {
 		"allTeamScores":   getAllTeamScores,
 	}
 
+	templates["homepage"] = template.Must(template.New("homepage").Funcs(funcMap).ParseFiles("tmpl/header.tmpl", "tmpl/homepage.tmpl", "tmpl/footer.tmpl"))
 	templates["login"] = template.Must(template.New("login").Funcs(funcMap).ParseFiles("tmpl/header.tmpl", "tmpl/login.tmpl", "tmpl/footer.tmpl"))
 	templates["scoreboard"] = template.Must(template.New("scoreboard").Funcs(funcMap).ParseFiles("tmpl/header.tmpl", "tmpl/scoreboard.tmpl", "tmpl/footer.tmpl"))
-	templates["teampage"] = template.Must(template.New("teampage").Funcs(funcMap).ParseFiles("tmpl/header.tmpl", "tmpl/teampage.tmpl", "tmpl/footer.tmpl"))
+	templates["dashboard"] = template.Must(template.New("dashboard").Funcs(funcMap).ParseFiles("tmpl/header.tmpl", "tmpl/dashboard.tmpl", "tmpl/footer.tmpl"))
 	templates["challenges"] = template.Must(template.New("challenges").Funcs(funcMap).ParseFiles("tmpl/header.tmpl", "tmpl/challenges.tmpl", "tmpl/footer.tmpl"))
+	templates["services"] = template.Must(template.New("services").Funcs(funcMap).ParseFiles("tmpl/header.tmpl", "tmpl/services.tmpl", "tmpl/footer.tmpl"))
 }
 
 func CreateWebRouter() *mux.Router {
 	router := mux.NewRouter()
 	// Public Routes
+	router.HandleFunc("/", ShowHome).Methods("GET")
 	router.HandleFunc("/login", ShowLogin).Methods("GET")
 	router.HandleFunc("/login", SubmitLogin).Methods("POST")
 	router.HandleFunc("/logout", Logout).Methods("GET")
 	router.HandleFunc("/scoreboard", ShowScoreboard).Methods("GET")
+	router.HandleFunc("/team/services", ShowServices).Methods("GET")
 	// Public API
 	// TODO: Make this the name of AIS challenge
-	router.HandleFunc("/challenges", GetChallenges).Methods("GET")
 	router.HandleFunc("/team/scores", GetScores).Methods("GET")
 	router.HandleFunc("/team/scores/live", ServeWs).Methods("GET")
 	return router
@@ -57,20 +60,21 @@ func CreateWebRouter() *mux.Router {
 
 func CreateTeamRouter() *mux.Router {
 	router := mux.NewRouter()
-	router.HandleFunc("/teampage", TeamPage).Methods("GET")
-	router.HandleFunc("/showflags", ShowFlags).Methods("GET")
-	router.HandleFunc("/challenge/verify", CheckFlag).Methods("POST")
-	router.HandleFunc("/challenge/verify/all", CheckAllFlags).Methods("POST")
+	router.HandleFunc("/team/dashboard", ShowTeamDashboard).Methods("GET")
+	router.HandleFunc("/challenges", ShowChallenges).Methods("GET")
+	router.HandleFunc("/challenges/list", GetChallenges).Methods("GET")
+	router.HandleFunc("/challenges/verify", CheckFlag).Methods("POST")
+	router.HandleFunc("/challenges/verify/all", CheckAllFlags).Methods("POST")
 	return router
 }
 
-func GetScores(w http.ResponseWriter, r *http.Request) {
-	scores := DataGetAllScore()
-	w.Header().Set("Content-Type", "application/json; charset=UTF-8")
-	if err := json.NewEncoder(w).Encode(scores); err != nil {
-		Logger.Printf("Error encoding json: %v\n", err)
-		return
+func ShowHome(w http.ResponseWriter, r *http.Request) {
+	t := context.Get(r, "team")
+	p := Page{Title: "homepage"}
+	if t != nil {
+		p.T = t.(Team)
 	}
+	renderTemplate(w, p)
 }
 
 func ShowLogin(w http.ResponseWriter, r *http.Request) {
@@ -80,7 +84,7 @@ func ShowLogin(w http.ResponseWriter, r *http.Request) {
 		}
 		renderTemplate(w, p)
 	} else {
-		http.Redirect(w, r, "/teampage", 302)
+		http.Redirect(w, r, "/team/dashboard", 302)
 	}
 }
 
@@ -97,11 +101,9 @@ func SubmitLogin(w http.ResponseWriter, r *http.Request) {
 			http.Error(w, http.StatusText(500), 500)
 			return
 		}
-
-		http.Redirect(w, r, "/teampage", 302)
+		http.Redirect(w, r, "/team/dashboard", 302)
 		return
 	}
-
 	http.Redirect(w, r, "/login", 302)
 }
 
@@ -123,15 +125,15 @@ func Logout(w http.ResponseWriter, r *http.Request) {
 	http.Redirect(w, r, "/login", 302)
 }
 
-func TeamPage(w http.ResponseWriter, r *http.Request) {
+func ShowTeamDashboard(w http.ResponseWriter, r *http.Request) {
 	p := Page{
-		Title: "teampage",
+		Title: "dashboard",
 		T:     context.Get(r, "team").(Team),
 	}
 	renderTemplate(w, p)
 }
 
-func ShowFlags(w http.ResponseWriter, r *http.Request) {
+func ShowChallenges(w http.ResponseWriter, r *http.Request) {
 	t := context.Get(r, "team")
 	if t != nil {
 		p := Page{
@@ -139,8 +141,6 @@ func ShowFlags(w http.ResponseWriter, r *http.Request) {
 			T:     t.(Team),
 		}
 		renderTemplate(w, p)
-	} else {
-		http.Redirect(w, r, "/flags.html", 302)
 	}
 }
 
@@ -151,6 +151,23 @@ func ShowScoreboard(w http.ResponseWriter, r *http.Request) {
 		p.T = t.(Team)
 	}
 	renderTemplate(w, p)
+}
+
+func ShowServices(w http.ResponseWriter, r *http.Request) {
+	t := context.Get(r, "team")
+	p := Page{Title: "services"}
+	if t != nil {
+		p.T = t.(Team)
+	}
+	renderTemplate(w, p)
+}
+
+func GetScores(w http.ResponseWriter, r *http.Request) {
+	scores := DataGetAllScore()
+	w.Header().Set("Content-Type", "application/json; charset=UTF-8")
+	if err := json.NewEncoder(w).Encode(scores); err != nil {
+		Logger.Printf("Error encoding json: %v\n", err)
+	}
 }
 
 func getChallenges() map[string]int {

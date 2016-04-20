@@ -14,15 +14,17 @@
     <div class="container">
         <nav class="navbar navbar-inverse">
             <div class="container-fluid">
-                <div class="navbar-header"><a class="navbar-brand navbar-link" href="/index.html">CNY Hackathon</a>
+                <div class="navbar-header"><a class="navbar-brand navbar-link" href="/">CNY Hackathon</a>
                     <button class="navbar-toggle collapsed" data-toggle="collapse" data-target="#navcol-1"><span class="sr-only">Toggle navigation</span><span class="icon-bar"></span><span class="icon-bar"></span><span class="icon-bar"></span></button>
                 </div>
                 <div class="collapse navbar-collapse" id="navcol-1">
                     <ul class="nav navbar-nav navbar-left">
-                        <li role="presentation"><a href="/index.html">Home </a></li>
+                        <li role="presentation"><a href="/">Home </a></li>
                         <li role="presentation"><a href="/scoreboard">Scoreboard</a></li>
-                        <li role="presentation"><a href="/showflags">Flags</a></li>
-                        <!-- <li role="presentation"><a href="/newFlag.html">New Flag</a></li> -->
+                        <li role="presentation"><a href="/team/services">Services</a></li>
+                        {{- if .T.Name }}
+                        <li role="presentation"><a href="/challenges">Challenges</a></li>
+                        {{- end }}
                     </ul>
                     <ul class="nav navbar-nav navbar-right">
                         {{- if .T.Name }}

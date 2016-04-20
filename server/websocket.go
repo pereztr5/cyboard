@@ -18,7 +18,7 @@ const (
 	pingPeriod = (pongWait * 9) / 10
 
 	// Poll file for changes with this period.
-	filePeriod = 10 * time.Second
+	updatePeriod = 2 * time.Second
 )
 
 var upgrader = websocket.Upgrader{
@@ -56,15 +56,15 @@ func reader(ws *websocket.Conn) {
 
 func writer(ws *websocket.Conn, lastMod time.Time) {
 	pingTicker := time.NewTicker(pingPeriod)
-	fileTicker := time.NewTicker(filePeriod)
+	updateTicker := time.NewTicker(updatePeriod)
 	defer func() {
 		pingTicker.Stop()
-		fileTicker.Stop()
+		updateTicker.Stop()
 		ws.Close()
 	}()
 	for {
 		select {
-		case <-fileTicker.C:
+		case <-updateTicker.C:
 			var r []Result
 			var err error
 

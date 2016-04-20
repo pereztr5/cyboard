@@ -19,7 +19,7 @@ function submitFlag() {
 
     if (flagValue.length > 0) {
         $.ajax({
-            url: '/challenge/verify/all',
+            url: '/challenges/verify/all',
             type: 'POST',
             dataType: 'html',
             data: {
