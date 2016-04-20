@@ -158,7 +158,6 @@ func DataGetTotalChallenges() (map[string]int, error) {
 	defer session.Close()
 	totals := make(map[string]int)
 	t := bson.M{}
-
 	pipe := collection.Pipe([]bson.M{
 		{"$group": bson.M{"_id": "$group", "total": bson.M{"$sum": 1}}},
 		{"$sort": bson.M{"_id": -1}},
@@ -219,6 +218,7 @@ func DataGetAllScore() []Result {
 	defer session.Close()
 	tmScore := []Result{}
 
+	teams := DataGetTeams()
 	pipe := collection.Pipe([]bson.M{
 		{"$group": bson.M{"_id": bson.M{"tname": "$teamname", "tnum": "$teamnumber"}, "points": bson.M{"$sum": "$points"}}},
 		{"$project": bson.M{"_id": 0, "points": 1, "teamnumber": "$_id.tnum", "teamname": "$_id.tname"}},
@@ -228,10 +228,15 @@ func DataGetAllScore() []Result {
 	if err != nil {
 		Logger.Printf("Error getting all team scores: %v\n", err)
 	}
-	if len(tmScore) == 0 {
-		teams := DataGetTeams()
-		for _, t := range teams {
-			tmScore = append(tmScore, Result{Teamname: t.Name, Teamnumber: t.Number, Points: 0})
+	if l := len(tmScore); l < len(teams) {
+		if l == 0 {
+			for _, t := range teams {
+				tmScore = append(tmScore, Result{Teamname: t.Name, Teamnumber: t.Number, Points: 0})
+			}
+		} else {
+			for i := l; i < len(teams); i++ {
+				tmScore = append(tmScore, Result{Teamname: teams[i].Name, Teamnumber: teams[i].Number, Points: 0})
+			}
 		}
 	}
 	return tmScore
