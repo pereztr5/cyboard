@@ -9,19 +9,19 @@ $(function() {
         appendScores(results)
     }
 function appendScores(res) {
-    var icons = 'fa-check-circle-o fa-times-circle-o fa-exclamation-circle fa-question-circle-o'
+    var icons = 'fa-arrow-circle-up fa-down-circle-down fa-exclamation-circle fa-question-circle-o text-success text-danger text-warning text-muted'
     res.forEach(function(r) {
         var group = $('div').find('[data-check="' + r._id + '"]');
         r.teams.forEach(function(team) {
             var stat = group.find('[data-team=' + team.number + ']');
-            var newIcon = 'fa-question-circle-o';
+            var newIcon = 'fa-question-circle-o text-muted';
             stat.removeClass(icons);
             if (team.status == "Status: 0") {
-                newIcon = 'fa-check-circle-o';
+                newIcon = 'fa-arrow-circle-up text-success';
             } else if (team.status == "Status: 1") {
-                newIcon = 'fa-times-circle-o';
+                newIcon = 'fa-down-circle-down text-danger';
             } else if (team.status == "Status: 2") {
-                newIcon = 'fa-exclamation-circle';
+                newIcon = 'fa-exclamation-circle text-warning';
             }
             stat.addClass(newIcon);
         });

@@ -6,7 +6,7 @@
         <!-- START -->
         <div class="group">
             <div class='square-box'>
-                <div class='square-content'>
+                <div class='square-content labels'>
                     <div></div>
                 </div>
             </div>
@@ -14,30 +14,30 @@
             {{ $max := len $teams }}
             {{- range $teams }}
             <div class='square-box'>
-                <div class='square-content'>
-                    <div><span class="labels">TEAM{{ .Teamnumber }}</span></div>
+                <div class='square-content labels'>
+                    <div><span>TEAM{{ .Teamnumber }}</span></div>
                 </div>
             </div>
             {{- end }}
         </div>
         {{- range serviceList }}
-        <div class="group" data-check="{{ . }}">
+        <div class='group' data-check='{{ . }}'>
             <div class='square-box'>
-                <div class='square-content'>
-                    <div><span class="labels">{{ . }}</span></div>
+                <div class='square-content labels-vert'>
+                    <div><span>{{ . }}</span></div>
                 </div>
             </div>
             {{- range getStatus . }}
             <div class='square-box'>
                 <div class='square-content'>
                     {{- if eq .Details "Status: 0" }}
-                    <div><span class="fa fa-check-circle-o" data-team={{ .Teamnumber }} aria-hidden="true"></span></div>
+                    <div><span class="fa fa-arrow-circle-up text-success" data-team={{ .Teamnumber }} aria-hidden="true"></span></div>
                     {{- else if eq .Details "Status: 1" }}
-                    <div><span class="fa fa-times-circle-o" data-team={{ .Teamnumber }} aria-hidden="true"></span></div>
+                    <div><span class="fa fa-arrow-circle-down text-danger" data-team={{ .Teamnumber }} aria-hidden="true"></span></div>
                     {{- else if eq .Details "Status: 2" }}
-                    <div><span class="fa fa-exclamation-circle" data-team={{ .Teamnumber }} aria-hidden="true"></span></div>
+                    <div><span class="fa fa-exclamation-circle text-warning" data-team={{ .Teamnumber }} aria-hidden="true"></span></div>
                     {{- else }}
-                    <div><span class="fa fa-question-circle-o" data-team={{ .Teamnumber }} aria-hidden="true"></span></div>
+                    <div><span class="fa fa-question-circle text-muted" data-team={{ .Teamnumber }} aria-hidden="true"></span></div>
                     {{- end }}
                 </div>
             </div>

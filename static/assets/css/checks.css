@@ -1,10 +1,8 @@
 .square-box {
     position: relative;
-    width: 9%;
+    width: 7%;
     overflow: hidden;
-    background: #4679BD;
     float: left;
-    margin: 2px;
 }
 
 .square-box:before {
@@ -20,6 +18,7 @@
     bottom: 0;
     right: 0;
     color: white;
+    border: 1px solid #252525;
 }
 
 .square-content div {
@@ -28,20 +27,34 @@
     height: 100%;
 }
 
-.square-content span {
+.square-content .fa {
     display: table-cell;
     text-align: center;
     vertical-align: middle;
-    color: white;
     font-size: 6vw;
 }
 
-.square-content .labels {
+.square-content.labels span,
+.square-content.labels-vert span {
     display: table-cell;
     text-align: center;
     vertical-align: middle;
-    color: white;
     font-size: 1.5vw;
+    border: 0;
+}
+
+.square-content.labels,
+.square-content.labels-vert {
+    border: 0;
+}
+
+.square-content.labels span {
+    vertical-align: bottom;
+}
+
+.square-content.labels-vert span {
+    text-align: right;
+    padding-right: 5px;
 }
 
 .group:after {
@@ -50,26 +63,36 @@
     clear: both;
 }
 
-@media (max-width: 425px) {
+@media (min-width: 320px) {
     .square-box {
-        width: 8%;
+        width: 6%;
+    }
+    .square-content .fa {
+        font-size: 4.5vw;
+    }
+    .square-content.labels span {
+        font-size: 1.3vw;
     }
 }
 
-@media (max-width: 768px) {
-    .square-content span {
-        font-size: 7vw;
+@media (min-width: 768px) {
+    .square-content .fa {
+        font-size: 4.1vw;
     }
-    .square-content .labels {
-        font-size: 2vw;
+    .square-content.labels span {
+        font-size: 1.1vw;
     }
 }
 
-@media (min-width: 2560px) {
-    .square-content span {
-        font-size: 3.5vw;
+@media (min-width: 1200px) {
+    .square-box {
+        width: 72px;
     }
-    .square-content .labels {
-        font-size: 1vw;
+    .square-content .fa {
+        font-size: 53px;
+    }
+    .square-content.labels span,
+    .square-content.labels-vert span {
+        font-size: 17px;
     }
 }
