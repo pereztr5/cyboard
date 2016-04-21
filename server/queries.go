@@ -228,6 +228,7 @@ func DataGetAllScore() []Result {
 	if err != nil {
 		Logger.Printf("Error getting all team scores: %v\n", err)
 	}
+	// Get defaults for teams that do not have a score
 	if l := len(tmScore); l < len(teams) {
 		if l == 0 {
 			for _, t := range teams {
@@ -242,34 +243,116 @@ func DataGetAllScore() []Result {
 	return tmScore
 }
 
-func DataGetServiceStatus() []Result {
-	r := []Result{}
-
+func DataGetServiceStatus() []interface{} {
 	session, results := GetSessionAndCollection("results")
 	defer session.Close()
+	var cResults []interface{}
 
-	err := results.Find(bson.M{"type": "Service"}).All(&r)
+	pipe := results.Pipe([]bson.M{
+		{"$match": bson.M{"type": "Service"}},
+		{"$group": bson.M{"_id": bson.M{"service": "$group", "tnum": "$teamnumber", "tname": "$teamname"}, "status": bson.M{"$last": "$details"}}},
+		{"$group": bson.M{"_id": "$_id.service", "teams": bson.M{"$addToSet": bson.M{"number": "$_id.tnum", "name": "$_id.tname", "status": "$status"}}}},
+	})
+	err := pipe.All(&cResults)
 	if err != nil {
-		Logger.Printf("Error getting service status: %v\n", err)
+		Logger.Printf("Error getting all team scores: %v\n", err)
 	}
-	return r
+	/*
+		for iter.Next(&check) {
+				teams := check["teams"]
+				for _, t := range teams {
+					result := Result{
+						Group:      check["_id"].(string),
+						Teamname:   t["teamname"].(string),
+						Teamnumber: t["teamnnumber"].(int),
+						Details:    t["status"].(string),
+					}
+					cResults = append(cResults, result)
+				}
+		}
+		if err := iter.Close(); err != nil {
+			Logger.Printf("Error getting service status: %v\n", err)
+		}
+	*/
+	return cResults
 }
 
+func DataGetServiceResult() []Result {
+	session, collection := GetSessionAndCollection("results")
+	defer session.Close()
+	sList := []Result{}
+
+	err := collection.Pipe([]bson.M{
+		{"$match": bson.M{"type": "Service"}},
+		{"$group": bson.M{"_id": bson.M{"service": "$group", "tnum": "$teamnumber", "tname": "$teamname"}, "status": bson.M{"$last": "$details"}}},
+		{"$group": bson.M{"_id": "$_id.service", "teams": bson.M{"$addToSet": bson.M{"number": "$_id.tnum", "name": "$_id.tname", "status": "$status"}}}},
+		{"$unwind": "$teams"},
+		{"$project": bson.M{"_id": 0, "group": "$_id", "teamnumber": "$teams.number", "teamname": "$teams.name", "details": "$teams.status"}},
+		{"$sort": bson.M{"group": 1, "teamnumber": 1}},
+	}).All(&sList)
+	if err != nil {
+		Logger.Printf("Error getting all team scores: %v\n", err)
+	}
+	return sList
+}
+
+func DataGetResultByService(service string) []Result {
+	session, collection := GetSessionAndCollection("results")
+	defer session.Close()
+	teamStatus := []Result{}
+
+	err := collection.Pipe([]bson.M{
+		{"$match": bson.M{"type": "Service", "group": service}},
+		{"$group": bson.M{"_id": bson.M{"service": "$group", "tnum": "$teamnumber", "tname": "$teamname"}, "status": bson.M{"$last": "$details"}}},
+		{"$project": bson.M{"_id": 0, "group": "$_id.service", "teamnumber": "$_id.tnum", "teamname": "$_id.tname", "details": "$status"}},
+		{"$sort": bson.M{"teamnumber": 1}},
+	}).All(&teamStatus)
+	if err != nil {
+		Logger.Printf("Error getting team status by service: %v\n", err)
+	}
+	return teamStatus
+}
+
+func DataGetServiceList() []string {
+	session, collection := GetSessionAndCollection("results")
+	defer session.Close()
+	var list []string
+	res := bson.M{}
+
+	pipe := collection.Pipe([]bson.M{
+		{"$match": bson.M{"type": "Service"}},
+		{"$group": bson.M{"_id": "$group"}},
+		{"$project": bson.M{"_id": 0, "group": "$_id"}},
+		{"$sort": bson.M{"group": 1}},
+	})
+	iter := pipe.Iter()
+	for iter.Next(&res) {
+		list = append(list, res["group"].(string))
+	}
+	if err := iter.Close(); err != nil {
+		Logger.Printf("Error getting service list: %v\n", err)
+	}
+	return list
+
+}
+
+// TODO: Combine queries since this has repeating code
 func DataGetLastServiceResult() time.Time {
 	session, results := GetSessionAndCollection("results")
 	defer session.Close()
 	id := bson.M{}
-	pipe := results.Pipe([]bson.M{
+	err := results.Pipe([]bson.M{
 		{"$match": bson.M{"type": "Service"}},
 		{"$sort": bson.M{"_id": 1}},
 		{"$group": bson.M{"_id": nil, "last": bson.M{"$last": "$_id"}}},
 		{"$project": bson.M{"_id": 0, "last": 1}},
-	})
-	err := pipe.One(&id)
+	}).One(&id)
+	var time time.Time
 	if err != nil {
 		Logger.Printf("Error getting last Service result: %v\n", err)
+	} else {
+		time = id["last"].(bson.ObjectId).Time()
 	}
-	time := id["last"].(bson.ObjectId).Time()
 	return time
 }
 
@@ -277,12 +360,11 @@ func DataGetLastResult() time.Time {
 	session, results := GetSessionAndCollection("results")
 	defer session.Close()
 	id := bson.M{}
-	pipe := results.Pipe([]bson.M{
+	err := results.Pipe([]bson.M{
 		{"$sort": bson.M{"_id": 1}},
 		{"$group": bson.M{"_id": nil, "last": bson.M{"$last": "$_id"}}},
 		{"$project": bson.M{"_id": 0, "last": 1}},
-	})
-	err := pipe.One(&id)
+	}).One(&id)
 	var time time.Time
 	if err != nil {
 		Logger.Printf("Error getting last document: %v\n", err)

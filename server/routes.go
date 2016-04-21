@@ -32,6 +32,8 @@ func init() {
 		"teamChallenges":  getTeamChallenges,
 		"teamScore":       getTeamScore,
 		"allTeamScores":   getAllTeamScores,
+		"getStatus":       DataGetResultByService,
+		"serviceList":     DataGetServiceList,
 	}
 
 	templates["homepage"] = template.Must(template.New("homepage").Funcs(funcMap).ParseFiles("tmpl/header.tmpl", "tmpl/homepage.tmpl", "tmpl/footer.tmpl"))
@@ -54,7 +56,8 @@ func CreateWebRouter() *mux.Router {
 	// Public API
 	// TODO: Make this the name of AIS challenge
 	router.HandleFunc("/team/scores", GetScores).Methods("GET")
-	router.HandleFunc("/team/scores/live", ServeWs).Methods("GET")
+	router.HandleFunc("/team/scores/live", ServeScoresWs).Methods("GET")
+	router.HandleFunc("/team/services/live", ServeServicesWs).Methods("GET")
 	return router
 }
 
@@ -191,8 +194,7 @@ func getTeamScore(teamname string) int {
 }
 
 func getAllTeamScores() []Result {
-	scores := DataGetAllScore()
-	return scores
+	return DataGetAllScore()
 }
 
 func renderTemplate(w http.ResponseWriter, p Page) {

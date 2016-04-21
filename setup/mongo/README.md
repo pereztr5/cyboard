@@ -269,3 +269,70 @@ db.wands.update(
     {"multi": true}
 )
 ```
+
+### Aggregation
+
+Get service and the lastest status for that team
+```
+db.results.aggregate(
+    {"$match": {"type": "Service"}},
+    {"$group": 
+        {
+            "_id": {"type": "$group", "tnumber": "$teamnumber", "tname": "$teamname"},
+            "status": {"$last": "$details"}
+        }
+    },
+    {"$group": 
+        {
+            "_id": "$_id.type",
+            "teams": {"$addToSet": {"teamnumber": "$_id.teamnumber", "teamname": "$_id.tname", "status": "$status"}}
+        }
+    }
+)
+```
+
+Same as above except there is no nested object
+NOTE: Sort doesn't always sort for some reason in Go
+```
+db.results.aggregate(
+    {"$match": {"type": "Service"}},
+    {"$group": 
+        {
+            "_id": {"type": "$group", "tnumber": "$teamnumber", "tname": "$teamname"},
+            "status": {"$last": "$details"}}
+        },
+    {"$group": 
+        {
+            "_id": "$_id.type",
+            "teams": {"$addToSet": {"number": "$_id.tnumber", "name": "$_id.tname", "status": "$status"}}
+        }
+    },
+    {"$unwind": "$teams"},
+    {"$project": {"_id": 0, "group": "$_id", "tnum": "$teams.number", "tname": "$teams.name", "status": "$teams.status"}},
+    {"$sort": {"tnum": 1, "group": 1}}
+)
+```
+
+Get service list form results
+```
+db.results.aggregate(
+    {"$match": {"type": "Service", "group": "web"}},
+    {"$group": {"_id": "$group"}},
+    {"$project": {"_id": 0, "group": "$_id"}}
+)
+```
+
+Get By Serivce
+```
+db.results.aggregate(
+    {"$match": {"type": "Service", "group": "web"}},
+    {"$group": 
+        {
+            "_id": {"type": "$group", "tnumber": "$teamnumber", "tname": "$teamname"},
+            "status": {"$last": "$details"}
+        }
+    },
+    {"$project": {"_id": 0, "group": "$_id.type", "teamnumber": "$_id.tnumber", "teamname": "$_id.tname", "details": "$status"}},
+    {"$sort": {"teamnumber": 1}}
+)
+```

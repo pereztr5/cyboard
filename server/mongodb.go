@@ -13,7 +13,6 @@ var mongodbSession *mgo.Session
 func init() {
 	ServerCmd.PersistentFlags().String("mongodb_uri", "mongodb://127.0.0.1", "Address of MongoDB in use")
 	viper.BindPFlag("database.mongodb_uri", ServerCmd.PersistentFlags().Lookup("mongodb_uri"))
-	CreateUniqueIndexes()
 }
 
 func DBSession() *mgo.Session {

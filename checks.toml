@@ -1,7 +1,7 @@
 checks_dir = "scripts"
 event_end_time = "Tue Apr 19 22:58:12 EDT 2016"
-intervals = "10s"
-timeout = "10s"
+intervals = "5s"
+timeout = "4s"
 
 [checks]
     [checks.1]

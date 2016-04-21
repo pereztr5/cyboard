@@ -2,7 +2,9 @@ package server
 
 import (
 	"bytes"
+	"fmt"
 	"io"
+	"log"
 	"os/exec"
 	"path/filepath"
 	"strconv"
@@ -10,6 +12,7 @@ import (
 	"syscall"
 	"time"
 
+	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
 )
 
@@ -26,20 +29,58 @@ type EventSettings struct {
 	Intervals time.Duration
 }
 
-var Event EventSettings
-var cfgCheck *viper.Viper
+var CheckCmd = &cobra.Command{
+	Use:   "checks",
+	Short: "Run Service Checks",
+	Long:  `Will get config file for checks and then running it at intervals`,
+	Run:   checksRun,
+}
 
-func getConfig() {
-	cfgCheck = viper.New()
-	cfgCheck.SetConfigName("checks")
-	cfgCheck.AddConfigPath(".")
-	err := cfgCheck.ReadInConfig()
-	if err != nil {
-		Logger.Fatalf("Fatal error config file: %v\n", err)
+var (
+	Event    EventSettings
+	cfgCheck string
+	checkcfg *viper.Viper
+	dryRun   bool
+)
+
+func init() {
+	cobra.OnInitialize(initCheckConfig)
+	CheckCmd.PersistentFlags().StringVar(&cfgCheck, "config", "", "service check config file (default is $HOME/.cyboard/checks.toml)")
+	CheckCmd.Flags().BoolVarP(&dryRun, "dry", "", false, "Do a dry run of checks")
+}
+
+func initCheckConfig() {
+	checkcfg = viper.New()
+	if cfgCheck != "" {
+		checkcfg.SetConfigFile(cfgCheck)
 	}
+	checkcfg.SetConfigName("checks")
+	checkcfg.AddConfigPath("$HOME/.cyboard/")
+	checkcfg.AddConfigPath(".")
+	err := checkcfg.ReadInConfig()
+	if err != nil {
+		log.Fatal(fmt.Errorf("Fatal error config file: %s \n", err))
+	}
+}
 
+func checksRun(cmd *cobra.Command, args []string) {
+	if !dryRun {
+		loadSettings()
+		checks := getChecks()
+		teams, err := DataGetTeamIps()
+		if err != nil {
+			Logger.Fatalf("Could not get teams for service checks: %v\n", err)
+		}
+		start(teams, checks)
+	} else {
+		Logger.Printf("DRY RUN\n")
+	}
+}
+
+func loadSettings() {
 	// Get Event details
-	Event.End, err = time.Parse(time.UnixDate, cfgCheck.GetString("event_end_time"))
+	var err error
+	Event.End, err = time.Parse(time.UnixDate, checkcfg.GetString("event_end_time"))
 	if err != nil {
 		Logger.Fatal(err)
 	}
@@ -48,21 +89,21 @@ func getConfig() {
 	if time.Now().After(Event.End) {
 		Event.End = time.Now().Add(time.Second * 30)
 	}
-	Event.Intervals = cfgCheck.GetDuration("intervals")
-	Event.Timeout = cfgCheck.GetDuration("timeout")
+	Event.Intervals = checkcfg.GetDuration("intervals")
+	Event.Timeout = checkcfg.GetDuration("timeout")
 }
 
 func getChecks() (checks []Check) {
-	checksDir := cfgCheck.GetString("checks_dir")
-	for n := range cfgCheck.GetStringMap("checks") {
+	checksDir := checkcfg.GetString("checks_dir")
+	for n := range checkcfg.GetStringMap("checks") {
 		check := "checks." + n
 		s := Check{
-			Name:   cfgCheck.GetString(check + ".check_name"),
-			Script: getScript(checksDir + "/" + cfgCheck.GetString(check+".filename")),
+			Name:   checkcfg.GetString(check + ".check_name"),
+			Script: getScript(checksDir + "/" + checkcfg.GetString(check+".filename")),
 			Points: getPoints(check + ".points"),
 		}
 		// Get Arguments
-		s.Script.Args = append(s.Script.Args, getArgs(cfgCheck.GetString(check+".args"))...)
+		s.Script.Args = append(s.Script.Args, getArgs(checkcfg.GetString(check+".args"))...)
 		checks = append(checks, s)
 	}
 	return checks
@@ -159,7 +200,7 @@ func getArgs(args string) []string {
 
 func getPoints(name string) map[int]int {
 	var p []int
-	err := cfgCheck.UnmarshalKey(name, &p)
+	err := checkcfg.UnmarshalKey(name, &p)
 	if err != nil {
 		Logger.Println(err)
 	}

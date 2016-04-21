@@ -44,12 +44,15 @@ func rootRun(cmd *cobra.Command, args []string) {
 	fmt.Println(viper.GetString("server.cert"))
 	fmt.Println(viper.GetString("server.key"))
 	fmt.Println(viper.GetString("database.mongodb_uri"))
-	fmt.Println(viper.GetString("server.hashkey"))
-	fmt.Println(viper.GetString("server.blockkey"))
+	err := cmd.Help()
+	if err != nil {
+		Logger.Println(err)
+	}
 }
 
 func addCommands() {
 	RootCmd.AddCommand(ServerCmd)
+	RootCmd.AddCommand(CheckCmd)
 }
 
 func Execute() {

@@ -4,10 +4,12 @@
     <script src="/assets/bootstrap/js/bootstrap.min.js"></script>
     {{- if eq .Title "challenges" }}
     <script src="/assets/js/flag.js"></script>
-    {{- else if eq .Title "teampage" }}
+    {{- else if eq .Title "dashboard" }}
     <script src="/assets/js/dashboard.js"></script>
     {{- else if eq .Title "scoreboard" }}
     <script src="/assets/js/ws.js"></script>
+    {{- else if eq .Title "services" }}
+    <script src="/assets/js/serviceWs.js"></script>
     {{- end }}
 </body>
 </html>

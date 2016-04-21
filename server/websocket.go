@@ -31,13 +31,21 @@ func getTeamScoreIfModified(lastMod time.Time) ([]Result, time.Time, error) {
 	if !mod.After(lastMod) {
 		return nil, lastMod, nil
 	}
+	r := DataGetAllScore()
+	return r, mod, nil
+}
+
+func getServiceIfModified(lastMod time.Time) ([]interface{}, time.Time, error) {
+	mod := DataGetLastServiceResult()
+	if !mod.After(lastMod) {
+		return nil, lastMod, nil
+	}
+	r := DataGetServiceStatus()
 	/*
-		r, err := json.Marshal(DataGetAllScore())
-		if err != nil {
-			Logger.Printf("Error marshalling results: %v\n", err)
+		if len(r) == 0 {
+			return nil, mod, nil
 		}
 	*/
-	r := DataGetAllScore()
 	return r, mod, nil
 }
 
@@ -54,7 +62,7 @@ func reader(ws *websocket.Conn) {
 	}
 }
 
-func writer(ws *websocket.Conn, lastMod time.Time) {
+func writer(ws *websocket.Conn, lastMod time.Time, which string) {
 	pingTicker := time.NewTicker(pingPeriod)
 	updateTicker := time.NewTicker(updatePeriod)
 	defer func() {
@@ -66,17 +74,29 @@ func writer(ws *websocket.Conn, lastMod time.Time) {
 		select {
 		case <-updateTicker.C:
 			var r []Result
+			var t []interface{}
 			var err error
 
-			r, lastMod, err = getTeamScoreIfModified(lastMod)
+			if which == "score" {
+				r, lastMod, err = getTeamScoreIfModified(lastMod)
+			} else if which == "service" {
+				t, lastMod, err = getServiceIfModified(lastMod)
+			}
 			if err != nil {
 				Logger.Printf("Could not get websocket team score: %v\n", err)
 			}
 
-			if r != nil {
+			if r != nil || t != nil {
 				ws.SetWriteDeadline(time.Now().Add(writeWait))
-				if err := ws.WriteJSON(r); err != nil {
-					return
+				if which == "service" {
+					if err := ws.WriteJSON(t); err != nil {
+						return
+					}
+				} else {
+
+					if err := ws.WriteJSON(t); err != nil {
+						return
+					}
 				}
 			}
 		case <-pingTicker.C:
@@ -88,7 +108,7 @@ func writer(ws *websocket.Conn, lastMod time.Time) {
 	}
 }
 
-func ServeWs(w http.ResponseWriter, r *http.Request) {
+func ServeServicesWs(w http.ResponseWriter, r *http.Request) {
 	ws, err := upgrader.Upgrade(w, r, nil)
 	if err != nil {
 		if _, ok := err.(websocket.HandshakeError); !ok {
@@ -97,6 +117,19 @@ func ServeWs(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	go writer(ws, DataGetLastResult())
+	go writer(ws, DataGetLastServiceResult(), "service")
+	reader(ws)
+}
+
+func ServeScoresWs(w http.ResponseWriter, r *http.Request) {
+	ws, err := upgrader.Upgrade(w, r, nil)
+	if err != nil {
+		if _, ok := err.(websocket.HandshakeError); !ok {
+			Logger.Println(err)
+		}
+		return
+	}
+
+	go writer(ws, DataGetLastResult(), "score")
 	reader(ws)
 }
