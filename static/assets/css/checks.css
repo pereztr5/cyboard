@@ -33,7 +33,7 @@
     text-align: center;
     vertical-align: middle;
     color: white;
-    font-size: 7vw;
+    font-size: 6vw;
 }
 
 .square-content .labels {
@@ -41,11 +41,35 @@
     text-align: center;
     vertical-align: middle;
     color: white;
-    font-size: 2vw;
+    font-size: 1.5vw;
 }
 
 .group:after {
     content: "";
     display: table;
     clear: both;
+}
+
+@media (max-width: 425px) {
+    .square-box {
+        width: 8%;
+    }
+}
+
+@media (max-width: 768px) {
+    .square-content span {
+        font-size: 7vw;
+    }
+    .square-content .labels {
+        font-size: 2vw;
+    }
+}
+
+@media (min-width: 2560px) {
+    .square-content span {
+        font-size: 3.5vw;
+    }
+    .square-content .labels {
+        font-size: 1vw;
+    }
 }
