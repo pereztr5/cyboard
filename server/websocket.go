@@ -93,8 +93,7 @@ func writer(ws *websocket.Conn, lastMod time.Time, which string) {
 						return
 					}
 				} else {
-
-					if err := ws.WriteJSON(t); err != nil {
+					if err := ws.WriteJSON(r); err != nil {
 						return
 					}
 				}
