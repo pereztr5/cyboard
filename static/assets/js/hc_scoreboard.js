@@ -1,18 +1,9 @@
 $(function () {
 
     var hc_scoreboard_series = {
-        name: "Points",
-        id: ":scores",
+        name: 'Points',
+        id: ':scores',
         data: [],
-        // data: [
-        //   ["test", 500],
-        //   ["local idiot", 100],
-        //   ["daniel", 777],
-        //   ["brian", 240],
-        //   ["james", 690],
-        //   ["mike", 675],
-        //   ["brody", 480],
-        // ],
         dataLabels: {
             enabled: true,
             color: '#FFFFFF',
@@ -29,7 +20,6 @@ $(function () {
                 result.teamname, result.points
             ]);
         });
-
 
         $('#hc_scoreboard').highcharts({
             chart: {
