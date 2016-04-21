@@ -8,6 +8,10 @@
     <script src="/assets/js/dashboard.js"></script>
     {{- else if eq .Title "scoreboard" }}
     <script src="/assets/js/ws.js"></script>
+    <!-- Pull in Highcharts -->
+    <script src="/assets/highcharts/highcharts.js"></script>
+    <script src="/assets/highcharts/themes/dark-unica.js"></script>
+    <script src="/assets/js/hc_scoreboard.js"></script>
     {{- end }}
 </body>
 </html>
