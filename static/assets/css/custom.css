@@ -85,3 +85,8 @@ body {
     font-size: 30px;
     line-height: normal;
 }
+
+#hc_scoreboard {
+  min-width: 300px;
+  margin: 0 auto;
+}
