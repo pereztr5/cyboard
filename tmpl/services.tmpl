@@ -15,7 +15,10 @@
             {{- range $teams }}
             <div class='square-box'>
                 <div class='square-content labels'>
-                    <div><span>TEAM{{ .Teamnumber }}</span></div>
+                    <div><span>
+                        <small>TEAM</small> 
+                        <b class='teamnumber'>{{ .Teamnumber }}</b>
+                    </span></div>
                 </div>
             </div>
             {{- end }}

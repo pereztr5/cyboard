@@ -46,10 +46,17 @@
 .square-content.labels,
 .square-content.labels-vert {
     border: 0;
+    text-shadow: 1px 1px 10px #888;
+    font-weight: bold;
 }
 
 .square-content.labels span {
-    vertical-align: bottom;
+    vertical-align: center;
+    transform: rotate(-60deg);
+}
+
+.square-content.labels span .teamnumber {
+    color: #5DFC0A;
 }
 
 .square-content.labels-vert span {
@@ -83,9 +90,6 @@
     .square-content .fa {
         font-size: 4.5vw;
     }
-    .square-content.labels span {
-        font-size: 1.3vw;
-    }
 }
 
 @media (min-width: 768px) {
@@ -95,8 +99,11 @@
     .square-content .fa {
         font-size: 4.1vw;
     }
+}
+
+@media (max-width: 992px) {
     .square-content.labels span {
-        font-size: 1.1vw;
+        font-size: 1.2vw;
     }
 }
 
@@ -107,7 +114,6 @@
     .square-content .fa {
         font-size: 53px;
     }
-    .square-content.labels span,
     .square-content.labels-vert span {
         font-size: 17px;
     }
