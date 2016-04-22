@@ -15,7 +15,10 @@
             {{- range $teams }}
             <div class='square-box'>
                 <div class='square-content labels'>
-                    <div><span>TEAM{{ .Teamnumber }}</span></div>
+                    <div><span>
+                        <small>TEAM</small> 
+                        <b class='teamnumber'>{{ .Teamnumber }}</b>
+                    </span></div>
                 </div>
             </div>
             {{- end }}
@@ -33,7 +36,7 @@
                     {{- if eq .Details "Status: 0" }}
                     <div><span class="fa fa-arrow-circle-up text-success" data-team={{ .Teamnumber }} aria-hidden="true"></span></div>
                     {{- else if eq .Details "Status: 1" }}
-                    <div><span class="fa fa-arrow-circle-down text-danger" data-team={{ .Teamnumber }} aria-hidden="true"></span></div>
+                    <div><span class="fa fa-arrow-circle-down text-danger blink" data-team={{ .Teamnumber }} aria-hidden="true"></span></div>
                     {{- else if eq .Details "Status: 2" }}
                     <div><span class="fa fa-exclamation-circle text-warning" data-team={{ .Teamnumber }} aria-hidden="true"></span></div>
                     {{- else }}

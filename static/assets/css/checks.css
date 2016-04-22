@@ -46,10 +46,17 @@
 .square-content.labels,
 .square-content.labels-vert {
     border: 0;
+    text-shadow: 1px 1px 10px #888;
+    font-weight: bold;
 }
 
 .square-content.labels span {
-    vertical-align: bottom;
+    vertical-align: center;
+    transform: rotate(-60deg);
+}
+
+.square-content.labels span .teamnumber {
+    color: #5DFC0A;
 }
 
 .square-content.labels-vert span {
@@ -63,15 +70,25 @@
     clear: both;
 }
 
+.blink {
+    animation-name: blink;
+    animation-duration: 2s;
+    animation-timing-function: cubic-bezier(0.31, 0.12, 0.75, 0.92);
+    animation-iteration-count: infinite;
+}
+
+@keyframes blink {
+    0%   { opacity: 1.0; }
+    50%  { opacity: 0.0; }
+    100% { opacity: 1.0; }
+}
+
 @media (min-width: 320px) {
     .square-box {
         width: 6%;
     }
     .square-content .fa {
         font-size: 4.5vw;
-    }
-    .square-content.labels span {
-        font-size: 1.3vw;
     }
 }
 
@@ -82,8 +99,11 @@
     .square-content .fa {
         font-size: 4.1vw;
     }
+}
+
+@media (max-width: 992px) {
     .square-content.labels span {
-        font-size: 1.1vw;
+        font-size: 1.2vw;
     }
 }
 
@@ -94,7 +114,6 @@
     .square-content .fa {
         font-size: 53px;
     }
-    .square-content.labels span,
     .square-content.labels-vert span {
         font-size: 17px;
     }
