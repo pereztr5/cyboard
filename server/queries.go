@@ -41,7 +41,7 @@ func GetTeamByTeamname(teamname string) (Team, error) {
 	session, teamCollection := GetSessionAndCollection("teams")
 	defer session.Close()
 
-	err := teamCollection.Find(bson.M{"group": "blueteam", "name": teamname}).One(&t)
+	err := teamCollection.Find(bson.M{"name": teamname}).One(&t)
 	if err != nil {
 		Logger.Printf("Error finding team by Teamname %s err: %v\n", teamname, err)
 		return t, err
