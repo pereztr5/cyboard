@@ -10,7 +10,7 @@ import (
 
 func GetChallenges(w http.ResponseWriter, r *http.Request) {
 	// TODO: For now this will only get one group of challenges
-	chal, err := DataGetChallenges("Megatron")
+	chal, err := DataGetChallenges("Rusted Bunions")
 	if err != nil {
 		Logger.Printf("Error with DataGetChallenges: %v\n", err)
 		http.Error(w, http.StatusText(500), 500)
