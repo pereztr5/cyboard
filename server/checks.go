@@ -19,6 +19,7 @@ import (
 type Check struct {
 	Name   string
 	Script exec.Cmd
+	Args   string
 	Points map[int]int
 }
 
@@ -100,25 +101,31 @@ func getChecks() (checks []Check) {
 		s := Check{
 			Name:   checkcfg.GetString(check + ".check_name"),
 			Script: getScript(checksDir + "/" + checkcfg.GetString(check+".filename")),
+			Args:   checkcfg.GetString(check + ".args"),
 			Points: getPoints(check + ".points"),
 		}
-		// Get Arguments
-		s.Script.Args = append(s.Script.Args, getArgs(checkcfg.GetString(check+".args"))...)
 		checks = append(checks, s)
 	}
 	return checks
 }
 
+func score(result Result) {
+	//fmt.Printf("%s %s\nService: %s\tStatus: %d\n%v\n", res.Team.Teamname, res.Team.Ips[0], res.Service, res.Status, res.Output)
+	err := DataAddResult(result)
+	if err != nil {
+		Logger.Printf("Could not insert service result: %v\n", err)
+	}
+}
+
 func start(teams []Team, checks []Check) {
 	Event.Start = time.Now()
 	checkTicker := time.NewTicker(Event.Intervals)
-
 	status := make(chan Result)
 
 	// Run command every x seconds until scheduled end time
-	for t := range checkTicker.C {
+	for _ = range checkTicker.C {
 		if time.Now().Before(Event.End) {
-			Logger.Printf("%s Running Checks\n", t)
+			Logger.Println("Running Checks")
 			for _, team := range teams {
 				for _, check := range checks {
 					go runCmd(team, check, status)
@@ -128,11 +135,7 @@ func start(teams []Team, checks []Check) {
 			for j := 0; j < amtChecks; j++ {
 				select {
 				case res := <-status:
-					//fmt.Printf("%s %s\nService: %s\tStatus: %d\n%v\n", res.Team.Teamname, res.Team.Ips[0], res.Service, res.Status, res.Output)
-					err := DataAddResult(res)
-					if err != nil {
-						Logger.Printf("Could not insert service result: %v\n", err)
-					}
+					score(res)
 				}
 			}
 		} else {
@@ -143,15 +146,10 @@ func start(teams []Team, checks []Check) {
 	}
 }
 
-func score() {
-	// Get Teamname and status
-	// Based on status will insert points to team
-}
-
 func runCmd(team Team, check Check, status chan Result) {
 	// TODO: Currently only one IP per team is supported
 	cmd := &check.Script
-	cmd.Args = append(cmd.Args, team.Ip)
+	cmd.Args = parseArgs(check.Args, team.Ip)
 	err := cmd.Start()
 	if err != nil {
 		Logger.Printf("Could not run script: %s\n", err)
@@ -194,8 +192,9 @@ func getScript(path string) exec.Cmd {
 	return *exec.Command(dir)
 }
 
-func getArgs(args string) []string {
-	return strings.Split(args, " ")
+func parseArgs(args string, ip string) []string {
+	nArgs := strings.Replace(args, "IP", ip, 1)
+	return strings.Split(nArgs, " ")
 }
 
 func getPoints(name string) map[int]int {
