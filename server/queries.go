@@ -8,6 +8,7 @@ import (
 
 type Team struct {
 	Id     bson.ObjectId `json:"id,omitempty" bson:"_id,omitempty"`
+	Group  string        `json:"-"`
 	Number int           `json:"number"`
 	Name   string        `json:"name"`
 	Ip     string        `json:"ip"`
@@ -40,7 +41,7 @@ func GetTeamByTeamname(teamname string) (Team, error) {
 	session, teamCollection := GetSessionAndCollection("teams")
 	defer session.Close()
 
-	err := teamCollection.Find(bson.M{"name": teamname}).One(&t)
+	err := teamCollection.Find(bson.M{"group": "blueteam", "name": teamname}).One(&t)
 	if err != nil {
 		Logger.Printf("Error finding team by Teamname %s err: %v\n", teamname, err)
 		return t, err
@@ -69,7 +70,7 @@ func DataGetTeamIps() ([]Team, error) {
 	session, teamCollection := GetSessionAndCollection("teams")
 	defer session.Close()
 
-	err := teamCollection.Find(nil).Select(bson.M{"_id": false, "name": true, "number": true, "ip": true}).All(&t)
+	err := teamCollection.Find(bson.M{"group": "blueteam"}).Select(bson.M{"_id": false, "name": true, "number": true, "ip": true}).All(&t)
 	if err != nil {
 		//Logger.Printf("Error finding teams: %v\n", err)
 		return t, err
@@ -83,7 +84,7 @@ func DataGetTeams() []Team {
 	session, chalCollection := GetSessionAndCollection("teams")
 	defer session.Close()
 
-	err := chalCollection.Find(nil).Sort("number").Select(bson.M{"_id": 0, "number": 1, "name": 1}).All(&t)
+	err := chalCollection.Find(bson.M{"group": "blueteam"}).Sort("number").Select(bson.M{"_id": 0, "number": 1, "name": 1}).All(&t)
 	if err != nil {
 		Logger.Printf("Could not get team info: %v\n", err)
 		return t
@@ -257,23 +258,6 @@ func DataGetServiceStatus() []interface{} {
 	if err != nil {
 		Logger.Printf("Error getting all team scores: %v\n", err)
 	}
-	/*
-		for iter.Next(&check) {
-				teams := check["teams"]
-				for _, t := range teams {
-					result := Result{
-						Group:      check["_id"].(string),
-						Teamname:   t["teamname"].(string),
-						Teamnumber: t["teamnnumber"].(int),
-						Details:    t["status"].(string),
-					}
-					cResults = append(cResults, result)
-				}
-		}
-		if err := iter.Close(); err != nil {
-			Logger.Printf("Error getting service status: %v\n", err)
-		}
-	*/
 	return cResults
 }
 
