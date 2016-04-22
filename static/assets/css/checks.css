@@ -76,6 +76,9 @@
 }
 
 @media (min-width: 768px) {
+    .square-box {
+        width: 7.6%;
+    }
     .square-content .fa {
         font-size: 4.1vw;
     }
