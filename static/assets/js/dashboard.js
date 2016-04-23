@@ -6,13 +6,6 @@ $('#flag-form').on('keypress', '#flag-value', function(e) {
     }
 });
 
-$('input#flag-value').keypress(function(e) {
-    if (e.which == 13) {
-        $('#flag-submit').submit();
-        return false;
-    }
-});
-
 function submitFlag() {
     var flagValue = $('#flag-value').val();
     var challengeValue = $('#flag-submit').data('challenge');
