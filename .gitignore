@@ -6,3 +6,4 @@ event
 *.key
 cyboard
 scripts/*
+captured_flags.log
