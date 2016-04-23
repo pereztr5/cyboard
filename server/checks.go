@@ -1,10 +1,13 @@
 package server
 
 import (
+	"bufio"
 	"bytes"
 	"fmt"
+	"html/template"
 	"io"
 	"log"
+	"os"
 	"os/exec"
 	"path/filepath"
 	"strconv"
@@ -64,20 +67,6 @@ func initCheckConfig() {
 	}
 }
 
-func checksRun(cmd *cobra.Command, args []string) {
-	if !dryRun {
-		loadSettings()
-		checks := getChecks()
-		teams, err := DataGetTeamIps()
-		if err != nil {
-			Logger.Fatalf("Could not get teams for service checks: %v\n", err)
-		}
-		start(teams, checks)
-	} else {
-		Logger.Printf("DRY RUN\n")
-	}
-}
-
 func loadSettings() {
 	// Get Event details
 	var err error
@@ -111,9 +100,28 @@ func getChecks() (checks []Check) {
 
 func score(result Result) {
 	//fmt.Printf("%s %s\nService: %s\tStatus: %d\n%v\n", res.Team.Teamname, res.Team.Ips[0], res.Service, res.Status, res.Output)
-	err := DataAddResult(result)
-	if err != nil {
-		Logger.Printf("Could not insert service result: %v\n", err)
+	if !dryRun {
+		err := DataAddResult(result, dryRun)
+		if err != nil {
+			Logger.Printf("Could not insert service result: %v\n", err)
+		}
+	} else {
+		go func() {
+			tmpl := `
+Group: {{ .Group }}
+Team: {{ .Teamname }}
+Details: {{ .Details }}
+Points: {{ .Points }}
+`
+			t, err := template.New("result").Parse(tmpl)
+			if err != nil {
+				Logger.Fatal(err)
+			}
+			err = t.Execute(os.Stdout, result)
+			if err != nil {
+				Logger.Println("executing template:", err)
+			}
+		}()
 	}
 }
 
@@ -121,11 +129,14 @@ func start(teams []Team, checks []Check) {
 	Event.Start = time.Now()
 	checkTicker := time.NewTicker(Event.Intervals)
 	status := make(chan Result)
-
+	bio := bufio.NewReader(os.Stdin)
+	fmt.Printf("Press enter to start....")
+	_, _ = bio.ReadString('\n')
 	// Run command every x seconds until scheduled end time
-	for _ = range checkTicker.C {
+	fmt.Printf("%v: Starting Checks\n", time.Now())
+	for t := range checkTicker.C {
 		if time.Now().Before(Event.End) {
-			Logger.Println("Running Checks")
+			fmt.Printf("%v: Running Checks\n", t)
 			for _, team := range teams {
 				for _, check := range checks {
 					go runCmd(team, check, status)
@@ -135,12 +146,12 @@ func start(teams []Team, checks []Check) {
 			for j := 0; j < amtChecks; j++ {
 				select {
 				case res := <-status:
-					score(res)
+					go score(res)
 				}
 			}
 		} else {
 			checkTicker.Stop()
-			Logger.Println("Done Checking Services")
+			fmt.Printf("%v: Done Checking Services\n", t)
 			break
 		}
 	}
@@ -149,7 +160,9 @@ func start(teams []Team, checks []Check) {
 func runCmd(team Team, check Check, status chan Result) {
 	// TODO: Currently only one IP per team is supported
 	cmd := &check.Script
-	cmd.Args = parseArgs(check.Args, team.Ip)
+	cmd.Args = parseArgs(cmd.Path, check.Args, team.Ip)
+	var stdout bytes.Buffer
+	cmd.Stdout = &stdout
 	err := cmd.Start()
 	if err != nil {
 		Logger.Printf("Could not run script: %s\n", err)
@@ -177,7 +190,13 @@ func runCmd(team Team, check Check, status chan Result) {
 		case _ = <-done:
 			// As long as it is done the error doesn't matter
 			s := cmd.ProcessState.Sys().(syscall.WaitStatus).ExitStatus()
-			result.Details = "Status: " + strconv.Itoa(s)
+			var detail string
+			if !dryRun {
+				detail = "Status: " + strconv.Itoa(s)
+			} else {
+				detail = stdout.String() + "\t" + strings.Join(cmd.Args, " ")
+			}
+			result.Details = detail
 			result.Points = check.Points[s]
 			status <- result
 		}
@@ -192,8 +211,9 @@ func getScript(path string) exec.Cmd {
 	return *exec.Command(dir)
 }
 
-func parseArgs(args string, ip string) []string {
-	nArgs := strings.Replace(args, "IP", ip, 1)
+func parseArgs(name string, args string, ip string) []string {
+	//TODO: Quick fix but need to com back and do this right
+	nArgs := name + " " + strings.Replace(args, "IP", ip, 1)
 	return strings.Split(nArgs, " ")
 }
 
@@ -214,4 +234,35 @@ func getOutput(stdout io.ReadCloser) string {
 	buf := new(bytes.Buffer)
 	buf.ReadFrom(stdout)
 	return buf.String()
+}
+
+func testData() []Team {
+	var teams []Team
+	for i := 0; i < 2; i++ {
+		t := Team{
+			Group:  "TEST",
+			Number: 90 + i,
+			Name:   "team9" + strconv.Itoa(i),
+			Ip:     "127.0.0.1",
+		}
+		teams = append(teams, t)
+	}
+	return teams
+}
+
+func checksRun(cmd *cobra.Command, args []string) {
+	if !dryRun {
+		loadSettings()
+		checks := getChecks()
+		teams, err := DataGetTeamIps()
+		if err != nil {
+			Logger.Fatalf("Could not get teams for service checks: %v\n", err)
+		}
+		start(teams, checks)
+	} else {
+		loadSettings()
+		checks := getChecks()
+		teams := testData()
+		start(teams, checks)
+	}
 }

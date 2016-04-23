@@ -130,7 +130,8 @@ func DataCheckFlag(team Team, chal Challenge) (int, error) {
 				Details:    chal.Name,
 				Points:     chal.Points,
 			}
-			return 0, DataAddResult(result)
+			test := false
+			return 0, DataAddResult(result, test)
 		} else {
 			// Got challenge already
 			return 2, nil
@@ -236,7 +237,7 @@ func DataGetAllScore() []Result {
 				tmScore = append(tmScore, Result{Teamname: t.Name, Teamnumber: t.Number, Points: 0})
 			}
 		} else {
-			for i := l; i < len(teams); i++ {
+			for i := 0; i < len(teams); i++ {
 				tmScore = append(tmScore, Result{Teamname: teams[i].Name, Teamnumber: teams[i].Number, Points: 0})
 			}
 		}
@@ -359,8 +360,14 @@ func DataGetLastResult() time.Time {
 }
 
 // Insert statements
-func DataAddResult(result Result) error {
-	session, collection := GetSessionAndCollection("results")
+func DataAddResult(result Result, test bool) error {
+	var col string
+	if !test {
+		col = "results"
+	} else {
+		col = "testResults"
+	}
+	session, collection := GetSessionAndCollection(col)
 	defer session.Close()
 	err := collection.Insert(result)
 	if err != nil {

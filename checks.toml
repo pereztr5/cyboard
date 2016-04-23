@@ -1,7 +1,7 @@
 checks_dir = "scripts"
-event_end_time = "Tue Apr 19 22:58:12 EDT 2016"
-intervals = "10s"
-timeout = "8s"
+event_end_time = "Fri Apr 22 19:24:29 EDT 2016"
+intervals = "5s"
+timeout = "4s"
 
 [checks]
     [checks.1]
@@ -15,3 +15,9 @@ timeout = "8s"
     filename = "check_http"
     points = [ 10, 0, 0 ]
     args = "-I IP -t 5"
+
+    [checks.3]
+    check_name = "IP"
+    filename = "test.sh"
+    points = [ 10, 0, 0 ]
+    args = "IP"
