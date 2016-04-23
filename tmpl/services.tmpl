@@ -35,9 +35,9 @@
                 <div class='square-content'>
                     {{- if eq .Details "Status: 0" }}
                     <div><span class="fa fa-arrow-circle-up text-success" data-team={{ .Teamnumber }} aria-hidden="true"></span></div>
-                    {{- else if eq .Details "Status: 1" }}
-                    <div><span class="fa fa-arrow-circle-down text-danger blink" data-team={{ .Teamnumber }} aria-hidden="true"></span></div>
                     {{- else if eq .Details "Status: 2" }}
+                    <div><span class="fa fa-arrow-circle-down text-danger blink" data-team={{ .Teamnumber }} aria-hidden="true"></span></div>
+                    {{- else if eq .Details "Status: 1" }}
                     <div><span class="fa fa-exclamation-circle text-warning" data-team={{ .Teamnumber }} aria-hidden="true"></span></div>
                     {{- else }}
                     <div><span class="fa fa-question-circle text-muted" data-team={{ .Teamnumber }} aria-hidden="true"></span></div>

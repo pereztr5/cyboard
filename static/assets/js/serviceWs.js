@@ -18,9 +18,9 @@ function appendScores(res) {
             stat.removeClass(icons);
             if (team.status == "Status: 0") {
                 newIcon = 'fa-arrow-circle-up text-success';
-            } else if (team.status == "Status: 1") {
-                newIcon = 'fa-arrow-circle-down text-danger blink';
             } else if (team.status == "Status: 2") {
+                newIcon = 'fa-arrow-circle-down text-danger blink';
+            } else if (team.status == "Status: 1") {
                 newIcon = 'fa-exclamation-circle text-warning';
             }
             stat.addClass(newIcon);
