@@ -9,7 +9,7 @@ $(function() {
         appendScores(results)
     }
 function appendScores(res) {
-    var icons = 'fa-arrow-circle-up fa-down-circle-down fa-exclamation-circle fa-question-circle-o text-success text-danger text-warning text-muted'
+    var icons = 'fa-arrow-circle-up fa-arrow-circle-down fa-exclamation-circle fa-question-circle-o text-success text-danger text-warning text-muted blink'
     res.forEach(function(r) {
         var group = $('div').find('[data-check="' + r._id + '"]');
         r.teams.forEach(function(team) {
@@ -19,7 +19,7 @@ function appendScores(res) {
             if (team.status == "Status: 0") {
                 newIcon = 'fa-arrow-circle-up text-success';
             } else if (team.status == "Status: 1") {
-                newIcon = 'fa-down-circle-down text-danger';
+                newIcon = 'fa-arrow-circle-down text-danger blink';
             } else if (team.status == "Status: 2") {
                 newIcon = 'fa-exclamation-circle text-warning';
             }
