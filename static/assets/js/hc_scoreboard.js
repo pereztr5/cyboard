@@ -49,9 +49,11 @@ $(function () {
             },
             plotOptions: {
                 column: {
-                    pointPadding: 0.2,
+                    pointPadding: 0,
+                    groupPadding: 0.1,
                     borderWidth: 0,
-                    colorByPoint: true
+                    colorByPoint: true,
+                    shadow: true
                 }
             },
             series: [hc_scoreboard_series]

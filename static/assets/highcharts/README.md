@@ -8,7 +8,19 @@ Version 4.2.4
 
 Contains only the bare minimum needed.
 
-In this case, column charts, tooltips, mouse interaction.
+In this case:
+- Core
+- Html
+- Datalabels
+- Tooltip
+- Interaction
+- Touch
+- Dynamics
+- Line
+- Column
+- Exporting
+- Offline exporting
+- Data
 
 ## Licensing
 
@@ -18,4 +30,4 @@ In this case, column charts, tooltips, mouse interaction.
 Highcharts is available under this license under the following circumstances:
 [When can I use the Non-Commercial License?](https://shop.highsoft.com/faq#Non-Commercial-0)
 
-Be aware: Highcharts is super expensive if the above criteria is not met.
+**_Be aware:_** Highcharts is super expensive if the above criteria is not met.
