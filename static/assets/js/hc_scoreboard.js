@@ -8,7 +8,10 @@ $(function () {
             enabled: true,
             color: '#FFFFFF',
             align: 'center',
-            y: 10, // 10 pixels down from the top
+            y: 25, // 25 pixels down from the top
+            style: {
+                fontSize: '3.2vw'
+            }
         }
     };
 
