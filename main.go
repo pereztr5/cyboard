@@ -1,5 +1,7 @@
 package main
 
+//Start testing service checker
+
 import (
 	"github.com/pereztr5/cyboard/server"
 )
