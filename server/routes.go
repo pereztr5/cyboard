@@ -6,6 +6,7 @@ import (
 	"log"
 	"net/http"
 	"os"
+	"path/filepath"
 	"strings"
 
 	"github.com/gorilla/context"
@@ -36,12 +37,14 @@ func init() {
 		"serviceList":     DataGetServiceList,
 	}
 
-	templates["homepage"] = template.Must(template.New("homepage").Funcs(funcMap).ParseFiles("tmpl/header.tmpl", "tmpl/homepage.tmpl", "tmpl/footer.tmpl"))
-	templates["login"] = template.Must(template.New("login").Funcs(funcMap).ParseFiles("tmpl/header.tmpl", "tmpl/login.tmpl", "tmpl/footer.tmpl"))
-	templates["scoreboard"] = template.Must(template.New("scoreboard").Funcs(funcMap).ParseFiles("tmpl/header.tmpl", "tmpl/scoreboard.tmpl", "tmpl/footer.tmpl"))
-	templates["dashboard"] = template.Must(template.New("dashboard").Funcs(funcMap).ParseFiles("tmpl/header.tmpl", "tmpl/dashboard.tmpl", "tmpl/footer.tmpl"))
-	templates["challenges"] = template.Must(template.New("challenges").Funcs(funcMap).ParseFiles("tmpl/header.tmpl", "tmpl/challenges.tmpl", "tmpl/footer.tmpl"))
-	templates["services"] = template.Must(template.New("services").Funcs(funcMap).ParseFiles("tmpl/header.tmpl", "tmpl/services.tmpl", "tmpl/footer.tmpl"))
+	includes := mustGlobFiles("tmpl/includes/*.tmpl")
+	layouts := mustGlobFiles("tmpl/*.tmpl")
+
+	for _, layout := range layouts {
+		files := append(includes, layout)
+		title := strings.TrimSuffix(filepath.Base(layout), ".tmpl")
+		templates[title] = template.Must(template.New(layout).Funcs(funcMap).ParseFiles(files...))
+	}
 }
 
 func CreateWebRouter() *mux.Router {
@@ -94,7 +97,7 @@ func ShowLogin(w http.ResponseWriter, r *http.Request) {
 func SubmitLogin(w http.ResponseWriter, r *http.Request) {
 	session, err := Store.Get(r, "cyboard")
 	if err != nil {
-		Logger.Printf("Getting from Store failed: %v", err)
+		Logger.Println("Getting from Store faile", err)
 	}
 
 	succ := CheckCreds(w, r)
@@ -169,14 +172,14 @@ func GetScores(w http.ResponseWriter, r *http.Request) {
 	scores := DataGetAllScore()
 	w.Header().Set("Content-Type", "application/json; charset=UTF-8")
 	if err := json.NewEncoder(w).Encode(scores); err != nil {
-		Logger.Printf("Error encoding json: %v\n", err)
+		Logger.Println("Error encoding json:", err)
 	}
 }
 
 func getChallenges() map[string]int {
 	totals, err := DataGetTotalChallenges()
 	if err != nil {
-		Logger.Printf("Could not get challenges: %v\n", err)
+		Logger.Println("Could not get challenges:", err)
 	}
 	return totals
 }
@@ -184,7 +187,7 @@ func getChallenges() map[string]int {
 func getTeamChallenges(teamname string) map[string]int {
 	acquired, err := DataGetTeamChallenges(teamname)
 	if err != nil {
-		Logger.Printf("Could not get team challenges: %v\n", err)
+		Logger.Println("Could not get team challenges:", err)
 	}
 	return acquired
 }

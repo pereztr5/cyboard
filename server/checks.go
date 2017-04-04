@@ -6,7 +6,6 @@ import (
 	"fmt"
 	"html/template"
 	"io"
-	"log"
 	"os"
 	"os/exec"
 	"path/filepath"
@@ -63,7 +62,7 @@ func initCheckConfig() {
 	checkcfg.AddConfigPath(".")
 	err := checkcfg.ReadInConfig()
 	if err != nil {
-		log.Fatal(fmt.Errorf("Fatal error config file: %s \n", err))
+		Logger.Fatal("Fatal error config file:", err)
 	}
 }
 
@@ -103,40 +102,30 @@ func score(result Result) {
 	if !dryRun {
 		err := DataAddResult(result, dryRun)
 		if err != nil {
-			Logger.Printf("Could not insert service result: %v\n", err)
+			Logger.Println("Could not insert service result:", err)
 		}
 	} else {
-		go func() {
-			tmpl := `
-Group: {{ .Group }}
-Team: {{ .Teamname }}
-Details: {{ .Details }}
-Points: {{ .Points }}
-`
-			t, err := template.New("result").Parse(tmpl)
-			if err != nil {
-				Logger.Fatal(err)
-			}
-			err = t.Execute(os.Stdout, result)
-			if err != nil {
-				Logger.Println("executing template:", err)
-			}
-		}()
+		scoreTmplStr := `\nGroup: {{ .Group }}\nTeam: {{ .Teamname }}\nDetails: {{ .Details }}\nPoints: {{ .Points }}\n`
+		scoreTmpl := template.Must(template.New("result").Parse(scoreTmplStr))
+		err := scoreTmpl.Execute(os.Stdout, result)
+		if err != nil {
+			Logger.Println("executing template:", err)
+		}
 	}
 }
 
-func start(teams []Team, checks []Check) {
+func startCheckService(teams []Team, checks []Check) {
 	Event.Start = time.Now()
 	checkTicker := time.NewTicker(Event.Intervals)
 	status := make(chan Result)
 	bio := bufio.NewReader(os.Stdin)
-	fmt.Printf("Press enter to start....")
+	Logger.Print("Press enter to start....")
 	_, _ = bio.ReadString('\n')
 	// Run command every x seconds until scheduled end time
-	fmt.Printf("%v: Starting Checks\n", time.Now())
+	Logger.Printf("%v: Starting Checks\n", time.Now())
 	for t := range checkTicker.C {
 		if time.Now().Before(Event.End) {
-			fmt.Printf("%v: Running Checks\n", t)
+			Logger.Printf("%v: Running Checks\n", t)
 			for _, team := range teams {
 				for _, check := range checks {
 					go runCmd(team, check, status)
@@ -151,7 +140,7 @@ func start(teams []Team, checks []Check) {
 			}
 		} else {
 			checkTicker.Stop()
-			fmt.Printf("%v: Done Checking Services\n", t)
+			Logger.Printf("%v: Done Checking Services\n", t)
 			break
 		}
 	}
@@ -165,7 +154,7 @@ func runCmd(team Team, check Check, status chan Result) {
 	cmd.Stdout = &stdout
 	err := cmd.Start()
 	if err != nil {
-		Logger.Printf("Could not run script: %s\n", err)
+		Logger.Println("Could not run script:", err)
 	} else {
 		done := make(chan error, 1)
 		go func() {
@@ -182,17 +171,17 @@ func runCmd(team Team, check Check, status chan Result) {
 			if err := cmd.Process.Kill(); err != nil {
 				//TODO: If it cannot kill it what to do we do?
 				// If fatal then everything stops
-				Logger.Printf("Failed to Kill: %v\n", err)
+				Logger.Println("Failed to Kill:", err)
 			}
 			Logger.Printf("%s timed out\n", check.Name)
-			result.Details = "Status: " + "timed out"
+			result.Details = "Status: timed out"
 			status <- result
 		case _ = <-done:
 			// As long as it is done the error doesn't matter
 			s := cmd.ProcessState.Sys().(syscall.WaitStatus).ExitStatus()
 			var detail string
 			if !dryRun {
-				detail = "Status: " + strconv.Itoa(s)
+				detail = fmt.Sprintf("Status: %d", s)
 			} else {
 				detail = stdout.String() + "\t" + strings.Join(cmd.Args, " ")
 			}
@@ -213,7 +202,9 @@ func getScript(path string) exec.Cmd {
 
 func parseArgs(name string, args string, ip string) []string {
 	//TODO: Quick fix but need to com back and do this right
-	nArgs := name + " " + strings.Replace(args, "IP", ip, 1)
+	//TODO(pereztr): This should at least have to be surrounded in braces or some meta-chars
+	const ReplacementText = "IP"
+	nArgs := name + " " + strings.Replace(args, ReplacementText, ip, 1)
 	return strings.Split(nArgs, " ")
 }
 
@@ -251,18 +242,16 @@ func testData() []Team {
 }
 
 func checksRun(cmd *cobra.Command, args []string) {
+	loadSettings()
+	checks := getChecks()
 	if !dryRun {
-		loadSettings()
-		checks := getChecks()
 		teams, err := DataGetTeamIps()
 		if err != nil {
-			Logger.Fatalf("Could not get teams for service checks: %v\n", err)
+			Logger.Fatalln("Could not get teams for service checks:", err)
 		}
-		start(teams, checks)
+		startCheckService(teams, checks)
 	} else {
-		loadSettings()
-		checks := getChecks()
 		teams := testData()
-		start(teams, checks)
+		startCheckService(teams, checks)
 	}
 }

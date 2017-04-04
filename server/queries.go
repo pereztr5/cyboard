@@ -351,13 +351,13 @@ func DataGetLastServiceResult() time.Time {
 		{"$group": bson.M{"_id": nil, "last": bson.M{"$last": "$_id"}}},
 		{"$project": bson.M{"_id": 0, "last": 1}},
 	}).One(&id)
-	var time time.Time
+	var latest time.Time
 	if err != nil {
 		Logger.Printf("Error getting last Service result: %v\n", err)
 	} else {
-		time = id["last"].(bson.ObjectId).Time()
+		latest = id["last"].(bson.ObjectId).Time()
 	}
-	return time
+	return latest
 }
 
 func DataGetLastResult() time.Time {
@@ -369,13 +369,13 @@ func DataGetLastResult() time.Time {
 		{"$group": bson.M{"_id": nil, "last": bson.M{"$last": "$_id"}}},
 		{"$project": bson.M{"_id": 0, "last": 1}},
 	}).One(&id)
-	var time time.Time
+	var latest time.Time
 	if err != nil {
 		Logger.Printf("Error getting last document: %v\n", err)
 	} else {
-		time = id["last"].(bson.ObjectId).Time()
+		latest = id["last"].(bson.ObjectId).Time()
 	}
-	return time
+	return latest
 }
 
 // Insert statements

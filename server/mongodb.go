@@ -31,6 +31,7 @@ func DBSession() *mgo.Session {
 			log.Fatalf("Can't connect to MongoDB, go error %v\n", err)
 		}
 		mongodbSession.SetSafe(&mgo.Safe{})
+		log.Println("Connected to mongodb:", mongodbSession.LiveServers())
 	}
 	return mongodbSession
 }
@@ -73,9 +74,9 @@ func GetSessionAndCollection(collectionName string) (sessionCopy *mgo.Session, c
 	if mongodbSession != nil {
 		sessionCopy = mongodbSession.Copy()
 	} else {
-		log.Println("No sessions available making new one")
+		Logger.Println("No sessions available making new one")
 		sessionCopy = DBSession().Copy()
 	}
-	collection = sessionCopy.DB("scorengine").C(collectionName)
+	collection = sessionCopy.DB(viper.GetString("database.dbname")).C(collectionName)
 	return
 }

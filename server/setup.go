@@ -2,7 +2,6 @@ package server
 
 import (
 	"fmt"
-	"log"
 	"os"
 
 	"github.com/spf13/cobra"
@@ -32,7 +31,7 @@ func initConfig() {
 	viper.AddConfigPath(".")
 	err := viper.ReadInConfig()
 	if err != nil {
-		log.Fatal(fmt.Errorf("Fatal error config file: %s \n", err))
+		Logger.Fatalf("Fatal error config file: %s\n", err)
 	}
 }
 

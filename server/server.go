@@ -1,6 +1,7 @@
 package server
 
 import (
+	"fmt"
 	"log"
 	"net/http"
 	"os"
@@ -57,5 +58,6 @@ func serverRun(cmd *cobra.Command, args []string) {
 }
 
 func redir(w http.ResponseWriter, r *http.Request) {
-	http.Redirect(w, r, "https://"+viper.GetString("server.ip")+":"+viper.GetString("https_port")+r.RequestURI, http.StatusMovedPermanently)
+	http.Redirect(w, r, fmt.Sprintf("https://%s:%s/%s",
+		viper.GetString("server.ip"), viper.GetString("https_port"), r.RequestURI), http.StatusMovedPermanently)
 }

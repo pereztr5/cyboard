@@ -4,7 +4,7 @@ $(document).ready(function() {
 
 $('#hiddenModal').on('click', '#flag-submit', submitFlag);
 $('#hiddenModal').on('keypress', '#flag-value', function(e) {
-    if (e.which == 13) {
+    if (e.which === 13) {
         submitFlag();
         return false;
     }
@@ -24,15 +24,17 @@ function submitFlag() {
                 challenge: challengeValue,
             },
             success: function(value) {
-                if (value == '0') {
-                    $('#flag-form').removeClass('has-error').addClass('has-success');
-                    $('#flag-form .glyphicon').removeClass('glyphicon-remove').addClass('glyphicon-ok');
-                } else if (value == '1') {
-                    $('#flag-form').removeClass('has-success').addClass('has-error');
-                    $('#flag-form .glyphicon').removeClass('glyphicon-ok').addClass('glyphicon-remove');
-                } else if (value == '2') {
-                    $('#flag-form').removeClass('has-success has-error').addClass('has-warning');
-                    $('#flag-form .glyphicon').removeClass('glyphicon-ok glyphicon-remove').addClass('glyphicon-warning-sign');
+                var flag_form = $('#flag-form');
+                var glyphicon = flag_form.find('.glyphicon');
+                if (value === '0') {
+                    flag_form.removeClass('has-error').addClass('has-success');
+                    glyphicon.removeClass('glyphicon-remove').addClass('glyphicon-ok');
+                } else if (value === '1') {
+                    flag_form.removeClass('has-success').addClass('has-error');
+                    glyphicon.removeClass('glyphicon-ok').addClass('glyphicon-remove');
+                } else if (value === '2') {
+                    flag_form.removeClass('has-success has-error').addClass('has-warning');
+                    glyphicon.removeClass('glyphicon-ok glyphicon-remove').addClass('glyphicon-warning-sign');
                 }
             },
         });
@@ -40,7 +42,7 @@ function submitFlag() {
 }
 
 $('input#flag-value').keypress(function(e) {
-    if (e.which == 13) {
+    if (e.which === 13) {
         $('#flag-submit').submit();
         return false;
     }
@@ -49,7 +51,7 @@ $('input#flag-value').keypress(function(e) {
 var challenges;
 
 function getList() {
-    var url = '/challenges/list'
+    var url = '/challenges/list';
     $.getJSON(url, function(json) {
         challenges = json;
         $('.page-header').append(' <small>' + challenges[0].group + '</small>');
@@ -58,7 +60,7 @@ function getList() {
 }
 
 function makeList(chal) {
-    for (i = 0; i < chal.length; i++) {
+    for (var i = 0; i < chal.length; i++) {
         var list = $('<button/>').attr({
             type: 'button',
             class: 'btn btn-default btn-block',
