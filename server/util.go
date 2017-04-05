@@ -1,6 +1,10 @@
 package server
 
-import "path/filepath"
+import (
+	"path/filepath"
+	"bufio"
+	"os"
+)
 
 // globRequired is the "Must" idiom for filepath.Glob
 func mustGlobFiles(pattern string) []string {
@@ -9,4 +13,10 @@ func mustGlobFiles(pattern string) []string {
 		Logger.Fatal(err)
 	}
 	return matches
+}
+
+func ReadStdinLine() ([]byte, error) {
+	stdin := bufio.NewScanner(os.Stdin)
+	stdin.Scan()
+	return stdin.Bytes(), stdin.Err()
 }

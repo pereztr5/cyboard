@@ -1,11 +1,14 @@
 package server
 
 import (
+	"fmt"
 	"log"
 	"os"
 
 	"github.com/spf13/viper"
+	"golang.org/x/crypto/bcrypt"
 	"gopkg.in/mgo.v2"
+	"gopkg.in/mgo.v2/bson"
 )
 
 var mongodbSession *mgo.Session
@@ -79,4 +82,44 @@ func GetSessionAndCollection(collectionName string) (sessionCopy *mgo.Session, c
 	}
 	collection = sessionCopy.DB(viper.GetString("database.dbname")).C(collectionName)
 	return
+}
+
+func EnsureAdmin() {
+	session, teamsCollection := GetSessionAndCollection("teams")
+	defer session.Close()
+
+	err := teamsCollection.Find(bson.M{"group": "admin"}).One(nil)
+	if err == mgo.ErrNotFound {
+		const adminAccName = "admin"
+		admin := &Team{
+			Name:   adminAccName,
+			Group:  "admin",
+			Number: -1,
+			Ip:     "127.0.0.1",
+		}
+		// Read initial password from command line
+		fmt.Printf("*** No previously configured admin user found ***\n"+
+			"Setting up '%s' account.\n"+
+			"Provide a password for the account "+
+			"(you can change it later on the website):\n",
+			adminAccName)
+		fmt.Print(">> ")
+		pass, err := ReadStdinLine()
+		if err != nil {
+			Logger.Fatal("Failed to read pass:", err)
+		}
+		hashBytes, err := bcrypt.GenerateFromPassword(pass, bcrypt.DefaultCost)
+		if err != nil {
+			Logger.Fatal("Failed to hash password:", err)
+		}
+		admin.Hash = string(hashBytes)
+		err = teamsCollection.Insert(admin)
+		if err != nil {
+			Logger.Fatal("Failed to add admin to MongoDB:", err)
+		}
+		fmt.Printf("'%s' account configured.\n", adminAccName)
+		fmt.Print("Log in on the website to finish other configurations\n")
+	} else if err != nil {
+		Logger.Fatal("Failed to query mongo for admin user:", err)
+	}
 }

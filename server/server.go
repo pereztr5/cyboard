@@ -30,6 +30,9 @@ func serverRun(cmd *cobra.Command, args []string) {
 	CreateUniqueIndexes()
 	// Web Server Setup
 	CreateStore()
+	// On first run, prompt to set up an admin user
+	EnsureAdmin()
+
 	webRouter := CreateWebRouter()
 	teamRouter := CreateTeamRouter()
 
