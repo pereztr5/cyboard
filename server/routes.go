@@ -9,7 +9,6 @@ import (
 	"path/filepath"
 	"strings"
 
-	"github.com/gorilla/context"
 	"github.com/gorilla/mux"
 )
 
@@ -75,7 +74,7 @@ func CreateTeamRouter() *mux.Router {
 }
 
 func ShowHome(w http.ResponseWriter, r *http.Request) {
-	t := context.Get(r, "team")
+	t := r.Context().Value("team")
 	p := Page{Title: "homepage"}
 	if t != nil {
 		p.T = t.(Team)
@@ -84,7 +83,7 @@ func ShowHome(w http.ResponseWriter, r *http.Request) {
 }
 
 func ShowLogin(w http.ResponseWriter, r *http.Request) {
-	if context.Get(r, "team") == nil {
+	if r.Context().Value("team") == nil {
 		p := Page{
 			Title: "login",
 		}
@@ -100,7 +99,7 @@ func SubmitLogin(w http.ResponseWriter, r *http.Request) {
 		Logger.Println("Getting from Store faile", err)
 	}
 
-	succ := CheckCreds(w, r)
+	succ, r := CheckCreds(w, r)
 	if succ {
 		err = session.Save(r, w)
 		if err != nil {
@@ -134,13 +133,13 @@ func Logout(w http.ResponseWriter, r *http.Request) {
 func ShowTeamDashboard(w http.ResponseWriter, r *http.Request) {
 	p := Page{
 		Title: "dashboard",
-		T:     context.Get(r, "team").(Team),
+		T:     r.Context().Value("team").(Team),
 	}
 	renderTemplate(w, p)
 }
 
 func ShowChallenges(w http.ResponseWriter, r *http.Request) {
-	t := context.Get(r, "team")
+	t := r.Context().Value("team")
 	if t != nil {
 		p := Page{
 			Title: "challenges",
@@ -151,7 +150,7 @@ func ShowChallenges(w http.ResponseWriter, r *http.Request) {
 }
 
 func ShowScoreboard(w http.ResponseWriter, r *http.Request) {
-	t := context.Get(r, "team")
+	t := r.Context().Value("team")
 	p := Page{Title: "scoreboard"}
 	if t != nil {
 		p.T = t.(Team)
@@ -160,7 +159,7 @@ func ShowScoreboard(w http.ResponseWriter, r *http.Request) {
 }
 
 func ShowServices(w http.ResponseWriter, r *http.Request) {
-	t := context.Get(r, "team")
+	t := r.Context().Value("team")
 	p := Page{Title: "services"}
 	if t != nil {
 		p.T = t.(Team)

@@ -4,8 +4,6 @@ import (
 	"encoding/json"
 	"fmt"
 	"net/http"
-
-	"github.com/gorilla/context"
 )
 
 func GetChallenges(w http.ResponseWriter, r *http.Request) {
@@ -25,7 +23,7 @@ func GetChallenges(w http.ResponseWriter, r *http.Request) {
 }
 
 func CheckFlag(w http.ResponseWriter, r *http.Request) {
-	t := context.Get(r, "team").(Team)
+	t := r.Context().Value("team").(Team)
 	challenge := r.FormValue("challenge")
 	flag := r.FormValue("flag")
 	var found int
@@ -44,7 +42,7 @@ func CheckFlag(w http.ResponseWriter, r *http.Request) {
 }
 
 func CheckAllFlags(w http.ResponseWriter, r *http.Request) {
-	t := context.Get(r, "team").(Team)
+	t := r.Context().Value("team").(Team)
 	flag := r.FormValue("flag")
 	var found int
 	var err error

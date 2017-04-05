@@ -1,10 +1,10 @@
 package server
 
 import (
+	"context"
 	"encoding/gob"
 	"net/http"
 
-	"github.com/gorilla/context"
 	"github.com/gorilla/securecookie"
 	"github.com/gorilla/sessions"
 	"golang.org/x/crypto/bcrypt"
@@ -27,7 +27,7 @@ func CreateStore() {
 	}
 }
 
-func CheckCreds(w http.ResponseWriter, r *http.Request) bool {
+func CheckCreds(w http.ResponseWriter, r *http.Request) (bool, *http.Request) {
 	teamname, password := r.FormValue("teamname"), r.FormValue("password")
 	session, err := Store.Get(r, "cyboard")
 	if err != nil {
@@ -36,22 +36,22 @@ func CheckCreds(w http.ResponseWriter, r *http.Request) bool {
 
 	t, err := GetTeamByTeamname(teamname)
 	if err != nil {
-		return false
+		return false, r
 	}
 
 	err = bcrypt.CompareHashAndPassword([]byte(t.Hash), []byte(password))
 	if err != nil {
 		Logger.Printf("Invalid credentials: %v\n", err)
-		return false
+		return false, r
 	}
 
-	context.Set(r, "team", t)
+	r = r.WithContext(context.WithValue(r.Context(), "team", t))
 	session.Values["id"] = t.Id
 	err = session.Save(r, w)
 	if err != nil {
 		http.Error(w, http.StatusText(500), 500)
 		Logger.Printf("Error saving session: %v\n", err)
-		return false
+		return false, r
 	}
-	return true
+	return true, r
 }

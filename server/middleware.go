@@ -1,9 +1,9 @@
 package server
 
 import (
+	"context"
 	"net/http"
 
-	"github.com/gorilla/context"
 	"gopkg.in/mgo.v2/bson"
 )
 
@@ -13,23 +13,22 @@ func CheckSessionID(w http.ResponseWriter, r *http.Request, next http.HandlerFun
 	if err != nil {
 		Logger.Printf("Getting from Store failed: %v", err)
 	}
-	context.Set(r, "session", session)
+	ctx := context.WithValue(r.Context(), "session", session)
+	var team interface{} = nil
 	if id, ok := session.Values["id"]; ok {
 		t, err := GetTeamById(id.(*bson.ObjectId))
 		if err != nil {
 			Logger.Printf("GetTeamById %v: %v", id, err)
-			context.Set(r, "team", nil)
 		} else {
-			context.Set(r, "team", t)
+			team = t
 		}
-	} else {
-		context.Set(r, "team", nil)
 	}
-	next(w, r)
+	ctx = context.WithValue(ctx, "team", team)
+	next(w, r.WithContext(ctx))
 }
 
 func RequireLogin(w http.ResponseWriter, r *http.Request, next http.HandlerFunc) {
-	if context.Get(r, "team") != nil {
+	if r.Context().Value("team") != nil {
 		next(w, r)
 	} else {
 		http.Redirect(w, r, "/login", 302)
