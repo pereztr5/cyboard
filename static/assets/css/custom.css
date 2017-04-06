@@ -90,3 +90,8 @@ body {
   min-width: 300px;
   margin: 0 auto;
 }
+
+.placeholder {
+    color: #848484;
+    font-style: italic;
+}

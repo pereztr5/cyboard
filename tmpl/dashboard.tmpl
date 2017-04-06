@@ -1,5 +1,16 @@
 {{- template "header" . }}
 <h3 class="page-header">Dashboard <small>{{ .T.Name }}</small></h3>
+{{ if eq .T.Group "blueteam" }}
+    {{ template "blueteam_dash" . }}
+{{ else if eq .T.Group "admin" }}
+    {{ template "admin_dash" . }}
+{{ end }}
+{{- template "footer" . }}
+
+{{/*
+      BLUE TEAM
+*/}}
+{{ define "blueteam_dash" }}
 <div class="row">
     <div class="col-md-6">
         <h5>Team #{{ .T.Number }}</h5>
@@ -46,4 +57,45 @@
         </div>
     </div>
 </div>
-{{- template "footer" . }}
+{{ end }}
+
+{{/*
+      ADMIN TEAM
+*/}}
+{{ define "admin_dash" }}
+<div class="row col-md-12 admin-dash">
+    <div class="user-configuration-panel">
+        <h4>All Users</h4>
+        <div class="table-responsive">
+            <table id="user-config-table" class="table table-striped table-hover">
+                <tr>
+                    <th>Name</th>
+                    <th>Group</th>
+                    <th>Number</th>
+                    <th>IP</th>
+                    <th>Password</th>
+                </tr>
+                {{- range $userData := allUsers }}
+                    {{- with $userData }}
+                    <tr>
+                        <td>{{ .Name   }}</td>
+                        <td>{{ .Group  }}</td>
+                        <td>{{ .Number }}</td>
+                        <td>{{ .Ip     }}</td>
+                        <td class="placeholder">{Unchanged}</td>
+                    </tr>
+                    {{- end }}
+                {{- end }}
+            </table>
+        </div>
+        <div class="btn-group btn-group-sm">
+            <button class="btn btn-default" type="button">
+                <i class="fa fa-plus" aria-hidden="true"></i> Add row
+            </button>
+            <button class="btn btn-default" type="button">
+                <i class="fa fa-upload" aria-hidden="true"></i> Submit
+            </button>
+        </div>
+    </div>
+</div>
+{{ end }}

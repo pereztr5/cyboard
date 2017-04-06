@@ -34,6 +34,7 @@ func init() {
 		"allTeamScores":   getAllTeamScores,
 		"getStatus":       DataGetResultByService,
 		"serviceList":     DataGetServiceList,
+		"allUsers":        DataGetAllUsers,
 	}
 
 	includes := mustGlobFiles("tmpl/includes/*.tmpl")

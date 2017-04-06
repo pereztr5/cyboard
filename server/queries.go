@@ -111,6 +111,24 @@ func DataGetTeams() []Team {
 	return t
 }
 
+// Gets everything about all users. Utilized by Admin dashboard
+func DataGetAllUsers() []Team {
+	var t []Team
+
+	session, chalCollection := GetSessionAndCollection("teams")
+	defer session.Close()
+
+	err := chalCollection.Find(nil).
+		Sort("group", "number").
+		Select(bson.M{"_id": 0}).
+		All(&t)
+	if err != nil {
+		Logger.Println("Failed to retrieve all users:", err)
+		return t
+	}
+	return t
+}
+
 // Query statements
 func DataGetChallenges(group string) ([]Challenge, error) {
 	challenges := []Challenge{}
