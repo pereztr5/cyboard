@@ -74,6 +74,13 @@ func CreateTeamRouter() *mux.Router {
 	return router
 }
 
+func CreateAdminRouter() *mux.Router {
+	router := mux.NewRouter()
+	admin := router.PathPrefix("/admin").Subrouter()
+	admin.HandleFunc("/teams/add", AddTeams).Methods("POST")
+	return router
+}
+
 func ShowHome(w http.ResponseWriter, r *http.Request) {
 	t := r.Context().Value("team")
 	p := Page{Title: "homepage"}

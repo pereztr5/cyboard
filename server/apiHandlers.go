@@ -58,3 +58,22 @@ func CheckAllFlags(w http.ResponseWriter, r *http.Request) {
 	fmt.Fprint(w, found)
 	w.WriteHeader(http.StatusOK)
 }
+
+func AddTeams(w http.ResponseWriter, r *http.Request) {
+	teams, err := ParseTeamCsv(r.Body)
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusNotAcceptable)
+		return
+	}
+
+	// The unique indexes on the teams collection
+	// will prevent bad duplicates.
+	err = DataAddTeams(teams)
+	if err != nil {
+		// MongoDB errors should be safe to give back to admins.
+		http.Error(w, err.Error(), http.StatusExpectationFailed)
+		return
+	}
+
+	w.WriteHeader(http.StatusOK)
+}

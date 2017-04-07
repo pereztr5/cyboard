@@ -1,6 +1,7 @@
 package server
 
 import (
+	"fmt"
 	"io"
 	"log"
 	"os"
@@ -413,5 +414,19 @@ func DataAddResult(result Result, test bool) error {
 	}
 	CaptFlagsLogger.Printf("Team [%d] just scored '%d points' for flag '%s'!",
 		result.Teamnumber, result.Points, result.Details)
+	return nil
+}
+
+func DataAddTeams(teams []Team) error {
+	session, teamC := GetSessionAndCollection("teams")
+	defer session.Close()
+	var docs []interface{}
+	for _, team := range teams {
+		docs = append(docs, interface{}(team))
+	}
+	err := teamC.Insert(docs...)
+	if err != nil {
+		return fmt.Errorf("failed to add new teams: mongo DB error: %v", err)
+	}
 	return nil
 }

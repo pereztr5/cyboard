@@ -70,10 +70,11 @@
             <table id="user-config-table" class="table table-striped table-hover">
                 <tr>
                     <th>Name</th>
-                    <th>Group</th>
+                    <th>Team/Group</th>
                     <th>Number</th>
                     <th>IP</th>
                     <th>Password</th>
+                    <th>Remove?</th>
                 </tr>
                 {{- range $userData := allUsers }}
                     {{- with $userData }}
@@ -83,18 +84,37 @@
                         <td>{{ .Number }}</td>
                         <td>{{ .Ip     }}</td>
                         <td class="placeholder">{Unchanged}</td>
+                        <td><i class="fa fa-trash" aria-hidden="true"></i></td>
                     </tr>
                     {{- end }}
                 {{- end }}
             </table>
         </div>
-        <div class="btn-group btn-group-sm">
-            <button class="btn btn-default" type="button">
-                <i class="fa fa-plus" aria-hidden="true"></i> Add row
-            </button>
-            <button class="btn btn-default" type="button">
-                <i class="fa fa-upload" aria-hidden="true"></i> Submit
-            </button>
+
+        <p>You can add/update users by uploading a CSV file, below.</p>
+
+        <p><em>Guidelines:</em></p>
+        <ul>
+            <li>Users are updated by matching their <em>Name</em>.</li>
+            <li>Valid teams are: blueteam, redteam, whiteteam, blackteam, and admin.</li>
+            <li>The <em>IP</em> and <em>Number</em> are super useless for non-blueteam members.</li>
+            <li>All leading spaces are trimmed, unless quotes " are used.</li>
+            <li><em>Changing a blueteam's name after scoring has begun will break
+                the competition display!</em>
+                <ul>
+                    <li>Deleting the user will effectively "disable" them.</li>
+                </ul>
+            </li>
+            <li>When updating, leave the password field blank to leave it alone.</li>
+        </ul>
+
+        <div class="user-config-csv-upload form-group">
+            <form>
+                <textarea class="form-control" rows="10" style="font-family:monospace"></textarea>
+                <button class="btn btn-default" type="submit">
+                    <i class="fa fa-upload" aria-hidden="true"></i> Submit
+                </button>
+            </form>
         </div>
     </div>
 </div>

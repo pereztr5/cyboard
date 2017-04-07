@@ -35,12 +35,21 @@ func serverRun(cmd *cobra.Command, args []string) {
 
 	webRouter := CreateWebRouter()
 	teamRouter := CreateTeamRouter()
+	adminRouter := CreateAdminRouter()
 
 	app := negroni.New()
-	webRouter.PathPrefix("/").Handler(negroni.New(
-		negroni.HandlerFunc(RequireLogin),
+	basicAuth := negroni.New(negroni.HandlerFunc(RequireLogin))
+
+	webRouter.PathPrefix("/admin").Handler(basicAuth.With(
+		negroni.HandlerFunc(RequireAdmin),
+		negroni.Wrap(adminRouter),
+	))
+
+	webRouter.PathPrefix("/").Handler(basicAuth.With(
 		negroni.Wrap(teamRouter),
 	))
+
+	app.Use(negroni.NewRecovery())
 	app.Use(negroni.NewLogger())
 	app.Use(negroni.NewStatic(http.Dir("static")))
 	app.Use(negroni.HandlerFunc(CheckSessionID))

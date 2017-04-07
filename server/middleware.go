@@ -34,3 +34,12 @@ func RequireLogin(w http.ResponseWriter, r *http.Request, next http.HandlerFunc)
 		http.Redirect(w, r, "/login", 302)
 	}
 }
+
+func RequireAdmin(w http.ResponseWriter, r *http.Request, next http.HandlerFunc) {
+	team := r.Context().Value("team").(Team)
+	if team.Group == "admin" {
+		next(w, r)
+	} else {
+		http.Redirect(w, r, "/login", 302)
+	}
+}
