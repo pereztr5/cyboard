@@ -29,6 +29,46 @@ func ReadStdinLine() ([]byte, error) {
 	return stdin.Bytes(), stdin.Err()
 }
 
+func sanitizeUpdateOp(updateOp map[string]interface{}) (map[string]interface{}, error) {
+	if len(updateOp) == 0 {
+		return nil, fmt.Errorf("no fields given for update: %v", updateOp);
+	}
+	sanitized := make(map[string]interface{}, len(updateOp))
+
+	for k, v := range updateOp {
+		// Check for empty strings
+		if strValue, ok := v.(string); ok {
+			if strValue == "" {
+				return nil, fmt.Errorf("field must not be empty: %v", k)
+			}
+		}
+
+		switch k {
+		case "name":
+			sanitized[k] = v.(string)
+		case "group":
+			sanitized[k] = v.(string)
+		case "number":
+			sanitized[k] = int64(v.(float64))
+		case "ip":
+			if parsed := net.ParseIP(v.(string)); parsed == nil {
+				return nil, fmt.Errorf("invalid IP: %v", v)
+			}
+			sanitized[k] = v.(string)
+		case "password":
+			hashBytes, err := bcrypt.GenerateFromPassword([]byte(v.(string)), bcrypt.DefaultCost)
+			if err != nil {
+				return nil, fmt.Errorf("failed to hash password: %v", err)
+			}
+			sanitized["hash"] = string(hashBytes)
+		default:
+			return nil, fmt.Errorf("unexpected field in update JSON: %v: %v", k, v)
+		}
+	}
+
+	return sanitized, nil
+}
+
 var TeamCsvHeaders = []string{"Name", "Group", "Number", "IP", "Password"}
 
 func ParseTeamCsv(r io.Reader) ([]Team, error) {
@@ -86,7 +126,7 @@ CsvParseLoop:
 		}
 
 		if ip := net.ParseIP(getColumn(3)); ip == nil {
-			if team.Group != "blueteam" {
+			if team.Group == "blueteam" {
 				parseErr = fmt.Errorf("invalid IP: %v", getColumn(3))
 				break
 			}
@@ -104,8 +144,8 @@ CsvParseLoop:
 	}
 
 	if parseErr != nil {
-		return nil, fmt.Errorf("row %v, column %q: %v",
-			rowIdx, TeamCsvHeaders[colIdx], parseErr)
+		return nil, fmt.Errorf("error parsing csv - row #%d (%v), column %q: %v",
+			rowIdx, row[0], TeamCsvHeaders[colIdx], parseErr)
 	}
 
 	return posses, nil

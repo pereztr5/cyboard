@@ -4,6 +4,8 @@ import (
 	"encoding/json"
 	"fmt"
 	"net/http"
+
+	"github.com/gorilla/mux"
 )
 
 func GetChallenges(w http.ResponseWriter, r *http.Request) {
@@ -59,6 +61,18 @@ func CheckAllFlags(w http.ResponseWriter, r *http.Request) {
 	w.WriteHeader(http.StatusOK)
 }
 
+func GetAllUsers(w http.ResponseWriter, r *http.Request) {
+	w.Header().Set("Content-Type", "application/json; charset=UTF-8")
+	users := DataGetAllUsers()
+	err := json.NewEncoder(w).Encode(users)
+	if err != nil {
+		Logger.Println("Error with GetAllUsers:", err)
+		http.Error(w, http.StatusText(500), 500)
+		return
+	}
+	w.WriteHeader(http.StatusOK)
+}
+
 func AddTeams(w http.ResponseWriter, r *http.Request) {
 	teams, err := ParseTeamCsv(r.Body)
 	if err != nil {
@@ -74,6 +88,45 @@ func AddTeams(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, err.Error(), http.StatusExpectationFailed)
 		return
 	}
+	w.WriteHeader(http.StatusOK)
+}
 
+func UpdateTeam(w http.ResponseWriter, r *http.Request) {
+	teamName, ok := mux.Vars(r)["teamName"]
+	if !ok {
+		Logger.Println("Failed to update team: missing 'teamName' URL Paramater")
+		http.Error(w, http.StatusText(500), 500)
+		return
+	}
+
+	var updateOp map[string]interface{}
+	if err := json.NewDecoder(r.Body).Decode(&updateOp); err != nil {
+		Logger.Println("Error decoding update PUT body:", err)
+		http.Error(w, err.Error(), 500)
+		return
+	}
+
+	if err := DataUpdateTeam(teamName, updateOp); err != nil {
+		Logger.Println("Failed to update team:", err)
+		http.Error(w, err.Error(), 500)
+		return
+	}
+	w.WriteHeader(http.StatusOK)
+}
+
+func DeleteTeam(w http.ResponseWriter, r *http.Request) {
+	teamName, ok := mux.Vars(r)["teamName"]
+	if !ok {
+		Logger.Println("Failed to delete team: missing 'teamName' URL Paramater")
+		http.Error(w, http.StatusText(500), 500)
+		return
+	}
+
+	err := DataDeleteTeam(teamName)
+	if err != nil {
+		Logger.Println("Failed to delete team:", err)
+		http.Error(w, err.Error(), 500)
+		return
+	}
 	w.WriteHeader(http.StatusOK)
 }

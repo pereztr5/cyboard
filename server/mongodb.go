@@ -91,12 +91,6 @@ func EnsureAdmin() {
 	err := teamsCollection.Find(bson.M{"group": "admin"}).One(nil)
 	if err == mgo.ErrNotFound {
 		const adminAccName = "admin"
-		admin := &Team{
-			Name:   adminAccName,
-			Group:  "admin",
-			Number: -1,
-			Ip:     "127.0.0.1",
-		}
 		// Read initial password from command line
 		fmt.Printf("*** No previously configured admin user found ***\n"+
 			"Setting up '%s' account.\n"+
@@ -112,7 +106,13 @@ func EnsureAdmin() {
 		if err != nil {
 			Logger.Fatal("Failed to hash password:", err)
 		}
-		admin.Hash = string(hashBytes)
+		admin := &Team{
+			Name:   adminAccName,
+			Group:  "admin",
+			Number: -1,
+			Ip:     "127.0.0.1",
+			Hash:   string(hashBytes),
+		}
 		err = teamsCollection.Insert(admin)
 		if err != nil {
 			Logger.Fatal("Failed to add admin to MongoDB:", err)

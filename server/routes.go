@@ -77,7 +77,10 @@ func CreateTeamRouter() *mux.Router {
 func CreateAdminRouter() *mux.Router {
 	router := mux.NewRouter()
 	admin := router.PathPrefix("/admin").Subrouter()
-	admin.HandleFunc("/teams/add", AddTeams).Methods("POST")
+	admin.HandleFunc("/teams", GetAllUsers).Methods("GET")
+	admin.HandleFunc("/teams/add", AddTeams).Methods("POST").Headers("Content-Type", "text/csv; charset=UTF-8")
+	admin.HandleFunc("/team/update/{teamName}", UpdateTeam).Methods("PUT").Headers("Content-Type", "application/json; charset=UTF-8")
+	admin.HandleFunc("/team/delete/{teamName}", DeleteTeam).Methods("DELETE")
 	return router
 }
 

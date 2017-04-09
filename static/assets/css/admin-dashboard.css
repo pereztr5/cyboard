@@ -1,0 +1,47 @@
+/* Center the tiny AJAX response messages and buttons */
+.status-region,
+.user-config-table .controls div {
+    display: flex;
+    flex-flow: row;
+    justify-content: center;
+}
+
+.user-configuration-panel .guidelines,
+.user-configuration-panel .guidelines h4 {
+    color: #cdcbc9;
+    font-size: 1.35em;
+}
+
+
+/*
+ * Add Users CSV
+ */
+.user-config-csv-upload textarea {
+    /*color: #080808;*/
+    font-family: monospace;
+    white-space: nowrap;
+}
+
+.user-config-csv-upload form button {
+    width: 100%;
+}
+
+/*
+ * Update & Delete users table
+ */
+.user-config-table .controls {
+    padding: 0;
+}
+
+.user-config-table thead>tr>th:last-of-type {
+    text-align: center;
+}
+/* The bootstrap btn-success is too bright */
+.user-config-table .controls .btn-success {
+    filter: contrast(75%);
+}
+
+/* Make "edited" columns look like the "do update" button */
+[data-original] {
+    background-color: rgba(255, 136, 0, 0.79);
+}

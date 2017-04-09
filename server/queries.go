@@ -12,7 +12,7 @@ import (
 
 type Team struct {
 	Id     bson.ObjectId `json:"id,omitempty" bson:"_id,omitempty"`
-	Group  string        `json:"-"`
+	Group  string        `json:"group"`
 	Number int           `json:"number"`
 	Name   string        `json:"name"`
 	Ip     string        `json:"ip"`
@@ -429,4 +429,23 @@ func DataAddTeams(teams []Team) error {
 		return fmt.Errorf("failed to add new teams: mongo DB error: %v", err)
 	}
 	return nil
+}
+
+func DataUpdateTeam(teamName string, updateOp map[string]interface{}) error {
+	// sanitization may panic if someone is sending crafted, bad JSON to the api,
+	// but this is a gated, admin only operation.
+	sanitizedOp, err := sanitizeUpdateOp(updateOp)
+	if err != nil {
+		return fmt.Errorf("validation failed: %v", err)
+	}
+	session, teamC := GetSessionAndCollection("teams")
+	defer session.Close()
+	return teamC.Update(bson.M{"name": teamName}, bson.M{"$set": sanitizedOp})
+
+}
+
+func DataDeleteTeam(teamName string) error {
+	session, teamC := GetSessionAndCollection("teams")
+	defer session.Close()
+	return teamC.Remove(bson.M{"name": teamName})
 }
