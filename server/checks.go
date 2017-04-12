@@ -105,7 +105,7 @@ func score(result Result) {
 			Logger.Println("Could not insert service result:", err)
 		}
 	} else {
-		scoreTmplStr := `\nGroup: {{ .Group }}\nTeam: {{ .Teamname }}\nDetails: {{ .Details }}\nPoints: {{ .Points }}\n`
+		scoreTmplStr := `\nTimestamp: {{ .Timestamp }}\nGroup: {{ .Group }}\nTeam: {{ .Teamname }}\nDetails: {{ .Details }}\nPoints: {{ .Points }}\n`
 		scoreTmpl := template.Must(template.New("result").Parse(scoreTmplStr))
 		err := scoreTmpl.Execute(os.Stdout, result)
 		if err != nil {
@@ -124,11 +124,12 @@ func startCheckService(teams []Team, checks []Check) {
 	// Run command every x seconds until scheduled end time
 	Logger.Printf("%v: Starting Checks\n", time.Now())
 	for t := range checkTicker.C {
-		if time.Now().Before(Event.End) {
+		now := time.Now()
+		if now.Before(Event.End) {
 			Logger.Printf("%v: Running Checks\n", t)
 			for _, team := range teams {
 				for _, check := range checks {
-					go runCmd(team, check, status)
+					go runCmd(team, check, now, status)
 				}
 			}
 			amtChecks := len(teams) * len(checks)
@@ -146,7 +147,7 @@ func startCheckService(teams []Team, checks []Check) {
 	}
 }
 
-func runCmd(team Team, check Check, status chan Result) {
+func runCmd(team Team, check Check, timestamp time.Time, status chan Result) {
 	// TODO: Currently only one IP per team is supported
 	cmd := &check.Script
 	cmd.Args = parseArgs(cmd.Path, check.Args, team.Ip)
@@ -162,6 +163,7 @@ func runCmd(team Team, check Check, status chan Result) {
 		}()
 		result := Result{
 			Type:       "Service",
+			Timestamp:  timestamp,
 			Group:      check.Name,
 			Teamname:   team.Name,
 			Teamnumber: team.Number,

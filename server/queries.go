@@ -31,6 +31,7 @@ type Challenge struct {
 type Result struct {
 	Id         bson.ObjectId `json:"id,omitempty" bson:"_id,omitempty"`
 	Type       string        `json:"type" bson:"type"`
+	Timestamp  time.Time     `json:"timestamp" bson:"timestamp"`
 	Group      string        `json:"group" bson:"group"`
 	Teamname   string        `json:"teamname" bson:"teamname"`
 	Teamnumber int           `json:"teamnumber" bson:"teamnumber"`
@@ -162,6 +163,7 @@ func DataCheckFlag(team Team, chal Challenge) (int, error) {
 			// Correct flag = 0
 			result := Result{
 				Type:       "CTF",
+				Timestamp:  time.Now(),
 				Group:      chal.Group,
 				Teamname:   team.Name,
 				Teamnumber: team.Number,
@@ -383,6 +385,8 @@ func DataGetLastResult() time.Time {
 	session, results := GetSessionAndCollection("results")
 	defer session.Close()
 	id := bson.M{}
+
+	// TODO: Update to use the "timestamp" field, instead of bson native _id
 	err := results.Pipe([]bson.M{
 		{"$sort": bson.M{"_id": 1}},
 		{"$group": bson.M{"_id": nil, "last": bson.M{"$last": "$_id"}}},
