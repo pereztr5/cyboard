@@ -9,7 +9,7 @@ $(function() {
         appendScores(results)
     };
 
-})();
+});
 
 function appendScores(res) {
     var icons = 'fa-arrow-circle-up fa-arrow-circle-down fa-exclamation-circle fa-question-circle-o text-success text-danger text-warning text-muted blink';

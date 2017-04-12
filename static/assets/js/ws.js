@@ -9,7 +9,7 @@ $(function() {
         appendScores(results);
         updateChart(results);
     };
-})();
+});
 
 function appendScores(res) {
     res.forEach(function(r) {
