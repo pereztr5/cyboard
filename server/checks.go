@@ -14,6 +14,7 @@ import (
 	"syscall"
 	"time"
 
+	"github.com/fsnotify/fsnotify"
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
 )
@@ -40,10 +41,11 @@ var CheckCmd = &cobra.Command{
 }
 
 var (
-	Event    EventSettings
-	cfgCheck string
-	checkcfg *viper.Viper
-	dryRun   bool
+	Event          EventSettings
+	cfgCheck       string
+	checkcfg       *viper.Viper
+	cfgNeedsReload bool
+	dryRun         bool
 )
 
 func init() {
@@ -64,6 +66,18 @@ func initCheckConfig() {
 	if err != nil {
 		Logger.Fatal("Fatal error config file:", err)
 	}
+	// FIXME(butters): There's an unfortunate race condition in the Viper library.
+	//        https://github.com/spf13/viper/issues/174
+	// The gist is that there's not synchronization mechanism for this
+	// feature, so, if the config gets updated really quickly, the check
+	// service would collapse. We could just copy the WatchConfig code
+	// and add our own shared file lock as a quick patch.
+	checkcfg.WatchConfig()
+	checkcfg.OnConfigChange(func(in fsnotify.Event) {
+		cfgNeedsReload = true
+		Logger.Println(checkcfg.ConfigFileUsed(), "has been updated. ")
+		Logger.Println("Settings will reload live at the next set of checks.")
+	})
 }
 
 func loadSettings() {
@@ -75,8 +89,11 @@ func loadSettings() {
 	}
 
 	// Run for 30 seconds if the end time is past already
-	if time.Now().After(Event.End) {
+	if dryRun && time.Now().After(Event.End) {
 		Event.End = time.Now().Add(time.Second * 30)
+	} else {
+		Logger.Println("Event has already ended! " +
+			"(Did you forget to update `event_end_time` in the config?)")
 	}
 	Event.Intervals = checkcfg.GetDuration("intervals")
 	Event.Timeout = checkcfg.GetDuration("timeout")
@@ -97,6 +114,19 @@ func getChecks() (checks []Check) {
 	return checks
 }
 
+func getPoints(name string) map[int]int {
+	var p []int
+	err := checkcfg.UnmarshalKey(name, &p)
+	if err != nil {
+		Logger.Println(err)
+	}
+	points := make(map[int]int)
+	for i, v := range p {
+		points[i] = v
+	}
+	return points
+}
+
 func score(result Result) {
 	//fmt.Printf("%s %s\nService: %s\tStatus: %d\n%v\n", res.Team.Teamname, res.Team.Ips[0], res.Service, res.Status, res.Output)
 	if !dryRun {
@@ -105,7 +135,8 @@ func score(result Result) {
 			Logger.Println("Could not insert service result:", err)
 		}
 	} else {
-		scoreTmplStr := `\nTimestamp: {{ .Timestamp }}\nGroup: {{ .Group }}\nTeam: {{ .Teamname }}\nDetails: {{ .Details }}\nPoints: {{ .Points }}\n`
+		result.Timestamp = result.Timestamp.Round(time.Millisecond)
+		scoreTmplStr := "Timestamp: {{ .Timestamp }} | Group: {{ .Group }} | Team: {{ .Teamname }} | Details: {{ .Details }} | Points: {{ .Points }}\n"
 		scoreTmpl := template.Must(template.New("result").Parse(scoreTmplStr))
 		err := scoreTmpl.Execute(os.Stdout, result)
 		if err != nil {
@@ -125,7 +156,7 @@ func startCheckService(teams []Team, checks []Check) {
 	Logger.Printf("%v: Starting Checks\n", time.Now())
 	for t := range checkTicker.C {
 		now := time.Now()
-		if now.Before(Event.End) {
+		if !cfgNeedsReload && now.Before(Event.End) {
 			Logger.Printf("%v: Running Checks\n", t)
 			for _, team := range teams {
 				for _, check := range checks {
@@ -141,7 +172,11 @@ func startCheckService(teams []Team, checks []Check) {
 			}
 		} else {
 			checkTicker.Stop()
-			Logger.Printf("%v: Done Checking Services\n", t)
+			if cfgNeedsReload {
+				Logger.Printf("%v: Reloading with new settings", t)
+			} else {
+				Logger.Printf("%v: Done Checking Services\n", t)
+			}
 			break
 		}
 	}
@@ -210,19 +245,6 @@ func parseArgs(name string, args string, ip string) []string {
 	return strings.Split(nArgs, " ")
 }
 
-func getPoints(name string) map[int]int {
-	var p []int
-	err := checkcfg.UnmarshalKey(name, &p)
-	if err != nil {
-		Logger.Println(err)
-	}
-	points := make(map[int]int)
-	for i, v := range p {
-		points[i] = v
-	}
-	return points
-}
-
 func getOutput(stdout io.ReadCloser) string {
 	buf := new(bytes.Buffer)
 	buf.ReadFrom(stdout)
@@ -244,16 +266,22 @@ func testData() []Team {
 }
 
 func checksRun(cmd *cobra.Command, args []string) {
-	loadSettings()
-	checks := getChecks()
-	if !dryRun {
-		teams, err := DataGetTeamIps()
-		if err != nil {
-			Logger.Fatalln("Could not get teams for service checks:", err)
+	for {
+		cfgNeedsReload = false
+		loadSettings()
+		checks := getChecks()
+		if !dryRun {
+			teams, err := DataGetTeamIps()
+			if err != nil {
+				Logger.Fatalln("Could not get teams for service checks:", err)
+			}
+			startCheckService(teams, checks)
+		} else {
+			teams := testData()
+			startCheckService(teams, checks)
 		}
-		startCheckService(teams, checks)
-	} else {
-		teams := testData()
-		startCheckService(teams, checks)
+		if !cfgNeedsReload {
+			break
+		}
 	}
 }
