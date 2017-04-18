@@ -1,7 +1,6 @@
 package server
 
 import (
-	"bufio"
 	"bytes"
 	"fmt"
 	"html/template"
@@ -21,9 +20,14 @@ import (
 
 type Check struct {
 	Name   string
-	Script exec.Cmd
+	Script *exec.Cmd
 	Args   string
 	Points map[int]int
+}
+
+func (c *Check) String() string {
+	return fmt.Sprintf(`Check{name=%q, fullcmd="%s %s", pts=%d}`,
+		c.Name, filepath.Base(c.Script.Path), c.Args, c.Points[0])
 }
 
 type EventSettings struct {
@@ -31,6 +35,11 @@ type EventSettings struct {
 	End       time.Time
 	Timeout   time.Duration
 	Intervals time.Duration
+}
+
+func (es *EventSettings) String() string {
+	return fmt.Sprintf(`Event{end=%v, interval=%v, timeout=%v}`,
+		es.End.Format(time.UnixDate), es.Intervals, es.Timeout)
 }
 
 var CheckCmd = &cobra.Command{
@@ -64,7 +73,7 @@ func initCheckConfig() {
 	checkcfg.AddConfigPath(".")
 	err := checkcfg.ReadInConfig()
 	if err != nil {
-		Logger.Fatal("Fatal error config file:", err)
+		Logger.Fatal("Fatal error reading config file:", err)
 	}
 	// FIXME(butters): There's an unfortunate race condition in the Viper library.
 	//        https://github.com/spf13/viper/issues/174
@@ -85,46 +94,80 @@ func loadSettings() {
 	var err error
 	Event.End, err = time.Parse(time.UnixDate, checkcfg.GetString("event_end_time"))
 	if err != nil {
-		Logger.Fatal(err)
+		Logger.Fatal("Failed to parse event_end_time:", err)
 	}
 
-	// Run for 30 seconds if the end time is past already
-	if dryRun && time.Now().After(Event.End) {
-		Event.End = time.Now().Add(time.Second * 30)
-	} else {
-		Logger.Println("Event has already ended! " +
-			"(Did you forget to update `event_end_time` in the config?)")
+	if time.Now().After(Event.End) {
+		if dryRun {
+			// Run for 30 seconds if the end time is past already
+			Event.End = time.Now().Add(time.Second * 30)
+		} else {
+			Logger.Println("Event has already ended! " +
+				"(Did you forget to update `event_end_time` in the config?)")
+		}
 	}
 	Event.Intervals = checkcfg.GetDuration("intervals")
 	Event.Timeout = checkcfg.GetDuration("timeout")
+	Logger.Println(&Event)
 }
 
 func getChecks() (checks []Check) {
 	checksDir := checkcfg.GetString("checks_dir")
 	for n := range checkcfg.GetStringMap("checks") {
-		check := "checks." + n
+		checkKey := "checks." + n
+		readCfgString := func(s string) string {
+			return checkcfg.GetString(checkKey + "." + s)
+		}
+
+		script, err := getScript(filepath.Join(checksDir, readCfgString("filename")))
+		if err != nil {
+			Logger.Printf("%v: SKIPPING! Failed to locate script: %v", checkKey, err)
+			continue
+		}
+		pts, err := getPoints(checkKey + ".points")
+		if err != nil {
+			Logger.Printf("%v: SKIPPING! Failed to get point totals: %v", checkKey, err)
+			continue
+		}
 		s := Check{
-			Name:   checkcfg.GetString(check + ".check_name"),
-			Script: getScript(checksDir + "/" + checkcfg.GetString(check+".filename")),
-			Args:   checkcfg.GetString(check + ".args"),
-			Points: getPoints(check + ".points"),
+			Name:   readCfgString("check_name"),
+			Script: script,
+			Args:   readCfgString("args"),
+			Points: pts,
 		}
 		checks = append(checks, s)
 	}
+	Logger.Println("All checks:")
+	for i, chk := range checks {
+		Logger.Printf("  [%d] %v\n", i, &chk)
+	}
+
 	return checks
 }
 
-func getPoints(name string) map[int]int {
-	var p []int
-	err := checkcfg.UnmarshalKey(name, &p)
+func getScript(path string) (*exec.Cmd, error) {
+	dir, err := filepath.Abs(path)
 	if err != nil {
-		Logger.Println(err)
+		return nil, err
+	}
+	_, err = exec.LookPath(path)
+	if err != nil {
+		return nil, err
+	}
+	return exec.Command(dir), nil
+}
+
+func getPoints(ptsKey string) (map[int]int, error) {
+	var p []int
+	err := checkcfg.UnmarshalKey(ptsKey, &p)
+	if err != nil {
+		return nil, err
 	}
 	points := make(map[int]int)
 	for i, v := range p {
 		points[i] = v
 	}
-	return points
+	return points, nil
 }
 
 func score(result Result) {
@@ -147,17 +190,24 @@ func score(result Result) {
 
 func startCheckService(teams []Team, checks []Check) {
 	Event.Start = time.Now()
+	//bio := bufio.NewReader(os.Stdin)
+	//Logger.Print("Press enter to start....")
+	//_, _ = bio.ReadString('\n')
+
+	// Run command every x seconds until scheduled end time
+	Logger.Println("Starting Checks")
 	checkTicker := time.NewTicker(Event.Intervals)
 	status := make(chan Result)
-	bio := bufio.NewReader(os.Stdin)
-	Logger.Print("Press enter to start....")
-	_, _ = bio.ReadString('\n')
-	// Run command every x seconds until scheduled end time
-	Logger.Printf("%v: Starting Checks\n", time.Now())
-	for t := range checkTicker.C {
+	for {
 		now := time.Now()
 		if !cfgNeedsReload && now.Before(Event.End) {
-			Logger.Printf("%v: Running Checks\n", t)
+			if len(checks) == 0 {
+				Logger.Println("No checks enabled/configured in:", checkcfg.ConfigFileUsed())
+				<-checkTicker.C
+				continue
+			}
+
+			Logger.Println("Running Checks")
 			for _, team := range teams {
 				for _, check := range checks {
 					go runCmd(team, check, now, status)
@@ -172,19 +222,18 @@ func startCheckService(teams []Team, checks []Check) {
 			}
 		} else {
 			checkTicker.Stop()
-			if cfgNeedsReload {
-				Logger.Printf("%v: Reloading with new settings", t)
-			} else {
-				Logger.Printf("%v: Done Checking Services\n", t)
+			if now.After(Event.End) {
+				Logger.Println("Done Checking Services")
 			}
 			break
 		}
+		<-checkTicker.C
 	}
 }
 
 func runCmd(team Team, check Check, timestamp time.Time, status chan Result) {
 	// TODO: Currently only one IP per team is supported
-	cmd := &check.Script
+	cmd := *check.Script
 	cmd.Args = parseArgs(cmd.Path, check.Args, team.Ip)
 	var stdout bytes.Buffer
 	cmd.Stdout = &stdout
@@ -210,7 +259,7 @@ func runCmd(team Team, check Check, timestamp time.Time, status chan Result) {
 				// If fatal then everything stops
 				Logger.Println("Failed to Kill:", err)
 			}
-			Logger.Printf("%s timed out\n", check.Name)
+			//Logger.Println(check.Name, "timed out")
 			result.Details = "Status: timed out"
 			status <- result
 		case _ = <-done:
@@ -227,14 +276,6 @@ func runCmd(team Team, check Check, timestamp time.Time, status chan Result) {
 			status <- result
 		}
 	}
-}
-
-func getScript(path string) exec.Cmd {
-	dir, err := filepath.Abs(path)
-	if err != nil {
-		Logger.Fatal(err)
-	}
-	return *exec.Command(dir)
 }
 
 func parseArgs(name string, args string, ip string) []string {
