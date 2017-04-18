@@ -1,9 +1,6 @@
 package cmd
 
 import (
-	"log"
-	"os"
-
 	"github.com/pereztr5/cyboard/server"
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
@@ -15,9 +12,6 @@ var ServerCmd = &cobra.Command{
 	Long:  `This will run the web server`,
 	Run:   serverRun,
 }
-
-// Logger is used to send logging messages to stdout.
-var Logger = log.New(os.Stdout, " ", log.Ldate|log.Ltime|log.Lshortfile)
 
 func init() {
 	ServerCmd.Flags().Int("http_port", 8080, "HTTP Port for cyboard used for redirect")

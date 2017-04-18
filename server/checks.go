@@ -13,6 +13,7 @@ import (
 	"syscall"
 	"time"
 
+	"github.com/fsnotify/fsnotify"
 	"github.com/spf13/viper"
 )
 
@@ -48,10 +49,22 @@ func (es *EventSettings) String() string {
 		es.End.Format(time.UnixDate), es.Intervals, es.Timeout, es.OnBreak)
 }
 
-func SetupCfg(cfg *viper.Viper, dryRunBool, reloadBool bool) {
+func SetupCfg(cfg *viper.Viper, dryRunBool bool) {
 	checkcfg = cfg
 	dryRun = dryRunBool
-	cfgNeedsReload = reloadBool
+
+	// FIXME(butters): There's an unfortunate race condition in the Viper library.
+	//        https://github.com/spf13/viper/issues/174
+	// The gist is that there's not synchronization mechanism for this
+	// feature, so, if the config gets updated really quickly, the check
+	// service would collapse. We could just copy the WatchConfig code
+	// and add our own shared file lock as a quick patch.
+	checkcfg.WatchConfig()
+	checkcfg.OnConfigChange(func(in fsnotify.Event) {
+		cfgNeedsReload = true
+		Logger.Println(checkcfg.ConfigFileUsed(), "has been updated. ")
+		Logger.Println("Settings will reload live at the next set of checks.")
+	})
 }
 
 func getChecks() (checks []Check) {
