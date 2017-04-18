@@ -13,8 +13,6 @@ import (
 	"syscall"
 	"time"
 
-	"github.com/fsnotify/fsnotify"
-	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
 )
 
@@ -25,11 +23,6 @@ type Check struct {
 	Points map[int]int
 }
 
-func (c *Check) String() string {
-	return fmt.Sprintf(`Check{name=%q, fullcmd="%s %s", pts=%d}`,
-		c.Name, filepath.Base(c.Script.Path), c.Args, c.Points[0])
-}
-
 type EventSettings struct {
 	Start     time.Time
 	End       time.Time
@@ -38,79 +31,27 @@ type EventSettings struct {
 	OnBreak   bool
 }
 
-func (es *EventSettings) String() string {
-	return fmt.Sprintf(`Event{end=%v, interval=%v, timeout=%v, OnBreak=%v}`,
-		es.End.Format(time.UnixDate), es.Intervals, es.Timeout, es.OnBreak)
-}
-
-var CheckCmd = &cobra.Command{
-	Use:   "checks",
-	Short: "Run Service Checks",
-	Long:  `Will get config file for checks and then running it at intervals`,
-	Run:   checksRun,
-}
-
 var (
 	Event          EventSettings
-	cfgCheck       string
 	checkcfg       *viper.Viper
 	cfgNeedsReload bool
 	dryRun         bool
 )
 
-func init() {
-	cobra.OnInitialize(initCheckConfig)
-	CheckCmd.PersistentFlags().StringVar(&cfgCheck, "config", "", "service check config file (default is $HOME/.cyboard/checks.toml)")
-	CheckCmd.Flags().BoolVarP(&dryRun, "dry", "", false, "Do a dry run of checks")
+func (c *Check) String() string {
+	return fmt.Sprintf(`Check{name=%q, fullcmd="%s %s", pts=%d}`,
+		c.Name, filepath.Base(c.Script.Path), c.Args, c.Points[0])
 }
 
-func initCheckConfig() {
-	checkcfg = viper.New()
-	if cfgCheck != "" {
-		checkcfg.SetConfigFile(cfgCheck)
-	}
-	checkcfg.SetConfigName("checks")
-	checkcfg.AddConfigPath("$HOME/.cyboard/")
-	checkcfg.AddConfigPath(".")
-	err := checkcfg.ReadInConfig()
-	if err != nil {
-		Logger.Fatal("Fatal error reading config file:", err)
-	}
-	// FIXME(butters): There's an unfortunate race condition in the Viper library.
-	//        https://github.com/spf13/viper/issues/174
-	// The gist is that there's not synchronization mechanism for this
-	// feature, so, if the config gets updated really quickly, the check
-	// service would collapse. We could just copy the WatchConfig code
-	// and add our own shared file lock as a quick patch.
-	checkcfg.WatchConfig()
-	checkcfg.OnConfigChange(func(in fsnotify.Event) {
-		cfgNeedsReload = true
-		Logger.Println(checkcfg.ConfigFileUsed(), "has been updated. ")
-		Logger.Println("Settings will reload live at the next set of checks.")
-	})
+func (es *EventSettings) String() string {
+	return fmt.Sprintf(`Event{end=%v, interval=%v, timeout=%v, OnBreak=%v}`,
+		es.End.Format(time.UnixDate), es.Intervals, es.Timeout, es.OnBreak)
 }
 
-func loadSettings() {
-	// Get Event details
-	var err error
-	Event.End, err = time.Parse(time.UnixDate, checkcfg.GetString("event_end_time"))
-	if err != nil {
-		Logger.Fatal("Failed to parse event_end_time:", err)
-	}
-
-	if time.Now().After(Event.End) {
-		if dryRun {
-			// Run for 30 seconds if the end time is past already
-			Event.End = time.Now().Add(time.Second * 30)
-		} else {
-			Logger.Println("Event has already ended! " +
-				"(Did you forget to update `event_end_time` in the config?)")
-		}
-	}
-	Event.Intervals = checkcfg.GetDuration("intervals")
-	Event.Timeout = checkcfg.GetDuration("timeout")
-	Event.OnBreak = checkcfg.GetBool("on_break")
-	Logger.Println(&Event)
+func SetupCfg(cfg *viper.Viper, dryRunBool, reloadBool bool) {
+	checkcfg = cfg
+	dryRun = dryRunBool
+	cfgNeedsReload = reloadBool
 }
 
 func getChecks() (checks []Check) {
@@ -150,6 +91,29 @@ func getChecks() (checks []Check) {
 	}
 
 	return checks
+}
+
+func loadSettings() {
+	// Get Event details
+	var err error
+	Event.End, err = time.Parse(time.UnixDate, checkcfg.GetString("event_end_time"))
+	if err != nil {
+		Logger.Fatal("Failed to parse event_end_time:", err)
+	}
+
+	if time.Now().After(Event.End) {
+		if dryRun {
+			// Run for 30 seconds if the end time is past already
+			Event.End = time.Now().Add(time.Second * 30)
+		} else {
+			Logger.Println("Event has already ended! " +
+				"(Did you forget to update `event_end_time` in the config?)")
+		}
+	}
+	Event.Intervals = checkcfg.GetDuration("intervals")
+	Event.Timeout = checkcfg.GetDuration("timeout")
+	Event.OnBreak = checkcfg.GetBool("on_break")
+	Logger.Println(&Event)
 }
 
 func getScript(path string) (*exec.Cmd, error) {
@@ -326,7 +290,7 @@ func testData() []Team {
 	return teams
 }
 
-func checksRun(cmd *cobra.Command, args []string) {
+func ChecksRun() {
 	for {
 		cfgNeedsReload = false
 		loadSettings()
