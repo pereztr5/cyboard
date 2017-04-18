@@ -35,11 +35,12 @@ type EventSettings struct {
 	End       time.Time
 	Timeout   time.Duration
 	Intervals time.Duration
+	OnBreak   bool
 }
 
 func (es *EventSettings) String() string {
-	return fmt.Sprintf(`Event{end=%v, interval=%v, timeout=%v}`,
-		es.End.Format(time.UnixDate), es.Intervals, es.Timeout)
+	return fmt.Sprintf(`Event{end=%v, interval=%v, timeout=%v, OnBreak=%v}`,
+		es.End.Format(time.UnixDate), es.Intervals, es.Timeout, es.OnBreak)
 }
 
 var CheckCmd = &cobra.Command{
@@ -108,6 +109,7 @@ func loadSettings() {
 	}
 	Event.Intervals = checkcfg.GetDuration("intervals")
 	Event.Timeout = checkcfg.GetDuration("timeout")
+	Event.OnBreak = checkcfg.GetBool("on_break")
 	Logger.Println(&Event)
 }
 
@@ -117,6 +119,11 @@ func getChecks() (checks []Check) {
 		checkKey := "checks." + n
 		readCfgString := func(s string) string {
 			return checkcfg.GetString(checkKey + "." + s)
+		}
+
+		if checkcfg.GetBool(checkKey + ".disable") {
+			Logger.Printf("%v: DISABLED.", checkKey)
+			continue
 		}
 
 		script, err := getScript(filepath.Join(checksDir, readCfgString("filename")))
@@ -198,11 +205,24 @@ func startCheckService(teams []Team, checks []Check) {
 	Logger.Println("Starting Checks")
 	checkTicker := time.NewTicker(Event.Intervals)
 	status := make(chan Result)
+	waitingOnReload := false
 	for {
 		now := time.Now()
 		if !cfgNeedsReload && now.Before(Event.End) {
-			if len(checks) == 0 {
-				Logger.Println("No checks enabled/configured in:", checkcfg.ConfigFileUsed())
+
+			// When there's nothing to do, log once, then just keep
+			// waiting for the config to be reloaded, or the event to end.
+			if Event.OnBreak || len(checks) == 0 {
+				if !waitingOnReload {
+					if len(checks) == 0 {
+						Logger.Println("No checks enabled/configured in: ", checkcfg.ConfigFileUsed())
+					} else {
+						Logger.Println("We're on break! Enjoy it! (Then update the config, setting `on_break = false`)")
+					}
+
+					waitingOnReload = true
+				}
+
 				<-checkTicker.C
 				continue
 			}

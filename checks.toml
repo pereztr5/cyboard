@@ -2,6 +2,7 @@ checks_dir = "scripts"
 event_end_time = "Fri Apr 22 19:24:29 EDT 2016"
 intervals = "5s"
 timeout = "4s"
+on_break = false
 
 [checks]
     [checks.1]
@@ -15,9 +16,11 @@ timeout = "4s"
     filename = "check_http"
     points = [ 10, 0, 0 ]
     args = "-I IP -t 5"
+    disable = false
 
     [checks.3]
     check_name = "IP"
     filename = "test.sh"
     points = [ 10, 0, 0 ]
     args = "IP"
+    disable = true
