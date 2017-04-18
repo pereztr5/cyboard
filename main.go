@@ -1,9 +1,15 @@
 package main
 
 import (
-	"github.com/pereztr5/cyboard/server"
+	"fmt"
+	"os"
+
+	"github.com/pereztr5/cyboard/cmd"
 )
 
 func main() {
-	server.Execute()
+	if err := cmd.RootCmd.Execute(); err != nil {
+		fmt.Println(err)
+		os.Exit(1)
+	}
 }

@@ -3,17 +3,12 @@ package server
 import (
 	"encoding/json"
 	"html/template"
-	"log"
 	"net/http"
-	"os"
 	"path/filepath"
 	"strings"
 
 	"github.com/gorilla/mux"
 )
-
-// Logger is used to send logging messages to stdout.
-var Logger = log.New(os.Stdout, " ", log.Ldate|log.Ltime|log.Lshortfile)
 
 type Page struct {
 	Title string
