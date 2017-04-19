@@ -304,6 +304,8 @@ func testData() []Team {
 }
 
 func ChecksRun() {
+	SetupCheckServiceLogger(checkcfg)
+
 	for {
 		cfgNeedsReload = false
 		loadSettings()

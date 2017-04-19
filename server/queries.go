@@ -2,9 +2,6 @@ package server
 
 import (
 	"fmt"
-	"io"
-	"log"
-	"os"
 	"time"
 
 	"gopkg.in/mgo.v2/bson"
@@ -37,22 +34,6 @@ type Result struct {
 	Teamnumber int           `json:"teamnumber" bson:"teamnumber"`
 	Details    string        `json:"details" bson:"details"`
 	Points     int           `json:"points" bson:"points"`
-}
-
-const CaptFlagsFilename = "captured_flags.log"
-
-// Useful logger that logs to a set file and stdout for use
-//   whenever a team submits a correct flag
-var CaptFlagsLogger *log.Logger
-
-func init() {
-	captFlagsFD, err := os.OpenFile(CaptFlagsFilename, os.O_CREATE|os.O_RDWR|os.O_APPEND, 0644)
-	if err != nil {
-		Logger.Fatalln("Failed to open log file '%s': %v", CaptFlagsFilename, err)
-	}
-
-	captFlagsAndStdout := io.MultiWriter(captFlagsFD, os.Stdout)
-	CaptFlagsLogger = log.New(captFlagsAndStdout, "", log.LstdFlags)
 }
 
 // Authentication Queries

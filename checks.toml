@@ -4,6 +4,12 @@ intervals = "5s"
 timeout = "4s"
 on_break = false
 
+[log]
+# Levels: "debug", "info", "warn", "error"
+level = "info"
+# use stdout instead of a file
+stdout = false
+
 [checks]
     [checks.1]
     check_name = "ping"

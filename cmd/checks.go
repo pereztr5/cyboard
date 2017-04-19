@@ -25,10 +25,12 @@ func init() {
 	cobra.OnInitialize(initCheckConfig)
 	CheckCmd.PersistentFlags().StringVar(&cfgCheck, "config", "", "service check config file (default is $HOME/.cyboard/checks.toml)")
 	CheckCmd.Flags().BoolVarP(&dryRun, "dry", "", false, "Do a dry run of checks")
+	CheckCmd.Flags().Bool("stdout", false, "Log to standard out")
 }
 
 func initCheckConfig() {
 	checkcfg = viper.New()
+	checkcfg.BindPFlag("log.stdout", CheckCmd.Flags().Lookup("stdout"))
 	if cfgCheck != "" {
 		checkcfg.SetConfigFile(cfgCheck)
 	}

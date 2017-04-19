@@ -2,18 +2,15 @@ package server
 
 import (
 	"fmt"
-	"log"
 	"net/http"
-	"os"
 
-	"github.com/codegangsta/negroni"
 	"github.com/spf13/viper"
+	"github.com/urfave/negroni"
 )
 
-// Logger is used to send logging messages to stdout.
-var Logger = log.New(os.Stdout, " ", log.Ldate|log.Ltime|log.Lshortfile)
-
 func Run() {
+	// Setup logs
+	SetupScoringLoggers(viper.GetViper())
 	// MongoDB setup
 	CreateUniqueIndexes()
 	// Web Server Setup
@@ -38,23 +35,22 @@ func Run() {
 	))
 
 	app.Use(negroni.NewRecovery())
-	app.Use(negroni.NewLogger())
 	app.Use(negroni.NewStatic(http.Dir("static")))
 	app.Use(negroni.HandlerFunc(CheckSessionID))
+	app.Use(RequestLogger)
 
 	app.UseHandler(webRouter)
 
-	l := log.New(os.Stdout, "[negroni] ", 0)
 	http_port := viper.GetString("server.http_port")
 	https_port := viper.GetString("server.https_port")
 	cert := viper.GetString("server.cert")
 	key := viper.GetString("server.key")
 
-	l.Printf("Server running at: https://%s:%s", viper.GetString("server.ip"), https_port)
+	Logger.Printf("Server running at: https://%s:%s", viper.GetString("server.ip"), https_port)
 
 	go http.ListenAndServe(":"+http_port, http.HandlerFunc(redir))
 
-	l.Fatal(http.ListenAndServeTLS(":"+https_port, cert, key, app))
+	Logger.Fatal(http.ListenAndServeTLS(":"+https_port, cert, key, app))
 }
 
 func redir(w http.ResponseWriter, r *http.Request) {

@@ -7,3 +7,4 @@ event
 cyboard
 scripts/*
 captured_flags.log
+log/*
