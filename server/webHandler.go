@@ -31,7 +31,7 @@ func CheckCreds(w http.ResponseWriter, r *http.Request) (bool, *http.Request) {
 	teamname, password := r.FormValue("teamname"), r.FormValue("password")
 	session, err := Store.Get(r, "cyboard")
 	if err != nil {
-		Logger.Printf("Error getting session: %v\n", err)
+		Logger.Error("Error getting session: ", err)
 	}
 
 	t, err := GetTeamByTeamname(teamname)
@@ -41,7 +41,7 @@ func CheckCreds(w http.ResponseWriter, r *http.Request) (bool, *http.Request) {
 
 	err = bcrypt.CompareHashAndPassword([]byte(t.Hash), []byte(password))
 	if err != nil {
-		Logger.Printf("Invalid credentials: %v\n", err)
+		Logger.Error("Invalid credentials: ", err)
 		return false, r
 	}
 
@@ -50,7 +50,7 @@ func CheckCreds(w http.ResponseWriter, r *http.Request) (bool, *http.Request) {
 	err = session.Save(r, w)
 	if err != nil {
 		http.Error(w, http.StatusText(500), 500)
-		Logger.Printf("Error saving session: %v\n", err)
+		Logger.Error("Error saving session: ", err)
 		return false, r
 	}
 	return true, r

@@ -101,9 +101,9 @@ func ShowLogin(w http.ResponseWriter, r *http.Request) {
 
 func SubmitLogin(w http.ResponseWriter, r *http.Request) {
 	session, err := Store.Get(r, "cyboard")
-	if err != nil {
-		Logger.Println("Getting from Store faile", err)
-	}
+	//if err != nil {
+	//	Logger.Warn("Getting session cookie from Store failed: ", err)
+	//}
 
 	succ, r := CheckCreds(w, r)
 	if succ {
@@ -177,14 +177,14 @@ func GetScores(w http.ResponseWriter, r *http.Request) {
 	scores := DataGetAllScore()
 	w.Header().Set("Content-Type", "application/json; charset=UTF-8")
 	if err := json.NewEncoder(w).Encode(scores); err != nil {
-		Logger.Println("Error encoding json:", err)
+		Logger.Error("Error encoding json: ", err)
 	}
 }
 
 func getChallenges() map[string]int {
 	totals, err := DataGetTotalChallenges()
 	if err != nil {
-		Logger.Println("Could not get challenges:", err)
+		Logger.Error("Could not get challenges: ", err)
 	}
 	return totals
 }
@@ -192,7 +192,7 @@ func getChallenges() map[string]int {
 func getTeamChallenges(teamname string) map[string]int {
 	acquired, err := DataGetTeamChallenges(teamname)
 	if err != nil {
-		Logger.Println("Could not get team challenges:", err)
+		Logger.Error("Could not get team challenges: ", err)
 	}
 	return acquired
 }

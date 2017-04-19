@@ -83,7 +83,7 @@ func writer(ws *websocket.Conn, lastMod time.Time, which string) {
 				t, lastMod, err = getServiceIfModified(lastMod)
 			}
 			if err != nil {
-				Logger.Printf("Could not get websocket team score: %v\n", err)
+				Logger.Error("Could not get websocket team score: ", err)
 			}
 
 			if r != nil || t != nil {
@@ -111,7 +111,7 @@ func ServeServicesWs(w http.ResponseWriter, r *http.Request) {
 	ws, err := upgrader.Upgrade(w, r, nil)
 	if err != nil {
 		if _, ok := err.(websocket.HandshakeError); !ok {
-			Logger.Println(err)
+			Logger.Error(err)
 		}
 		return
 	}
@@ -124,7 +124,7 @@ func ServeScoresWs(w http.ResponseWriter, r *http.Request) {
 	ws, err := upgrader.Upgrade(w, r, nil)
 	if err != nil {
 		if _, ok := err.(websocket.HandshakeError); !ok {
-			Logger.Println(err)
+			Logger.Error(err)
 		}
 		return
 	}

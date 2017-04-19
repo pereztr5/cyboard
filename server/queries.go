@@ -88,7 +88,7 @@ func DataGetTeams() []Team {
 
 	err := chalCollection.Find(bson.M{"group": "blueteam"}).Sort("number").Select(bson.M{"_id": 0, "number": 1, "name": 1}).All(&t)
 	if err != nil {
-		Logger.Printf("Could not get team info: %v\n", err)
+		Logger.Error("Could not get team info: ", err)
 		return t
 	}
 	return t
@@ -106,7 +106,7 @@ func DataGetAllUsers() []Team {
 		Select(bson.M{"_id": 0}).
 		All(&t)
 	if err != nil {
-		Logger.Println("Failed to retrieve all users:", err)
+		Logger.Error("Failed to retrieve all users: ", err)
 		return t
 	}
 	return t
@@ -190,7 +190,7 @@ func DataGetTotalChallenges() (map[string]int, error) {
 		totals[t["_id"].(string)] = t["total"].(int)
 	}
 	if err := iter.Close(); err != nil {
-		Logger.Printf("Error getting challenges: %v\n", err)
+		Logger.Error("Error getting challenges: ", err)
 		return totals, err
 	}
 	return totals, nil
@@ -211,7 +211,7 @@ func DataGetTeamChallenges(teamname string) (map[string]int, error) {
 		acquired[a["_id"].(string)] = a["acquired"].(int)
 	}
 	if err := iter.Close(); err != nil {
-		Logger.Printf("Error getting challenges: %v\n", err)
+		Logger.Error("Error getting challenges: ", err)
 		return acquired, err
 	}
 	return acquired, nil
@@ -229,7 +229,7 @@ func DataGetTeamScore(teamname string) int {
 	})
 	err := pipe.One(&points)
 	if err != nil {
-		Logger.Printf("Error getting team points: %v\n", err)
+		Logger.Error("Error getting team points: ", err)
 	} else {
 		p = points["points"].(int)
 	}
@@ -249,7 +249,7 @@ func DataGetAllScore() []Result {
 	})
 	err := pipe.All(&tmScore)
 	if err != nil {
-		Logger.Printf("Error getting all team scores: %v\n", err)
+		Logger.Error("Error getting all team scores: ", err)
 	}
 	// Get defaults for teams that do not have a score
 	if l := len(tmScore); l < len(teams) {
@@ -278,7 +278,7 @@ func DataGetServiceStatus() []interface{} {
 	})
 	err := pipe.All(&cResults)
 	if err != nil {
-		Logger.Printf("Error getting all team scores: %v\n", err)
+		Logger.Error("Error getting all team scores: ", err)
 	}
 	return cResults
 }
@@ -297,7 +297,7 @@ func DataGetServiceResult() []Result {
 		{"$sort": bson.M{"group": 1, "teamnumber": 1}},
 	}).All(&sList)
 	if err != nil {
-		Logger.Printf("Error getting all team scores: %v\n", err)
+		Logger.Error("Error getting all team scores: ", err)
 	}
 	return sList
 }
@@ -314,7 +314,7 @@ func DataGetResultByService(service string) []Result {
 		{"$sort": bson.M{"teamnumber": 1}},
 	}).All(&teamStatus)
 	if err != nil {
-		Logger.Printf("Error getting team status by service: %v\n", err)
+		Logger.Error("Error getting team status by service: ", err)
 	}
 	return teamStatus
 }
@@ -336,7 +336,7 @@ func DataGetServiceList() []string {
 		list = append(list, res["group"].(string))
 	}
 	if err := iter.Close(); err != nil {
-		Logger.Printf("Error getting service list: %v\n", err)
+		Logger.Error("Error getting service list: ", err)
 	}
 	return list
 
@@ -355,7 +355,7 @@ func DataGetLastServiceResult() time.Time {
 	}).One(&id)
 	var latest time.Time
 	if err != nil {
-		Logger.Printf("Error getting last Service result: %v\n", err)
+		Logger.Error("Error getting last Service result: ", err)
 	} else {
 		latest = id["last"].(bson.ObjectId).Time()
 	}
@@ -375,7 +375,7 @@ func DataGetLastResult() time.Time {
 	}).One(&id)
 	var latest time.Time
 	if err != nil {
-		Logger.Printf("Error getting last document: %v\n", err)
+		Logger.Error("Error getting last document: ", err)
 	} else {
 		latest = id["last"].(bson.ObjectId).Time()
 	}

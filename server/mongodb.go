@@ -2,7 +2,6 @@ package server
 
 import (
 	"fmt"
-	"log"
 	"os"
 
 	"github.com/spf13/viper"
@@ -15,21 +14,21 @@ var mongodbSession *mgo.Session
 
 func DBSession() *mgo.Session {
 	if mongodbSession == nil {
-		log.Println("Making new MongoDB Session")
+		Logger.Println("Making new MongoDB Session")
 		uri := os.Getenv("MONGODB_URI")
 		if uri == "" {
 			uri = viper.GetString("database.mongodb_uri")
 			if uri == "" {
-				log.Fatalln("No connection uri for MongoDB provided")
+				Logger.Fatalln("No connection uri for MongoDB provided")
 			}
 		}
 		var err error
 		mongodbSession, err = mgo.Dial(uri)
 		if mongodbSession == nil || err != nil {
-			log.Fatalf("Can't connect to MongoDB, go error %v\n", err)
+			Logger.Fatalf("Can't connect to MongoDB: ", err)
 		}
 		mongodbSession.SetSafe(&mgo.Safe{})
-		log.Println("Connected to mongodb:", mongodbSession.LiveServers())
+		Logger.Println("Connected to mongodb:", mongodbSession.LiveServers())
 	}
 	return mongodbSession
 }
