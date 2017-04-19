@@ -1,7 +1,9 @@
 package cmd
 
 import (
-	"github.com/fsnotify/fsnotify"
+	"fmt"
+	"os"
+
 	"github.com/pereztr5/cyboard/server"
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
@@ -23,10 +25,12 @@ func init() {
 	cobra.OnInitialize(initCheckConfig)
 	CheckCmd.PersistentFlags().StringVar(&cfgCheck, "config", "", "service check config file (default is $HOME/.cyboard/checks.toml)")
 	CheckCmd.Flags().BoolVarP(&dryRun, "dry", "", false, "Do a dry run of checks")
+	CheckCmd.Flags().Bool("stdout", false, "Log to standard out")
 }
 
 func initCheckConfig() {
 	checkcfg = viper.New()
+	checkcfg.BindPFlag("log.stdout", CheckCmd.Flags().Lookup("stdout"))
 	if cfgCheck != "" {
 		checkcfg.SetConfigFile(cfgCheck)
 	}
@@ -35,22 +39,10 @@ func initCheckConfig() {
 	checkcfg.AddConfigPath(".")
 	err := checkcfg.ReadInConfig()
 	if err != nil {
-		Logger.Fatal("Fatal error reading config file:", err)
+		fmt.Println("Fatal error reading config file:", err)
+		os.Exit(1)
 	}
-	// FIXME(butters): There's an unfortunate race condition in the Viper library.
-	//        https://github.com/spf13/viper/issues/174
-	// The gist is that there's not synchronization mechanism for this
-	// feature, so, if the config gets updated really quickly, the check
-	// service would collapse. We could just copy the WatchConfig code
-	// and add our own shared file lock as a quick patch.
-	var cfgNeedsReload bool
-	checkcfg.WatchConfig()
-	checkcfg.OnConfigChange(func(in fsnotify.Event) {
-		cfgNeedsReload = true
-		Logger.Println(checkcfg.ConfigFileUsed(), "has been updated. ")
-		Logger.Println("Settings will reload live at the next set of checks.")
-	})
-	server.SetupCfg(checkcfg, dryRun, cfgNeedsReload)
+	server.SetupCfg(checkcfg, dryRun)
 }
 
 func startChecks(cmd *cobra.Command, args []string) {

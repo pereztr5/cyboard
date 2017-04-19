@@ -12,13 +12,13 @@ func GetChallenges(w http.ResponseWriter, r *http.Request) {
 	// TODO: For now this will only get one group of challenges
 	chal, err := DataGetChallenges("Rusted Bunions")
 	if err != nil {
-		Logger.Printf("Error with DataGetChallenges: %v\n", err)
+		Logger.Error("Error with DataGetChallenges: ", err)
 		http.Error(w, http.StatusText(500), 500)
 		return
 	}
 	w.Header().Set("Content-Type", "application/json; charset=UTF-8")
 	if err := json.NewEncoder(w).Encode(chal); err != nil {
-		Logger.Printf("Error encoding: %v\n", err)
+		Logger.Error("Error encoding challenges: ", err)
 		http.Error(w, http.StatusText(500), 500)
 		return
 	}
@@ -36,7 +36,7 @@ func CheckFlag(w http.ResponseWriter, r *http.Request) {
 	if len(flag) > 0 {
 		found, err = DataCheckFlag(t, Challenge{Name: challenge, Flag: flag})
 		if err != nil {
-			Logger.Printf("Error checking flag: %s for team: %s: %v\n", flag, t.Name, err)
+			Logger.Errorf("Error checking flag: %s for team: %s: %v", flag, t.Name, err)
 		}
 	}
 	fmt.Fprint(w, found)
@@ -54,7 +54,7 @@ func CheckAllFlags(w http.ResponseWriter, r *http.Request) {
 	if len(flag) > 0 {
 		found, err = DataCheckFlag(t, Challenge{Flag: flag})
 		if err != nil {
-			Logger.Printf("Error checking flag: %s for team: %s: %v\n", flag, t.Name, err)
+			Logger.Errorf("Error checking flag: %s for team: %s: %v", flag, t.Name, err)
 		}
 	}
 	fmt.Fprint(w, found)
@@ -66,7 +66,7 @@ func GetAllUsers(w http.ResponseWriter, r *http.Request) {
 	users := DataGetAllUsers()
 	err := json.NewEncoder(w).Encode(users)
 	if err != nil {
-		Logger.Println("Error with GetAllUsers:", err)
+		Logger.Error("Error with GetAllUsers: ", err)
 		http.Error(w, http.StatusText(500), 500)
 		return
 	}
@@ -94,20 +94,20 @@ func AddTeams(w http.ResponseWriter, r *http.Request) {
 func UpdateTeam(w http.ResponseWriter, r *http.Request) {
 	teamName, ok := mux.Vars(r)["teamName"]
 	if !ok {
-		Logger.Println("Failed to update team: missing 'teamName' URL Paramater")
+		Logger.Error("Failed to update team: missing 'teamName' URL Paramater")
 		http.Error(w, http.StatusText(500), 500)
 		return
 	}
 
 	var updateOp map[string]interface{}
 	if err := json.NewDecoder(r.Body).Decode(&updateOp); err != nil {
-		Logger.Println("Error decoding update PUT body:", err)
+		Logger.Error("Error decoding update PUT body: ", err)
 		http.Error(w, err.Error(), 500)
 		return
 	}
 
 	if err := DataUpdateTeam(teamName, updateOp); err != nil {
-		Logger.Println("Failed to update team:", err)
+		Logger.Error("Failed to update team: ", err)
 		http.Error(w, err.Error(), 500)
 		return
 	}
@@ -117,14 +117,14 @@ func UpdateTeam(w http.ResponseWriter, r *http.Request) {
 func DeleteTeam(w http.ResponseWriter, r *http.Request) {
 	teamName, ok := mux.Vars(r)["teamName"]
 	if !ok {
-		Logger.Println("Failed to delete team: missing 'teamName' URL Paramater")
+		Logger.Error("Failed to delete team: missing 'teamName' URL Paramater")
 		http.Error(w, http.StatusText(500), 500)
 		return
 	}
 
 	err := DataDeleteTeam(teamName)
 	if err != nil {
-		Logger.Println("Failed to delete team:", err)
+		Logger.Error("Failed to delete team: ", err)
 		http.Error(w, err.Error(), 500)
 		return
 	}

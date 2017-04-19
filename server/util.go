@@ -31,7 +31,7 @@ func ReadStdinLine() ([]byte, error) {
 
 func sanitizeUpdateOp(updateOp map[string]interface{}) (map[string]interface{}, error) {
 	if len(updateOp) == 0 {
-		return nil, fmt.Errorf("no fields given for update: %v", updateOp);
+		return nil, fmt.Errorf("no fields given for update: %v", updateOp)
 	}
 	sanitized := make(map[string]interface{}, len(updateOp))
 

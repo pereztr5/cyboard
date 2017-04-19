@@ -7,6 +7,12 @@ https_port = "8081"
 cert = "certs/cert.pem"
 key = "certs/key.pem"
 
+[log]
+# Levels: "debug", "info", "warn", "error"
+level = "info"
+# use stdout instead of a file
+stdout = false
+
 [database]
 mongodb_uri = "mongodb://127.0.0.1"
 dbname = "scorengine"

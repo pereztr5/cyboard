@@ -2,6 +2,7 @@ package cmd
 
 import (
 	"fmt"
+	"os"
 
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
@@ -32,7 +33,8 @@ func initConfig() {
 	viper.AddConfigPath(".")
 	err := viper.ReadInConfig()
 	if err != nil {
-		Logger.Fatalf("Fatal error config file: %s\n", err)
+		fmt.Println("Fatal error config file:", err)
+		os.Exit(1)
 	}
 }
 
@@ -47,6 +49,6 @@ func RootRun(cmd *cobra.Command, args []string) {
 	fmt.Println(viper.GetString("database.mongodb_uri"))
 	err := cmd.Help()
 	if err != nil {
-		Logger.Println(err)
+		fmt.Println(err)
 	}
 }

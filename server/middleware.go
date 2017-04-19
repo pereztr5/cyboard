@@ -11,14 +11,14 @@ import (
 func CheckSessionID(w http.ResponseWriter, r *http.Request, next http.HandlerFunc) {
 	session, err := Store.Get(r, "cyboard")
 	if err != nil {
-		Logger.Printf("Getting from Store failed: %v", err)
+		Logger.Error("Getting session cookie from Store failed: ", err)
 	}
 	ctx := context.WithValue(r.Context(), "session", session)
 	var team interface{} = nil
 	if id, ok := session.Values["id"]; ok {
 		t, err := GetTeamById(id.(*bson.ObjectId))
 		if err != nil {
-			Logger.Printf("GetTeamById %v: %v", id, err)
+			Logger.Errorf("GetTeamById %v: %v", id, err)
 		} else {
 			team = t
 		}

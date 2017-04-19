@@ -5,7 +5,6 @@ import (
 	"fmt"
 	"html/template"
 	"io"
-	"os"
 	"os/exec"
 	"path/filepath"
 	"strconv"
@@ -13,6 +12,7 @@ import (
 	"syscall"
 	"time"
 
+	"github.com/fsnotify/fsnotify"
 	"github.com/spf13/viper"
 )
 
@@ -48,10 +48,22 @@ func (es *EventSettings) String() string {
 		es.End.Format(time.UnixDate), es.Intervals, es.Timeout, es.OnBreak)
 }
 
-func SetupCfg(cfg *viper.Viper, dryRunBool, reloadBool bool) {
+func SetupCfg(cfg *viper.Viper, dryRunBool bool) {
 	checkcfg = cfg
 	dryRun = dryRunBool
-	cfgNeedsReload = reloadBool
+
+	// FIXME(butters): There's an unfortunate race condition in the Viper library.
+	//        https://github.com/spf13/viper/issues/174
+	// The gist is that there's not synchronization mechanism for this
+	// feature, so, if the config gets updated really quickly, the check
+	// service would collapse. We could just copy the WatchConfig code
+	// and add our own shared file lock as a quick patch.
+	checkcfg.WatchConfig()
+	checkcfg.OnConfigChange(func(in fsnotify.Event) {
+		cfgNeedsReload = true
+		Logger.Print(checkcfg.ConfigFileUsed(), " has been updated.")
+		Logger.Print("Settings will reload live at the next set of checks.")
+	})
 }
 
 func getChecks() (checks []Check) {
@@ -63,18 +75,18 @@ func getChecks() (checks []Check) {
 		}
 
 		if checkcfg.GetBool(checkKey + ".disable") {
-			Logger.Printf("%v: DISABLED.", checkKey)
+			Logger.Warnf("%v: DISABLED.", checkKey)
 			continue
 		}
 
 		script, err := getScript(filepath.Join(checksDir, readCfgString("filename")))
 		if err != nil {
-			Logger.Printf("%v: SKIPPING! Failed to locate script: %v", checkKey, err)
+			Logger.Warnf("%v: SKIPPING! Failed to locate script: %v", checkKey, err)
 			continue
 		}
 		pts, err := getPoints(checkKey + ".points")
 		if err != nil {
-			Logger.Printf("%v: SKIPPING! Failed to get point totals: %v", checkKey, err)
+			Logger.Warnf("%v: SKIPPING! Failed to get point totals: %v", checkKey, err)
 			continue
 		}
 		s := Check{
@@ -85,9 +97,9 @@ func getChecks() (checks []Check) {
 		}
 		checks = append(checks, s)
 	}
-	Logger.Println("All checks:")
+	Logger.Print("All checks:")
 	for i, chk := range checks {
-		Logger.Printf("  [%d] %v\n", i, &chk)
+		Logger.Printf("  [%d] %v", i, &chk)
 	}
 
 	return checks
@@ -98,7 +110,7 @@ func loadSettings() {
 	var err error
 	Event.End, err = time.Parse(time.UnixDate, checkcfg.GetString("event_end_time"))
 	if err != nil {
-		Logger.Fatal("Failed to parse event_end_time:", err)
+		Logger.Fatal("Failed to parse event_end_time: ", err)
 	}
 
 	if time.Now().After(Event.End) {
@@ -106,14 +118,14 @@ func loadSettings() {
 			// Run for 30 seconds if the end time is past already
 			Event.End = time.Now().Add(time.Second * 30)
 		} else {
-			Logger.Println("Event has already ended! " +
+			Logger.Error("Event has already ended! " +
 				"(Did you forget to update `event_end_time` in the config?)")
 		}
 	}
 	Event.Intervals = checkcfg.GetDuration("intervals")
 	Event.Timeout = checkcfg.GetDuration("timeout")
 	Event.OnBreak = checkcfg.GetBool("on_break")
-	Logger.Println(&Event)
+	Logger.Print(&Event)
 }
 
 func getScript(path string) (*exec.Cmd, error) {
@@ -146,15 +158,15 @@ func score(result Result) {
 	if !dryRun {
 		err := DataAddResult(result, dryRun)
 		if err != nil {
-			Logger.Println("Could not insert service result:", err)
+			Logger.Error("Could not insert service result:", err)
 		}
 	} else {
 		result.Timestamp = result.Timestamp.Round(time.Millisecond)
 		scoreTmplStr := "Timestamp: {{ .Timestamp }} | Group: {{ .Group }} | Team: {{ .Teamname }} | Details: {{ .Details }} | Points: {{ .Points }}\n"
 		scoreTmpl := template.Must(template.New("result").Parse(scoreTmplStr))
-		err := scoreTmpl.Execute(os.Stdout, result)
+		err := scoreTmpl.Execute(Logger.Out, result)
 		if err != nil {
-			Logger.Println("executing template:", err)
+			Logger.Error("Executing template:", err)
 		}
 	}
 }
@@ -179,9 +191,10 @@ func startCheckService(teams []Team, checks []Check) {
 			if Event.OnBreak || len(checks) == 0 {
 				if !waitingOnReload {
 					if len(checks) == 0 {
-						Logger.Println("No checks enabled/configured in: ", checkcfg.ConfigFileUsed())
+						Logger.Error("No checks enabled/configured in: ", checkcfg.ConfigFileUsed())
+						Logger.Error("Waiting for config file to be updated...")
 					} else {
-						Logger.Println("We're on break! Enjoy it! (Then update the config, setting `on_break = false`)")
+						Logger.Warn("We're on break! Enjoy it! (Then update the config, setting `on_break = false`)")
 					}
 
 					waitingOnReload = true
@@ -223,7 +236,7 @@ func runCmd(team Team, check Check, timestamp time.Time, status chan Result) {
 	cmd.Stdout = &stdout
 	err := cmd.Start()
 	if err != nil {
-		Logger.Println("Could not run script:", err)
+		Logger.Error("Could not run script:", err)
 	} else {
 		done := make(chan error, 1)
 		go func() {
@@ -241,7 +254,7 @@ func runCmd(team Team, check Check, timestamp time.Time, status chan Result) {
 			if err := cmd.Process.Kill(); err != nil {
 				//TODO: If it cannot kill it what to do we do?
 				// If fatal then everything stops
-				Logger.Println("Failed to Kill:", err)
+				Logger.Error("Failed to Kill:", err)
 			}
 			//Logger.Println(check.Name, "timed out")
 			result.Details = "Status: timed out"
@@ -291,6 +304,8 @@ func testData() []Team {
 }
 
 func ChecksRun() {
+	SetupCheckServiceLogger(checkcfg)
+
 	for {
 		cfgNeedsReload = false
 		loadSettings()
@@ -298,7 +313,7 @@ func ChecksRun() {
 		if !dryRun {
 			teams, err := DataGetTeamIps()
 			if err != nil {
-				Logger.Fatalln("Could not get teams for service checks:", err)
+				Logger.Fatal("Could not get teams for service checks: ", err)
 			}
 			startCheckService(teams, checks)
 		} else {
