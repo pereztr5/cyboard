@@ -1,5 +1,7 @@
 package main
 
+//Start testing service checker
+
 import (
 	"fmt"
 	"os"
