@@ -76,6 +76,11 @@
                     <i>blueteam, redteam, whiteteam, blackteam, and admin.</i></li>
                 <li>The <b>IP</b> and <b>Number</b>
                     are super useless for non-blueteam members.</li>
+                <li>Setting AdminOf will let the user edit challenges (flags) in that group.
+                    <ul>
+                        <li>Current challenge groups are: <b>[{{ StringsJoin challengesList ", " }}]</b></li>
+                    </ul>
+                </li>
                 <li>You can add one or hundreds of users by pasting a CSV file, below.</li>
                 <!-- TODO: When deleting a user, archive their "results" in the db, to clean the scoreboard -->
                 <!--<li>Deleting the user will effectively "disable" them.</li>-->
@@ -95,6 +100,7 @@
                         <th>Team/Group</th>
                         <th>Number</th>
                         <th>IP</th>
+                        <th>AdminOf</th>
                         <th>Password</th>
                         <th>Update/Delete</th>
                     </tr>
@@ -103,10 +109,11 @@
                     {{- range $userData := allUsers }}
                         {{- with $userData }}
                         <tr>
-                            <td>{{ .Name   }}</td>
-                            <td>{{ .Group  }}</td>
-                            <td>{{ .Number }}</td>
-                            <td>{{ .Ip     }}</td>
+                            <td>{{ .Name    }}</td>
+                            <td>{{ .Group   }}</td>
+                            <td>{{ .Number  }}</td>
+                            <td>{{ .Ip      }}</td>
+                            <td>{{ .AdminOf }}</td>
                             <td class="placeholder">{Unchanged}</td>
                             <th class="controls">
                                 <div class="btn-group">

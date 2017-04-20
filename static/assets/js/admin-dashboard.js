@@ -7,7 +7,7 @@ $(function() {
 
     // --- Editing Users ---
     // Hardcoded columns keys. Used in communication with server
-    var column_keys = ['name', 'group', 'number', 'ip', 'password'];
+    var column_keys = ['name', 'group', 'number', 'ip', 'adminof', 'password'];
 
     // For all the editable cells,
     // get either its current text content, or the original content
@@ -120,15 +120,15 @@ $(function() {
 
     /* CSV Upload extras */
     var placeholderUsersCsv =
-        "     Name,     Group, Number,            IP, Password\n" +
-        "    team1,  blueteam,      1,  192.168.90.1, smokestack\n" +
-        "    team2,  blueteam,      2,  192.168.90.2, bologna\n" +
-        "    team3,  blueteam,      3,  192.168.90.3, xmas_monkEE\n" +
-        "    team4,  blueteam,      4,  192.168.90.4, d2hhdCB0aGUgZnVjayBkaWQgeW91IGV4cGVjdAo=\n" +
-        " evilcorp,   redteam,    100, 192.168.199.1, \"rUsstED\"\"CuR^mug3Ons\"\n" +
-        "   himike, whiteteam,    255,       1.1.1.1, challenge--m4ster\n" +
-        " johnWifi, whiteteam,    256,       0.0.0.0, whatsAfirewall?\n" +
-        "lugerJose, blackteam,    666,     6.6.6.255, \"!*,B4NGb4ng,*!\"\n";
+        "     Name,     Group, Number,            IP, AdminOf, Password\n" +
+        "    team1,  blueteam,      1,  192.168.90.1,        , smokestack\n" +
+        "    team2,  blueteam,      2,  192.168.90.2,        , bologna\n" +
+        "    team3,  blueteam,      3,  192.168.90.3,        , xmas_monkEE\n" +
+        "    team4,  blueteam,      4,  192.168.90.4,        , d2hhdCB0aGUgZnVjayBkaWQgeW91IGV4cGVjdAo=\n" +
+        " evilcorp,   redteam,    100, 192.168.199.1,     AIS, \"rUsstED\"\"CuR^mug3Ons\"\n" +
+        "   himike, whiteteam,    255,       1.1.1.1,     CTF, challenge--m4ster\n" +
+        " johnWifi, whiteteam,    256,       0.0.0.0,    Wifi, whatsAfirewall?\n" +
+        "lugerJose, blackteam,    666,     6.6.6.255,        , \"!*,B4NGb4ng,*!\"\n";
 
     $('.user-config-csv-upload').find('textarea')
         .val(placeholderUsersCsv);
@@ -184,6 +184,7 @@ var populateUsersTable = function() {
                 .append($('<td/>').text(team['group']))
                 .append($('<td/>').text(team['number']))
                 .append($('<td/>').text(team['ip']))
+                .append($('<td/>').text(team['adminof']))
                 .append($('<td/>').text("{Unchanged}").addClass("placeholder"))
                 .append($('<th/>').addClass("controls")
                     .append($('<div/>').addClass('btn-group')

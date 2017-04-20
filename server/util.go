@@ -38,15 +38,15 @@ func sanitizeUpdateOp(updateOp map[string]interface{}) (map[string]interface{}, 
 	for k, v := range updateOp {
 		// Check for empty strings
 		if strValue, ok := v.(string); ok {
-			if strValue == "" {
+			if strValue == "" && k != "adminof" {
 				return nil, fmt.Errorf("field must not be empty: %v", k)
 			}
 		}
 
 		switch k {
 		case "name":
-			sanitized[k] = v.(string)
 		case "group":
+		case "adminof":
 			sanitized[k] = v.(string)
 		case "number":
 			sanitized[k] = int64(v.(float64))
@@ -69,7 +69,7 @@ func sanitizeUpdateOp(updateOp map[string]interface{}) (map[string]interface{}, 
 	return sanitized, nil
 }
 
-var TeamCsvHeaders = []string{"Name", "Group", "Number", "IP", "Password"}
+var TeamCsvHeaders = []string{"Name", "Group", "Number", "IP", "AdminOf", "Password"}
 
 func ParseTeamCsv(r io.Reader) ([]Team, error) {
 	teamCsv := csv.NewReader(r)
@@ -107,7 +107,7 @@ CsvParseLoop:
 		team := Team{}
 		// Check for blank fields
 		for colIdx, column = range row {
-			if column == "" {
+			if column == "" && colIdx != 4 {
 				parseErr = errors.New("must not be empty")
 				break CsvParseLoop
 			}
@@ -134,7 +134,9 @@ CsvParseLoop:
 			team.Ip = ip.String()
 		}
 
-		hashBytes, err := bcrypt.GenerateFromPassword([]byte(getColumn(4)), bcrypt.DefaultCost)
+		team.AdminOf = getColumn(4)
+
+		hashBytes, err := bcrypt.GenerateFromPassword([]byte(getColumn(5)), bcrypt.DefaultCost)
 		if err != nil {
 			parseErr = fmt.Errorf("failed to hash password: %v", err)
 			break

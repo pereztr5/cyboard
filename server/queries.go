@@ -8,12 +8,13 @@ import (
 )
 
 type Team struct {
-	Id     bson.ObjectId `json:"id,omitempty" bson:"_id,omitempty"`
-	Group  string        `json:"group"`
-	Number int           `json:"number"`
-	Name   string        `json:"name"`
-	Ip     string        `json:"ip"`
-	Hash   string        `json:"-"`
+	Id      bson.ObjectId `json:"id,omitempty" bson:"_id,omitempty"`
+	Group   string        `json:"group"`
+	Number  int           `json:"number"`
+	Name    string        `json:"name"`
+	Ip      string        `json:"ip"`
+	Hash    string        `json:"-"`
+	AdminOf string        `json:"adminof"`
 }
 
 type Challenge struct {
@@ -317,6 +318,17 @@ func DataGetResultByService(service string) []Result {
 		Logger.Error("Error getting team status by service: ", err)
 	}
 	return teamStatus
+}
+
+func DataGetChallengeGroupsList()  []string {
+	session, collection := GetSessionAndCollection("challenges")
+	defer session.Close()
+	var challenges []string
+	err := collection.Find(nil).Distinct("group", &challenges)
+	if err != nil {
+		Logger.WithError(err).Error("Failed to query distinct Challenge groups")
+	}
+	return challenges
 }
 
 func DataGetServiceList() []string {
