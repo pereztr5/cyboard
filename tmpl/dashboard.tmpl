@@ -65,9 +65,17 @@
       ADMIN TEAM
 */}}
 {{ define "admin_dash" }}
-<div class="row admin-dash">
-    {{ template "user-configuration-panel" . }}
-    {{ template "challenge-configuration-panel" . }}
+<div class="row">
+    {{- template "sub-dashboard-selector" }}
+    <div class="top-level-dashboard">
+        <div class="config-dash">
+            {{- template "user-configuration-panel" . }}
+            {{- template "challenge-configuration-panel" . }}
+        </div>
+        <div class="score-bd-dash">
+            {{- template "score-breakdown-panel" . }}
+        </div>
+    </div>
 </div>
 {{ end }}
 
@@ -75,11 +83,31 @@
       CTF Group Owner
 */}}
 {{ define "ctf_config_dash" }}
-<div class="row ctf-owner-dash">
-    {{ template "challenge-configuration-panel" . }}
+<div class="row">
+    {{- template "sub-dashboard-selector" }}
+    <div class="top-level-dashboard">
+        <div class="config-dash">
+            {{- template "challenge-configuration-panel" . }}
+        </div>
+        <div class="score-bd-dash">
+            {{- template "score-breakdown-panel" . }}
+        </div>
+    </div>
 </div>
 {{ end }}
 
+{{ define "sub-dashboard-selector" }}
+<div class="row col-md-offset-1 col-md-10 dash-section-selector">
+    <div class="btn-group" data-toggle="buttons">
+        <label class="btn btn-default btn-large grow active">
+            <input type="radio" name="subdash" id="select-config" autocomplete="off" checked> Configuration
+        </label>
+        <label class="btn btn-default btn-large grow">
+            <input type="radio" name="subdash" id="select-score-bd" autocomplete="off"> Score Breakdown
+        </label>
+    </div>
+</div>
+{{ end }}
 
 {{ define "user-configuration-panel" }}
 <div class="user-configuration-panel config-panel col-md-12">
@@ -93,10 +121,11 @@
                 <i>blueteam, redteam, whiteteam, blackteam, and admin.</i></li>
             <li>The <b>IP</b> and <b>Number</b>
                 are super useless for non-blueteam members.</li>
-            <li>Setting AdminOf will let the user edit challenges (flags) in that group.
+            <li>Setting AdminOf will let the user edit challenges (flags) in that group,
+                and see stats about how teams are doing with those challenges.
                 <ul>
                     <li>Users in the "blackteam" and "admin" groups can configure
-                        all challenges, regardless.</li>
+                        all challenges, unless explicitly given an "AdminOf" ctf group.</li>
                     <li>Current challenge groups are:
                         <b>[{{ StringsJoin challengesList ", " }}]</b></li>
                 </ul>
@@ -192,7 +221,8 @@
     <div class="guidelines">
         <h4>Challenge Editing Guidelines:</h4>
         <ul>
-            <li>Lorum ipsum dude</li>
+            <li>Sorry, you can't edit ctf flags from this page, yet.
+                (The feature didn't get complete in time!)</li>
         </ul>
     </div>
 
@@ -214,7 +244,7 @@
                 </tr>
                 </thead>
                 <tbody>
-                {{- /* Filled with Js: ctf-config-dashboard.js */ -}}
+                {{- /* Filled with Js: admin-dashboard.js */ -}}
                 </tbody>
             </table>
         </div>
@@ -245,5 +275,11 @@
         </form>
     </div>
     -->
+</div>
+{{ end }}
+
+{{ define "score-breakdown-panel" }}
+<div class="col-md-12">
+    <p>Lorem Ipsum</p>
 </div>
 {{ end }}

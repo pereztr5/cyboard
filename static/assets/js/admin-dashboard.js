@@ -1,3 +1,32 @@
+/* Setup sub-sections -- Config and Score breakdown*/
+$(function() {
+    // Setup sub-dashboard selection
+    selectSubDash( ".config-dash" );
+
+    // Event handlers to switch between configuration panels
+    $('#select-config').on(  'change', showConfigPanels );
+    $('#select-score-bd').on('change', showScoreBreakdownPanels );
+});
+
+function selectSubDash(section) {
+    var sections = $(".top-level-dashboard").children("div");
+
+    sections.not(section).hide();
+    $(section).show();
+}
+
+function showConfigPanels() {
+    selectSubDash( ".config-dash" );
+}
+
+function showScoreBreakdownPanels() {
+    selectSubDash( ".score-bd-dash" );
+}
+
+
+/*
+ *     User Configuration
+ */
 $(function() {
     /*
      * USER CONFIGURATION TABLE
@@ -172,9 +201,10 @@ var newIconButton = function(fa_icon, button_cls) {
 // --- Refresh the Users table completely ---
 var populateUsersTable = function() {
 
+    var user_cfg = $('.user-config-table');
+    if (!user_cfg.length) return;
     $.get( "/admin/teams", function(teams) {
         // Wipe the current table, replace with new data
-        var user_cfg = $('.user-config-table');
         var tbody = user_cfg.find('tbody');
         tbody.empty();
         $.each(teams, function(i, team) {
@@ -198,3 +228,40 @@ var populateUsersTable = function() {
         user_cfg.editableTableWidget({});
     }, "json");
 };
+
+/*
+ *   Challenge Configuration
+ */
+$(function() {
+    populateChallengesTable();
+});
+
+// --- Refresh the Challenge listing table completely ---
+var populateChallengesTable = function() {
+    var chal_cfg = $('.flag-config-table');
+    if (!chal_cfg.length) return;
+    $.get( "/ctf/config", function(teams) {
+        // Wipe the current table, replace with new data
+        var tbody = chal_cfg.find('tbody');
+        tbody.empty();
+        $.each(teams, function(i, team) {
+            /* Build the inner DOM elements of the <tr> */
+            tbody.append($("<tr/>")
+                    .append($('<td/>').text(team['name']))
+                    .append($('<td/>').text(team['group']))
+                    .append($('<td/>').text(team['flag']))
+                    .append($('<td/>').text(team['points']))
+                    .append($('<td/>').text(team['description']))
+                // .append($('<th/>').addClass("controls")
+                //     .append($('<div/>').addClass('btn-group')
+                //         // .append(newIconButton("fa-clipboard", "btn-success user-clip"))
+                //             .append(newIconButton("fa-pencil", "btn-warning user-update"))
+                //             .append(newIconButton("fa-trash", "btn-danger user-del"))
+                //     )
+                // )
+            );
+        });
+        // chal_cfg.editableTableWidget({});
+    }, "json");
+};
+

@@ -1,9 +1,18 @@
 /* Center the tiny AJAX response messages and buttons */
 .status-region,
-.config-table .controls div {
+.config-table .controls div,
+.dash-section-selector .btn-group {
     display: flex;
     flex-flow: row;
     justify-content: center;
+}
+
+/* Expand the config/score breakdown selection buttons */
+.dash-section-selector .btn-group {
+    align-items: stretch;
+}
+.grow {
+    flex-grow: 1;
 }
 
 .config-panel .guidelines,

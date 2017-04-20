@@ -10,10 +10,7 @@
         {{- else if isChallengeOwner .T }}
         <script src="/assets/js/mindmup-editabletable.js"></script>
         <script src="/assets/bootstrap-dialog/bootstrap-dialog.min.js"></script>
-        <script src="/assets/js/ctf-config-dashboard.js"></script>
-            {{- if eq .T.Group "admin" }}
-            <script src="/assets/js/admin-dashboard.js"></script>
-            {{- end }}
+        <script src="/assets/js/admin-dashboard.js"></script>
         {{- end }}
     {{- else if eq .Title "scoreboard" }}
     <script src="/assets/js/ws.js"></script>
