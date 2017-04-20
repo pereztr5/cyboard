@@ -54,3 +54,8 @@
 [data-original] {
     background-color: rgba(255, 136, 0, 0.79);
 }
+
+/* Improve legibility by spacing flag names in breakdown */
+.ctf-bd .teams-captured-flags .text-justify {
+    word-spacing: 1em;
+}

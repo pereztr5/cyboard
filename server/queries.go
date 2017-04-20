@@ -479,3 +479,19 @@ func DataGetSubmissionsPerFlag(challengeGroups []string) ([]bson.M, error) {
 		{"$sort": bson.M{"submissions": -1}},
 	}).All(&aggrResult)
 }
+
+// Gets the flags each team has captured in any of 'challengeGroups'.
+// Json results: [{ "team": "team1", "flags": ["Crypto-04", "Wifi-01"]}, ...]
+func DataGetEachTeamsCapturedFlags(challengeGroups []string) ([]bson.M, error) {
+	session, collection := GetSessionAndCollection("results")
+	defer session.Close()
+
+	var aggrResult []bson.M
+	return aggrResult, collection.Pipe([]bson.M{
+		{"$match": bson.M{"group": bson.M{"$in": challengeGroups}}},
+		{"$sort": bson.M{"details": 1}},
+		{"$group": bson.M{"_id": "$teamname", "flags": bson.M{"$push": "$details"}}},
+		{"$sort": bson.M{"_id": 1}},
+		{"$project": bson.M{"team": "$_id", "flags": "$flags", "_id": 0}},
+	}).All(&aggrResult)
+}

@@ -20,7 +20,8 @@ function showConfigPanels() {
 }
 
 function showScoreBreakdownPanels() {
-    getFlagsBySubmissionCount()
+    getFlagsBySubmissionCount();
+    getEachTeamsCapturedFlags();
     selectSubDash( ".score-bd-dash" );
 }
 
@@ -286,5 +287,15 @@ var getFlagsBySubmissionCount = function() {
 };
 
 var getEachTeamsCapturedFlags = function() {
-
+    $.get( "/ctf/breakdown/teams_flags", function(res) {
+        var target = $('.teams-captured-flags');
+        var tbody = target.find('tbody');
+        tbody.empty();
+        $.each(res, function(i, bd) {
+            tbody.append($('<tr/>')
+                .append($('<td>').text(bd['team']))
+                .append($('<td>').text(bd['flags'].join(", ")).addClass('text-justify'))
+            );
+        })
+    }, "json");
 };
