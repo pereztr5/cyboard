@@ -20,6 +20,7 @@ function showConfigPanels() {
 }
 
 function showScoreBreakdownPanels() {
+    getFlagsBySubmissionCount()
     selectSubDash( ".score-bd-dash" );
 }
 
@@ -240,18 +241,18 @@ $(function() {
 var populateChallengesTable = function() {
     var chal_cfg = $('.flag-config-table');
     if (!chal_cfg.length) return;
-    $.get( "/ctf/config", function(teams) {
+    $.get( "/ctf/config", function(chals) {
         // Wipe the current table, replace with new data
         var tbody = chal_cfg.find('tbody');
         tbody.empty();
-        $.each(teams, function(i, team) {
+        $.each(chals, function(i, chal) {
             /* Build the inner DOM elements of the <tr> */
             tbody.append($("<tr/>")
-                    .append($('<td/>').text(team['name']))
-                    .append($('<td/>').text(team['group']))
-                    .append($('<td/>').text(team['flag']))
-                    .append($('<td/>').text(team['points']))
-                    .append($('<td/>').text(team['description']))
+                    .append($('<td/>').text(chal['name']))
+                    .append($('<td/>').text(chal['group']))
+                    .append($('<td/>').text(chal['flag']))
+                    .append($('<td/>').text(chal['points']))
+                    .append($('<td/>').text(chal['description']))
                 // .append($('<th/>').addClass("controls")
                 //     .append($('<div/>').addClass('btn-group')
                 //         // .append(newIconButton("fa-clipboard", "btn-success user-clip"))
@@ -265,3 +266,25 @@ var populateChallengesTable = function() {
     }, "json");
 };
 
+/*
+ *    CTF Flag Score breakdowns
+ */
+
+var getFlagsBySubmissionCount = function() {
+    $.get( "/ctf/breakdown/subs_per_flag", function(res) {
+        var target = $('.most-submitted-flag');
+        var tbody = target.find('tbody');
+        tbody.empty();
+        $.each(res, function(i, bd) {
+            tbody.append($('<tr/>')
+                    .append($('<td>').text(bd['name']))
+                    .append($('<td>').text(bd['group']))
+                    .append($('<td>').text(bd['submissions']))
+            );
+        })
+    }, "json");
+};
+
+var getEachTeamsCapturedFlags = function() {
+
+};

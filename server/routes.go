@@ -71,6 +71,8 @@ func CreateTeamRouter() *mux.Router {
 	router.HandleFunc("/challenges/verify", CheckFlag).Methods("POST")
 	router.HandleFunc("/challenges/verify/all", CheckAllFlags).Methods("POST")
 	router.HandleFunc("/ctf/config", CtfConfig).Methods("GET")
+	router.HandleFunc("/ctf/breakdown/subs_per_flag", GetBreakdownOfSubmissionsPerFlag).Methods("GET")
+	//router.HandleFunc("/ctf/breakdown/teams_flags", GetEachTeamsCapturedFlags).Methods("GET")
 	return router
 }
 

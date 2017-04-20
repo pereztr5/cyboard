@@ -147,7 +147,32 @@ func CtfConfig(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Type", "application/json; charset=UTF-8")
 	err = json.NewEncoder(w).Encode(chals)
 	if err != nil {
-		Logger.Error("Error with GetAllUsers: ", err)
+		Logger.Error("Error encoding CtfConfig json: ", err)
+		http.Error(w, http.StatusText(500), 500)
+		return
+	}
+	w.WriteHeader(http.StatusOK)
+}
+
+func GetBreakdownOfSubmissionsPerFlag(w http.ResponseWriter, r *http.Request) {
+	t := r.Context().Value("team").(Team)
+	if !AllowedToConfigureChallenges(t) {
+		http.Error(w, http.StatusText(403), 403)
+		return
+	}
+
+	chalGroups := getChallengesOwnerOf(t.AdminOf, t.Group)
+
+	flagsWithCapCounts, err := DataGetSubmissionsPerFlag(chalGroups)
+	if err != nil {
+		Logger.Error("Failed to get flags w/ occurences of capture: ", err)
+		http.Error(w, http.StatusText(500), 500)
+		return
+	}
+	w.Header().Set("Content-Type", "application/json; charset=UTF-8")
+	err = json.NewEncoder(w).Encode(flagsWithCapCounts)
+	if err != nil {
+		Logger.Error("Error encoding FlagCaptures breakdown json: ", err)
 		http.Error(w, http.StatusText(500), 500)
 		return
 	}

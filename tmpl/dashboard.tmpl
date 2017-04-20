@@ -279,7 +279,25 @@
 {{ end }}
 
 {{ define "score-breakdown-panel" }}
-<div class="col-md-12">
-    <p>Lorem Ipsum</p>
+<div class="col-md-12 score-bd-panel">
+    <h4>Breakdown of Scoring</h4>
+    <p>[WIP] This should auto-refresh in some way!</p>
+
+    <div class="ctf-bd">
+        <h5>CTF Challenges</h5>
+        <div class="ctf-bd-tables">
+            <div class="col-md-3">
+                <table class="table table-striped table-condensed most-submitted-flag">
+                    <thead><tr><th>Name</th><th>Group</th><th>Submissions</th></tr></thead>
+                    <tbody></tbody>
+                </table>
+            </div>
+            <div class="col-md-offset-1 col-md-8">
+                <table class="table table-striped table-condensed captured-by-each-team">
+                    <!-- WIP -->
+                </table>
+            </div>
+        </div>
+    </div>
 </div>
 {{ end }}

@@ -462,3 +462,20 @@ func DataDeleteTeam(teamName string) error {
 	defer session.Close()
 	return teamC.Remove(bson.M{"name": teamName})
 }
+
+// Score breakdown methods
+
+// Gets the number of times each flag was captured in any of 'challengeGroups'.
+// Json results: [{ "name": "FLAG-01", "group": "Wireless", "submissions": 5 }, ...]
+func DataGetSubmissionsPerFlag(challengeGroups []string) ([]bson.M, error) {
+	session, collection := GetSessionAndCollection("results")
+	defer session.Close()
+
+	var aggrResult []bson.M
+	return aggrResult, collection.Pipe([]bson.M{
+		{"$match": bson.M{"group": bson.M{"$in": challengeGroups}}},
+		{"$group": bson.M{"_id": bson.M{"name": "$details", "group": "$group"}, "submissions": bson.M{"$sum": 1}}},
+		{"$project": bson.M{"name": "$_id.name", "group": "$_id.group", "submissions": 1, "_id": 0}},
+		{"$sort": bson.M{"submissions": -1}},
+	}).All(&aggrResult)
+}
