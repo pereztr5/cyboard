@@ -1,7 +1,8 @@
 /* Setup sub-sections -- Config and Score breakdown*/
 $(function() {
     // Setup sub-dashboard selection
-    selectSubDash( ".config-dash" );
+    showConfigPanels();
+    refreshBreakdowns();
 
     // Event handlers to switch between configuration panels
     $('#select-config').on(  'change', showConfigPanels );
@@ -20,8 +21,6 @@ function showConfigPanels() {
 }
 
 function showScoreBreakdownPanels() {
-    getFlagsBySubmissionCount();
-    getEachTeamsCapturedFlags();
     selectSubDash( ".score-bd-dash" );
 }
 
@@ -270,6 +269,24 @@ var populateChallengesTable = function() {
 /*
  *    CTF Flag Score breakdowns
  */
+
+var initialCountdown = 60; // 1 minute between refreshes
+(function countdown(remaining) {
+    var timerNode = $('.countdown');
+    if(remaining === 0) {
+        refreshBreakdowns();
+        remaining = initialCountdown;
+        timerNode.text(remaining + "s . Just refreshed!");
+    } else {
+        timerNode.text(remaining + "s ...");
+    }
+    return setTimeout(function(){ countdown(remaining - 10); }, 10000);
+})(initialCountdown);
+
+var refreshBreakdowns = function () {
+    getFlagsBySubmissionCount();
+    getEachTeamsCapturedFlags();
+};
 
 var getFlagsBySubmissionCount = function() {
     $.get( "/ctf/breakdown/subs_per_flag", function(res) {
