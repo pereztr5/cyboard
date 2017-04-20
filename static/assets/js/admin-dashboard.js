@@ -24,7 +24,7 @@ $(function() {
         cell.closest('tr').addClass('changed');
 
         // Only change the class & data if the values really changed.
-        if (orig === undefined && orig !== text && text !== "") {
+        if (orig === undefined && orig !== text && (text !== "" || cell.index() === column_keys.indexOf("adminof"))) {
             if (cell.index() === column_keys.indexOf('password')) {
                 cell.removeClass('placeholder');
             }

@@ -29,8 +29,8 @@ const (
 var (
 	LogManager *LoggerManager
 
-	Logger          *logrus.Logger // Service logger (either for Checks, or for Scoring)
-	CaptFlagsLogger *logrus.Logger // Just logs flags as they are captured
+	Logger          *logrus.Logger            // Service logger (either for Checks, or for Scoring)
+	CaptFlagsLogger *logrus.Logger            // Just logs flags as they are captured
 	RequestLogger   *negronilogrus.Middleware // Sits in the server mw stack, not called directly
 )
 

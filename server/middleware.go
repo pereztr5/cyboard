@@ -43,3 +43,14 @@ func RequireAdmin(w http.ResponseWriter, r *http.Request, next http.HandlerFunc)
 		http.Redirect(w, r, "/login", 302)
 	}
 }
+
+func AllowedToConfigureChallenges(t Team) bool {
+	switch t.Group {
+	case "admin", "blackteam":
+		return true
+	case "blueteam":
+		return false
+	default:
+		return t.AdminOf != ""
+	}
+}

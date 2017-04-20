@@ -22,16 +22,18 @@ var templates map[string]*template.Template
 func init() {
 	templates = make(map[string]*template.Template)
 	funcMap := template.FuncMap{
-		"title":           strings.Title,
-		"totalChallenges": getChallenges,
-		"teamChallenges":  getTeamChallenges,
-		"teamScore":       getTeamScore,
-		"allTeamScores":   getAllTeamScores,
-		"getStatus":       DataGetResultByService,
-		"serviceList":     DataGetServiceList,
-		"challengesList":  DataGetChallengeGroupsList,
-		"allUsers":        DataGetAllUsers,
-		"StringsJoin":     strings.Join,
+		"title":              strings.Title,
+		"totalChallenges":    getChallenges,
+		"teamChallenges":     getTeamChallenges,
+		"teamScore":          getTeamScore,
+		"allTeamScores":      getAllTeamScores,
+		"getOwnedChalGroups": getChallengesOwnerOf,
+		"getStatus":          DataGetResultByService,
+		"serviceList":        DataGetServiceList,
+		"challengesList":     DataGetChallengeGroupsList,
+		"allUsers":           DataGetAllUsers,
+		"isChallengeOwner":   AllowedToConfigureChallenges,
+		"StringsJoin":        strings.Join,
 	}
 
 	includes := mustGlobFiles("tmpl/includes/*.tmpl")
@@ -68,6 +70,7 @@ func CreateTeamRouter() *mux.Router {
 	router.HandleFunc("/challenges/list", GetChallenges).Methods("GET")
 	router.HandleFunc("/challenges/verify", CheckFlag).Methods("POST")
 	router.HandleFunc("/challenges/verify/all", CheckAllFlags).Methods("POST")
+	router.HandleFunc("/ctf/config", CtfConfig).Methods("GET")
 	return router
 }
 
@@ -197,6 +200,15 @@ func getTeamChallenges(teamname string) map[string]int {
 		Logger.Error("Could not get team challenges: ", err)
 	}
 	return acquired
+}
+
+func getChallengesOwnerOf(adminof, teamgroup string) []string {
+	switch teamgroup {
+	case "admin", "blackteam":
+		return DataGetChallengeGroupsList()
+	default:
+		return []string{adminof}
+	}
 }
 
 func getTeamScore(teamname string) int {

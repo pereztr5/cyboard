@@ -1,9 +1,11 @@
 {{- template "header" . }}
 <h3 class="page-header">Dashboard <small>{{ .T.Name }}</small></h3>
 {{ if eq .T.Group "blueteam" }}
-    {{ template "blueteam_dash" . }}
+    {{- template "blueteam_dash" . }}
 {{ else if eq .T.Group "admin" }}
-    {{ template "admin_dash" . }}
+    {{- template "admin_dash" . }}
+{{ else if isChallengeOwner .T  }}
+    {{- template "ctf_config_dash" . }}
 {{ end }}
 {{- template "footer" . }}
 
@@ -64,106 +66,184 @@
 */}}
 {{ define "admin_dash" }}
 <div class="row admin-dash">
-    <div class="user-configuration-panel col-md-12">
+    {{ template "user-configuration-panel" . }}
+    {{ template "challenge-configuration-panel" . }}
+</div>
+{{ end }}
 
-        <div class="guidelines">
-            <h4>User Editing Guidelines:</h4>
-            <ul>
-                <li>Users are updated by matching their <em>Name</em>.</li>
-                <li><b><em>Changing a blueteam's name after scoring has begun will break
-                    the competition display!</em></b></li>
-                <li>Valid teams are:
-                    <i>blueteam, redteam, whiteteam, blackteam, and admin.</i></li>
-                <li>The <b>IP</b> and <b>Number</b>
-                    are super useless for non-blueteam members.</li>
-                <li>Setting AdminOf will let the user edit challenges (flags) in that group.
-                    <ul>
-                        <li>Current challenge groups are: <b>[{{ StringsJoin challengesList ", " }}]</b></li>
-                    </ul>
-                </li>
-                <li>You can add one or hundreds of users by pasting a CSV file, below.</li>
-                <!-- TODO: When deleting a user, archive their "results" in the db, to clean the scoreboard -->
-                <!--<li>Deleting the user will effectively "disable" them.</li>-->
-            </ul>
-        </div>
+{{/*
+      CTF Group Owner
+*/}}
+{{ define "ctf_config_dash" }}
+<div class="row ctf-owner-dash">
+    {{ template "challenge-configuration-panel" . }}
+</div>
+{{ end }}
 
-        <div class="edit-user-controls">
-            <h5>All Users</h5>
-            <div class="status-region">
-                <p class="status"></p>
-            </div>
-            <div class="table-responsive">
-                <table class="table table-striped table-hover user-config-table">
-                    <thead>
-                    <tr>
-                        <th>Name</th>
-                        <th>Team/Group</th>
-                        <th>Number</th>
-                        <th>IP</th>
-                        <th>AdminOf</th>
-                        <th>Password</th>
-                        <th>Update/Delete</th>
-                    </tr>
-                    </thead>
-                    <tbody>
-                    {{- range $userData := allUsers }}
-                        {{- with $userData }}
-                        <tr>
-                            <td>{{ .Name    }}</td>
-                            <td>{{ .Group   }}</td>
-                            <td>{{ .Number  }}</td>
-                            <td>{{ .Ip      }}</td>
-                            <td>{{ .AdminOf }}</td>
-                            <td class="placeholder">{Unchanged}</td>
-                            <th class="controls">
-                                <div class="btn-group">
-                                    {{/*
-                                    Copy to clipboard is not implemented yet
-                                    <button type="button" class="btn btn-success user-clip">
-                                        <i class="fa fa-clipboard" aria-hidden="true"></i>
-                                    </button>
-                                    */}}
-                                    <button type="button" class="btn btn-warning user-update">
-                                        <i class="fa fa-pencil" aria-hidden="true"></i>
-                                    </button>
-                                    <button type="button" class="btn btn-danger user-del">
-                                        <i class="fa fa-trash" aria-hidden="true"></i>
-                                    </button>
-                                </div>
-                            </th>
-                        </tr>
-                        {{- end }}
-                    {{- end }}
-                    </tbody>
-                </table>
-            </div>
-        </div>
 
-        <div class="user-config-csv-upload form-group">
-            <div class="guidelines">
-                <h4>Add Users via CSV</h4>
+{{ define "user-configuration-panel" }}
+<div class="user-configuration-panel config-panel col-md-12">
+    <div class="guidelines">
+        <h4>User Editing Guidelines:</h4>
+        <ul>
+            <li>Users are updated by matching their <em>Name</em>.</li>
+            <li><b><em>Changing a blueteam's name after scoring has begun will break
+                the competition display!</em></b></li>
+            <li>Valid teams are:
+                <i>blueteam, redteam, whiteteam, blackteam, and admin.</i></li>
+            <li>The <b>IP</b> and <b>Number</b>
+                are super useless for non-blueteam members.</li>
+            <li>Setting AdminOf will let the user edit challenges (flags) in that group.
                 <ul>
-                    <li>The header line is ignored. Columns must be in the order
-                        shown in the placeholder text.</li>
-                    <li>All leading spaces are trimmed, unless quotes ("") are used.</li>
-                    <li>If there's an error (eg. clashing unique team names),
-                        the rest of the new valid users will still be added.</li>
+                    <li>Users in the "blackteam" and "admin" groups can configure
+                        all challenges, regardless.</li>
+                    <li>Current challenge groups are:
+                        <b>[{{ StringsJoin challengesList ", " }}]</b></li>
                 </ul>
-            </div>
-            <form>
-                <textarea class="form-control" rows="10"></textarea>
-                <div class="row">
-                    <div class="col-md-10 status-region">
-                        <span class="status"></span>
-                    </div>
-                    <div class="col-md-2">
-                        <button class="btn btn-default" type="submit">
-                            <i class="fa fa-upload" aria-hidden="true"></i> Submit
-                        </button>
-                    </div>
-                </div>
-            </form>
+            </li>
+            <li>You can add one or hundreds of users by pasting a CSV file, below.</li>
+            <!-- TODO: When deleting a user, archive their "results" in the db, to clean the scoreboard -->
+            <!--<li>Deleting the user will effectively "disable" them.</li>-->
+        </ul>
+    </div>
+
+    <div class="edit-user-controls">
+        <h5>All Users</h5>
+        <div class="status-region">
+            <p class="status"></p>
+        </div>
+        <div class="table-responsive">
+            <table class="table table-striped table-hover user-config-table config-table">
+                <thead>
+                <tr>
+                    <th>Name</th>
+                    <th>Team/Group</th>
+                    <th>Number</th>
+                    <th>IP</th>
+                    <th>AdminOf</th>
+                    <th>Password</th>
+                    <th>Update/Delete</th>
+                </tr>
+                </thead>
+                <tbody>
+                {{- range $userData := allUsers }}
+                {{- with $userData }}
+                <tr>
+                    <td>{{ .Name    }}</td>
+                    <td>{{ .Group   }}</td>
+                    <td>{{ .Number  }}</td>
+                    <td>{{ .Ip      }}</td>
+                    <td>{{ .AdminOf }}</td>
+                    <td class="placeholder">{Unchanged}</td>
+                    <th class="controls">
+                        <div class="btn-group">
+                            {{/*
+                            Copy to clipboard is not implemented yet
+                            <button type="button" class="btn btn-success user-clip">
+                                <i class="fa fa-clipboard" aria-hidden="true"></i>
+                            </button>
+                            */}}
+                            <button type="button" class="btn btn-warning user-update">
+                                <i class="fa fa-pencil" aria-hidden="true"></i>
+                            </button>
+                            <button type="button" class="btn btn-danger user-del">
+                                <i class="fa fa-trash" aria-hidden="true"></i>
+                            </button>
+                        </div>
+                    </th>
+                </tr>
+                {{- end }}
+                {{- end }}
+                </tbody>
+            </table>
         </div>
     </div>
+
+    <div class="csv-upload user-config-csv-upload form-group">
+        <div class="guidelines">
+            <h4>Add Users via CSV</h4>
+            <ul>
+                <li>The header line is ignored. Columns must be in the order
+                    shown in the placeholder text.</li>
+                <li>All leading spaces are trimmed, unless quotes ("") are used.</li>
+                <li>If there's an error (eg. clashing unique team names),
+                    the rest of the new valid users will still be added.</li>
+            </ul>
+        </div>
+        <form>
+            <textarea class="form-control" rows="10"></textarea>
+            <div class="row">
+                <div class="col-md-10 status-region">
+                    <span class="status"></span>
+                </div>
+                <div class="col-md-2">
+                    <button class="btn btn-default" type="submit">
+                        <i class="fa fa-upload" aria-hidden="true"></i> Submit
+                    </button>
+                </div>
+            </div>
+        </form>
+    </div>
+</div>
+{{ end }}
+
+{{ define "challenge-configuration-panel" }}
+<div class="flag-configuration-panel config-panel col-md-12">
+    <div class="guidelines">
+        <h4>Challenge Editing Guidelines:</h4>
+        <ul>
+            <li>Lorum ipsum dude</li>
+        </ul>
+    </div>
+
+    <div class="edit-flag-controls">
+        <h5>Challenges - [{{ StringsJoin (getOwnedChalGroups .T.AdminOf .T.Group) ", "}}]</h5>
+        <div class="status-region">
+            <p class="status"></p>
+        </div>
+        <div class="table-responsive">
+            <table class="table table-striped table-hover flag-config-table config-table">
+                <thead>
+                <tr>
+                    <th>Name</th>
+                    <th>Group</th>
+                    <th>Flag</th>
+                    <th>Points</th>
+                    <th>Description</th>
+                    <!--<th>Notes</th>-->
+                </tr>
+                </thead>
+                <tbody>
+                {{- /* Filled with Js: ctf-config-dashboard.js */ -}}
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+    <!--
+    <div class="csv-upload flag-config-csv-upload form-group">
+        <div class="guidelines">
+            <h4>Add Flags via CSV</h4>
+            <ul>
+                <li>The header line is ignored. Columns must be in the order
+                    shown in the placeholder text.</li>
+                <li>All leading spaces are trimmed, unless quotes ("") are used.</li>
+            </ul>
+        </div>
+        <form>
+            <textarea class="form-control" rows="10"></textarea>
+            <div class="row">
+                <div class="col-md-10 status-region">
+                    <span class="status"></span>
+                </div>
+                <div class="col-md-2">
+                    <button class="btn btn-default" type="submit">
+                        <i class="fa fa-upload" aria-hidden="true"></i> Submit
+                    </button>
+                </div>
+            </div>
+        </form>
+    </div>
+    -->
 </div>
 {{ end }}

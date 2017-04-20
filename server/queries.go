@@ -22,7 +22,7 @@ type Challenge struct {
 	Group       string        `json:"group"`
 	Name        string        `json:"name"`
 	Description string        `json:"description"`
-	Flag        string        `json:"-" bson:"-"`
+	Flag        string        `json:"flag" bson:"flag"`
 	Points      int           `json:"points"`
 }
 
@@ -120,6 +120,7 @@ func DataGetChallenges(group string) ([]Challenge, error) {
 	session, chalCollection := GetSessionAndCollection("challenges")
 	defer session.Close()
 
+	// TODO: .Select to include fields required, rather than excluding unsafe ones
 	err := chalCollection.Find(bson.M{"group": group}).Sort("description").Select(bson.M{"_id": 0, "flag": 0}).All(&challenges)
 	if err != nil {
 		return challenges, err
@@ -216,6 +217,21 @@ func DataGetTeamChallenges(teamname string) (map[string]int, error) {
 		return acquired, err
 	}
 	return acquired, nil
+}
+
+// Find all the challenges in a group.
+// If flagGroup param is empty "", all challenges are returned.
+func DataGetChallengesByGroup(flagGroup string) ([]Challenge, error) {
+	session, collection := GetSessionAndCollection("challenges")
+	defer session.Close()
+
+	filter := bson.M{}
+	if flagGroup != "" {
+		filter["group"] = flagGroup
+	}
+
+	var chals []Challenge
+	return chals, collection.Find(filter).Sort("group", "name").All(&chals)
 }
 
 func DataGetTeamScore(teamname string) int {
@@ -320,7 +336,7 @@ func DataGetResultByService(service string) []Result {
 	return teamStatus
 }
 
-func DataGetChallengeGroupsList()  []string {
+func DataGetChallengeGroupsList() []string {
 	session, collection := GetSessionAndCollection("challenges")
 	defer session.Close()
 	var challenges []string
