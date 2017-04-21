@@ -45,7 +45,7 @@ func Challenges() *mgo.Collection {
 	return DB().C("challenges")
 }
 
-func CreateUniqueIndexes() {
+func CreateIndexes() {
 	inx := mgo.Index{
 		Unique:     true,
 		DropDups:   true,
@@ -53,17 +53,42 @@ func CreateUniqueIndexes() {
 		Sparse:     true,
 	}
 
-	teamInx := inx
-	teamInx.Key = []string{"number", "name"}
+	// Unique + sparse indexes enforce that, across each doc,
+	// there are no duplicates of the Key fields
 
-	chalInx := inx
-	chalInx.Key = []string{"name"}
+	teamUniqInx := inx
+	teamUniqInx.Key = []string{"number", "name"}
 
-	if err := Teams().EnsureIndex(teamInx); err != nil {
-		Logger.Println(err)
+	chalUniqInx := inx
+	chalUniqInx.Key = []string{"name"}
+
+	// Comments below indicate at least one method the index is used in (there may be more)
+
+	collectionToIndexesMap := map[string][]mgo.Index{
+		"teams": {
+			teamUniqInx,
+			{Key: []string{"group", "number"}}, // DataGetAllUsers
+		},
+		"challenges": {
+			chalUniqInx,
+			{Key: []string{"group"}},        // DataGetChallenges
+			{Key: []string{"flag", "name"}}, // DataCheckFlag
+		},
+		"results": {
+			{Key: []string{"type", "group"}},       // DataGetResultByService
+			{Key: []string{"teamname", "details"}}, // HasFlag
+			{Key: []string{"teamname", "type"}},    // DataGetTeamChallenges
+			{Key: []string{"group"}},               // DataGetSubmissionsPerFlag & DataGetEachTeamsCapturedFlags
+			{Key: []string{"teamnumber"}},          // DataGetAllScore
+		},
 	}
-	if err := Challenges().EnsureIndex(chalInx); err != nil {
-		Logger.Println(err)
+
+	for coll, indexes := range collectionToIndexesMap {
+		for _, inx := range indexes {
+			if err := DB().C(coll).EnsureIndex(inx); err != nil {
+				Logger.Fatalf("In collection '%v': failed ensuring index %v: %v", coll, inx.Key, err)
+			}
+		}
 	}
 }
 

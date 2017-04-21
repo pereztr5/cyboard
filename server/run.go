@@ -12,7 +12,7 @@ func Run() {
 	// Setup logs
 	SetupScoringLoggers(viper.GetViper())
 	// MongoDB setup
-	CreateUniqueIndexes()
+	CreateIndexes()
 	// Web Server Setup
 	CreateStore()
 	// On first run, prompt to set up an admin user

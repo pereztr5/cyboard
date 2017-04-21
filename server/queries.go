@@ -258,11 +258,20 @@ func DataGetAllScore() []Result {
 	defer session.Close()
 	tmScore := []Result{}
 
+	// todo: optimize this query for an index
+	//       Mongo does not let $groupby operations use indexes,
+	//       but this query is used very often.
+	// ...
+	// todo: Verify the new index?
+	//       I moved the "sort" operation first, which supposedly
+	//       lets mongo use the a nice compound index, but I'm
+	//       mongo even as new as 3.4 doesn't let you time aggregations
+	//       so I can only assume this is faster because "well it's using an index"
 	teams := DataGetTeams()
 	pipe := collection.Pipe([]bson.M{
+		{"$sort": bson.M{"teamnumber": 1}},
 		{"$group": bson.M{"_id": bson.M{"tname": "$teamname", "tnum": "$teamnumber"}, "points": bson.M{"$sum": "$points"}}},
 		{"$project": bson.M{"_id": 0, "points": 1, "teamnumber": "$_id.tnum", "teamname": "$_id.tname"}},
-		{"$sort": bson.M{"teamnumber": 1}},
 	})
 	err := pipe.All(&tmScore)
 	if err != nil {
