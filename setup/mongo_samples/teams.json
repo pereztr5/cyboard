@@ -1,16 +1,50 @@
-[{
+[
+  {
     "number": 1,
+    "group": "blueteam",
     "name": "Team1",
     "hash": "$2a$10$uETLwMbBLoaxlRIiPd/bmOrJOZRvPs4oSeihqpprEjCqM/I/VVRGm",
-    "ip": "127.0.0.1"
-}, {
+    "ip": "10.0.1.0",
+    "adminof": ""
+  },
+  {
     "number": 2,
+    "group": "blueteam",
     "name": "Team2",
     "hash": "$2a$10$dExCf/g/LzG0usKb4sj1p.jcd83KaxVsbRdzSLzYDiIXWBB9Hnzca",
-    "ip": "10.0.2.0"
-}, {
+    "ip": "10.0.2.0",
+    "adminof": ""
+  },
+  {
     "number": 3,
+    "group": "blueteam",
     "name": "Team3",
     "hash": "$2a$10$IioOVWtP.gCBXCDjWkxYCO0f2f7T3EHdjQ/fZlVQMaUGGE8.zev4u",
-    "ip": "10.0.2.0"
-}]
+    "ip": "10.0.3.0",
+    "adminof": ""
+  },
+  {
+    "number": -1,
+    "group": "admin",
+    "name": "admin",
+    "ip": "127.0.0.1",
+    "hash": "$2a$10$ewOKvBh6cqvyNnVdtxtKau1f4rDQHRMoyuHmQFfzt8.JRC9NNQLdK",
+    "adminof": ""
+  },
+  {
+    "number": 100,
+    "group": "redteam",
+    "name": "evilcorp",
+    "ip": "192.168.199.1",
+    "hash": "$2a$10$MvgeFv6wYZhS2jKEKoRK0OcrGrZ8Ctp.q4OsxgQPsLkth9prZzRw.",
+    "adminof": "AIS"
+  },
+  {
+    "number": 255,
+    "group": "whiteteam",
+    "name": "mike",
+    "ip": "1.1.1.1",
+    "hash": "$2a$10$lTLY5j9xeD0SpBYPlf7oWuS9hZlgdev7iFpw3Q2s5/L9jJFg3krGW",
+    "adminof": "CTF"
+  }
+]

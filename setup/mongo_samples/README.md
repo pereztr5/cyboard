@@ -340,3 +340,14 @@ db.results.aggregate(
     {"$sort": {"teamnumber": 1}}
 )
 ```
+
+Get total score with point totals, and points broken up by origin (Service or CTF)
+```javascript
+db.results.aggregate([
+    {"$sort": {"teamnumber": 1}},
+    {"$group": {"_id": {"tname": "$teamname", "tnum": "$teamnumber", "type": "$type"}, "pts": {"$sum": "$points"}}},
+    {"$group": {"_id": {"tname": "$_id.tname", "tnum": "$_id.tnum"}, "byType": {"$push": {"type": "$_id.type", "points": "$pts"}}, "points": {"$sum": "$pts"}}},
+    {"$project": {"_id": 0, "points": 1, "type": 1, "teamnumber": "$_id.tnum", "teamname": "$_id.tname", "ptsByType": "$byType" }},
+    {"$sort": {"teamnumber": 1}},
+])
+```
