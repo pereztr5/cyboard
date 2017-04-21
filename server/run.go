@@ -3,6 +3,7 @@ package server
 import (
 	"fmt"
 	"net/http"
+	"net/url"
 
 	"github.com/spf13/viper"
 	"github.com/urfave/negroni"
@@ -54,6 +55,7 @@ func Run() {
 	cert := viper.GetString("server.cert")
 	key := viper.GetString("server.key")
 
+	Logger.Printf("Server running at: http://%s:%s", viper.GetString("server.ip"), http_port)
 	Logger.Printf("Server running at: https://%s:%s", viper.GetString("server.ip"), https_port)
 
 	go http.ListenAndServe(":"+http_port, http.HandlerFunc(redir))
@@ -62,6 +64,11 @@ func Run() {
 }
 
 func redir(w http.ResponseWriter, r *http.Request) {
-	http.Redirect(w, r, fmt.Sprintf("https://%s:%s/%s",
-		viper.GetString("server.ip"), viper.GetString("https_port"), r.RequestURI), http.StatusMovedPermanently)
+	u, err := url.Parse("http://" + r.Host)
+	if err != nil {
+		Logger.Printf("Error redirecting: %s\n", err)
+	}
+
+	http.Redirect(w, r, fmt.Sprintf("https://%s:%s%s",
+		u.Hostname(), viper.GetString("server.https_port"), r.URL.Path), http.StatusMovedPermanently)
 }
