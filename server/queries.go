@@ -8,12 +8,13 @@ import (
 )
 
 type Team struct {
-	Id     bson.ObjectId `json:"id,omitempty" bson:"_id,omitempty"`
-	Group  string        `json:"group"`
-	Number int           `json:"number"`
-	Name   string        `json:"name"`
-	Ip     string        `json:"ip"`
-	Hash   string        `json:"-"`
+	Id      bson.ObjectId `json:"id,omitempty" bson:"_id,omitempty"`
+	Group   string        `json:"group"`
+	Number  int           `json:"number"`
+	Name    string        `json:"name"`
+	Ip      string        `json:"ip"`
+	Hash    string        `json:"-"`
+	AdminOf string        `json:"adminof"`
 }
 
 type Challenge struct {
@@ -21,7 +22,7 @@ type Challenge struct {
 	Group       string        `json:"group"`
 	Name        string        `json:"name"`
 	Description string        `json:"description"`
-	Flag        string        `json:"-" bson:"-"`
+	Flag        string        `json:"flag" bson:"flag"`
 	Points      int           `json:"points"`
 }
 
@@ -119,6 +120,7 @@ func DataGetChallenges(group string) ([]Challenge, error) {
 	session, chalCollection := GetSessionAndCollection("challenges")
 	defer session.Close()
 
+	// TODO: .Select to include fields required, rather than excluding unsafe ones
 	err := chalCollection.Find(bson.M{"group": group}).Sort("description").Select(bson.M{"_id": 0, "flag": 0}).All(&challenges)
 	if err != nil {
 		return challenges, err
@@ -215,6 +217,21 @@ func DataGetTeamChallenges(teamname string) (map[string]int, error) {
 		return acquired, err
 	}
 	return acquired, nil
+}
+
+// Find all the challenges in a group.
+// If flagGroup param is empty "", all challenges are returned.
+func DataGetChallengesByGroup(flagGroup string) ([]Challenge, error) {
+	session, collection := GetSessionAndCollection("challenges")
+	defer session.Close()
+
+	filter := bson.M{}
+	if flagGroup != "" {
+		filter["group"] = flagGroup
+	}
+
+	var chals []Challenge
+	return chals, collection.Find(filter).Sort("group", "name").All(&chals)
 }
 
 func DataGetTeamScore(teamname string) int {
@@ -317,6 +334,17 @@ func DataGetResultByService(service string) []Result {
 		Logger.Error("Error getting team status by service: ", err)
 	}
 	return teamStatus
+}
+
+func DataGetChallengeGroupsList() []string {
+	session, collection := GetSessionAndCollection("challenges")
+	defer session.Close()
+	var challenges []string
+	err := collection.Find(nil).Distinct("group", &challenges)
+	if err != nil {
+		Logger.WithError(err).Error("Failed to query distinct Challenge groups")
+	}
+	return challenges
 }
 
 func DataGetServiceList() []string {
@@ -433,4 +461,37 @@ func DataDeleteTeam(teamName string) error {
 	session, teamC := GetSessionAndCollection("teams")
 	defer session.Close()
 	return teamC.Remove(bson.M{"name": teamName})
+}
+
+// Score breakdown methods
+
+// Gets the number of times each flag was captured in any of 'challengeGroups'.
+// Json results: [{ "name": "FLAG-01", "group": "Wireless", "submissions": 5 }, ...]
+func DataGetSubmissionsPerFlag(challengeGroups []string) ([]bson.M, error) {
+	session, collection := GetSessionAndCollection("results")
+	defer session.Close()
+
+	var aggrResult []bson.M
+	return aggrResult, collection.Pipe([]bson.M{
+		{"$match": bson.M{"group": bson.M{"$in": challengeGroups}}},
+		{"$group": bson.M{"_id": bson.M{"name": "$details", "group": "$group"}, "submissions": bson.M{"$sum": 1}}},
+		{"$project": bson.M{"name": "$_id.name", "group": "$_id.group", "submissions": 1, "_id": 0}},
+		{"$sort": bson.M{"submissions": -1}},
+	}).All(&aggrResult)
+}
+
+// Gets the flags each team has captured in any of 'challengeGroups'.
+// Json results: [{ "team": "team1", "flags": ["Crypto-04", "Wifi-01"]}, ...]
+func DataGetEachTeamsCapturedFlags(challengeGroups []string) ([]bson.M, error) {
+	session, collection := GetSessionAndCollection("results")
+	defer session.Close()
+
+	var aggrResult []bson.M
+	return aggrResult, collection.Pipe([]bson.M{
+		{"$match": bson.M{"group": bson.M{"$in": challengeGroups}}},
+		{"$sort": bson.M{"details": 1}},
+		{"$group": bson.M{"_id": "$teamname", "flags": bson.M{"$push": "$details"}}},
+		{"$sort": bson.M{"_id": 1}},
+		{"$project": bson.M{"team": "$_id", "flags": "$flags", "_id": 0}},
+	}).All(&aggrResult)
 }

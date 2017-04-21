@@ -1,3 +1,33 @@
+/* Setup sub-sections -- Config and Score breakdown*/
+$(function() {
+    // Setup sub-dashboard selection
+    showConfigPanels();
+    refreshBreakdowns();
+
+    // Event handlers to switch between configuration panels
+    $('#select-config').on(  'change', showConfigPanels );
+    $('#select-score-bd').on('change', showScoreBreakdownPanels );
+});
+
+function selectSubDash(section) {
+    var sections = $(".top-level-dashboard").children("div");
+
+    sections.not(section).hide();
+    $(section).show();
+}
+
+function showConfigPanels() {
+    selectSubDash( ".config-dash" );
+}
+
+function showScoreBreakdownPanels() {
+    selectSubDash( ".score-bd-dash" );
+}
+
+
+/*
+ *     User Configuration
+ */
 $(function() {
     /*
      * USER CONFIGURATION TABLE
@@ -7,7 +37,7 @@ $(function() {
 
     // --- Editing Users ---
     // Hardcoded columns keys. Used in communication with server
-    var column_keys = ['name', 'group', 'number', 'ip', 'password'];
+    var column_keys = ['name', 'group', 'number', 'ip', 'adminof', 'password'];
 
     // For all the editable cells,
     // get either its current text content, or the original content
@@ -24,7 +54,7 @@ $(function() {
         cell.closest('tr').addClass('changed');
 
         // Only change the class & data if the values really changed.
-        if (orig === undefined && orig !== text && text !== "") {
+        if (orig === undefined && orig !== text && (text !== "" || cell.index() === column_keys.indexOf("adminof"))) {
             if (cell.index() === column_keys.indexOf('password')) {
                 cell.removeClass('placeholder');
             }
@@ -120,15 +150,15 @@ $(function() {
 
     /* CSV Upload extras */
     var placeholderUsersCsv =
-        "     Name,     Group, Number,            IP, Password\n" +
-        "    team1,  blueteam,      1,  192.168.90.1, smokestack\n" +
-        "    team2,  blueteam,      2,  192.168.90.2, bologna\n" +
-        "    team3,  blueteam,      3,  192.168.90.3, xmas_monkEE\n" +
-        "    team4,  blueteam,      4,  192.168.90.4, d2hhdCB0aGUgZnVjayBkaWQgeW91IGV4cGVjdAo=\n" +
-        " evilcorp,   redteam,    100, 192.168.199.1, \"rUsstED\"\"CuR^mug3Ons\"\n" +
-        "   himike, whiteteam,    255,       1.1.1.1, challenge--m4ster\n" +
-        " johnWifi, whiteteam,    256,       0.0.0.0, whatsAfirewall?\n" +
-        "lugerJose, blackteam,    666,     6.6.6.255, \"!*,B4NGb4ng,*!\"\n";
+        "     Name,     Group, Number,            IP, AdminOf, Password\n" +
+        "    team1,  blueteam,      1,  192.168.90.1,        , smokestack\n" +
+        "    team2,  blueteam,      2,  192.168.90.2,        , bologna\n" +
+        "    team3,  blueteam,      3,  192.168.90.3,        , xmas_monkEE\n" +
+        "    team4,  blueteam,      4,  192.168.90.4,        , d2hhdCB0aGUgZnVjayBkaWQgeW91IGV4cGVjdAo=\n" +
+        " evilcorp,   redteam,    100, 192.168.199.1,     AIS, \"rUsstED\"\"CuR^mug3Ons\"\n" +
+        "   himike, whiteteam,    255,       1.1.1.1,     CTF, challenge--m4ster\n" +
+        " johnWifi, whiteteam,    256,       0.0.0.0,    Wifi, whatsAfirewall?\n" +
+        "lugerJose, blackteam,    666,     6.6.6.255,        , \"!*,B4NGb4ng,*!\"\n";
 
     $('.user-config-csv-upload').find('textarea')
         .val(placeholderUsersCsv);
@@ -172,9 +202,10 @@ var newIconButton = function(fa_icon, button_cls) {
 // --- Refresh the Users table completely ---
 var populateUsersTable = function() {
 
+    var user_cfg = $('.user-config-table');
+    if (!user_cfg.length) return;
     $.get( "/admin/teams", function(teams) {
         // Wipe the current table, replace with new data
-        var user_cfg = $('.user-config-table');
         var tbody = user_cfg.find('tbody');
         tbody.empty();
         $.each(teams, function(i, team) {
@@ -184,6 +215,7 @@ var populateUsersTable = function() {
                 .append($('<td/>').text(team['group']))
                 .append($('<td/>').text(team['number']))
                 .append($('<td/>').text(team['ip']))
+                .append($('<td/>').text(team['adminof']))
                 .append($('<td/>').text("{Unchanged}").addClass("placeholder"))
                 .append($('<th/>').addClass("controls")
                     .append($('<div/>').addClass('btn-group')
@@ -195,5 +227,92 @@ var populateUsersTable = function() {
             );
         });
         user_cfg.editableTableWidget({});
+    }, "json");
+};
+
+/*
+ *   Challenge Configuration
+ */
+$(function() {
+    populateChallengesTable();
+});
+
+// --- Refresh the Challenge listing table completely ---
+var populateChallengesTable = function() {
+    var chal_cfg = $('.flag-config-table');
+    if (!chal_cfg.length) return;
+    $.get( "/ctf/config", function(chals) {
+        // Wipe the current table, replace with new data
+        var tbody = chal_cfg.find('tbody');
+        tbody.empty();
+        $.each(chals, function(i, chal) {
+            /* Build the inner DOM elements of the <tr> */
+            tbody.append($("<tr/>")
+                    .append($('<td/>').text(chal['name']))
+                    .append($('<td/>').text(chal['group']))
+                    .append($('<td/>').text(chal['flag']))
+                    .append($('<td/>').text(chal['points']))
+                    .append($('<td/>').text(chal['description']))
+                // .append($('<th/>').addClass("controls")
+                //     .append($('<div/>').addClass('btn-group')
+                //         // .append(newIconButton("fa-clipboard", "btn-success user-clip"))
+                //             .append(newIconButton("fa-pencil", "btn-warning user-update"))
+                //             .append(newIconButton("fa-trash", "btn-danger user-del"))
+                //     )
+                // )
+            );
+        });
+        // chal_cfg.editableTableWidget({});
+    }, "json");
+};
+
+/*
+ *    CTF Flag Score breakdowns
+ */
+
+var initialCountdown = 60; // 1 minute between refreshes
+(function countdown(remaining) {
+    var timerNode = $('.countdown');
+    if(remaining === 0) {
+        refreshBreakdowns();
+        remaining = initialCountdown;
+        timerNode.text(remaining + "s . Just refreshed!");
+    } else {
+        timerNode.text(remaining + "s ...");
+    }
+    return setTimeout(function(){ countdown(remaining - 10); }, 10000);
+})(initialCountdown);
+
+var refreshBreakdowns = function () {
+    getFlagsBySubmissionCount();
+    getEachTeamsCapturedFlags();
+};
+
+var getFlagsBySubmissionCount = function() {
+    $.get( "/ctf/breakdown/subs_per_flag", function(res) {
+        var target = $('.most-submitted-flag');
+        var tbody = target.find('tbody');
+        tbody.empty();
+        $.each(res, function(i, bd) {
+            tbody.append($('<tr/>')
+                    .append($('<td>').text(bd['name']))
+                    .append($('<td>').text(bd['group']))
+                    .append($('<td>').text(bd['submissions']))
+            );
+        })
+    }, "json");
+};
+
+var getEachTeamsCapturedFlags = function() {
+    $.get( "/ctf/breakdown/teams_flags", function(res) {
+        var target = $('.teams-captured-flags');
+        var tbody = target.find('tbody');
+        tbody.empty();
+        $.each(res, function(i, bd) {
+            tbody.append($('<tr/>')
+                .append($('<td>').text(bd['team']))
+                .append($('<td>').text(bd['flags'].join(", ")).addClass('text-justify'))
+            );
+        })
     }, "json");
 };

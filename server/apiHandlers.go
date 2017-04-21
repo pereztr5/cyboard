@@ -130,3 +130,79 @@ func DeleteTeam(w http.ResponseWriter, r *http.Request) {
 	}
 	w.WriteHeader(http.StatusOK)
 }
+
+func CtfConfig(w http.ResponseWriter, r *http.Request) {
+	t := r.Context().Value("team").(Team)
+	if !AllowedToConfigureChallenges(t) {
+		http.Error(w, http.StatusText(403), 403)
+		return
+	}
+
+	chals, err := DataGetChallengesByGroup(t.AdminOf)
+	if err != nil {
+		Logger.Error("Failed to get flags by group: ", err)
+		http.Error(w, http.StatusText(500), 500)
+		return
+	}
+	w.Header().Set("Content-Type", "application/json; charset=UTF-8")
+	err = json.NewEncoder(w).Encode(chals)
+	if err != nil {
+		Logger.Error("Error encoding CtfConfig json: ", err)
+		http.Error(w, http.StatusText(500), 500)
+		return
+	}
+	w.WriteHeader(http.StatusOK)
+}
+
+// todo(tbutts): Reduce copied code. Particularly in the Breakdown methods, and anything that returns JSON.
+// todo(tbutts): Consider a middleware or some abstraction on the Json encoding (gorilla may already provide this)
+
+func GetBreakdownOfSubmissionsPerFlag(w http.ResponseWriter, r *http.Request) {
+	t := r.Context().Value("team").(Team)
+	if !AllowedToConfigureChallenges(t) {
+		http.Error(w, http.StatusText(403), 403)
+		return
+	}
+
+	chalGroups := getChallengesOwnerOf(t.AdminOf, t.Group)
+
+	flagsWithCapCounts, err := DataGetSubmissionsPerFlag(chalGroups)
+	if err != nil {
+		Logger.Error("Failed to get flags w/ occurences of capture: ", err)
+		http.Error(w, http.StatusText(500), 500)
+		return
+	}
+	w.Header().Set("Content-Type", "application/json; charset=UTF-8")
+	err = json.NewEncoder(w).Encode(flagsWithCapCounts)
+	if err != nil {
+		Logger.Error("Error encoding FlagCaptures breakdown json: ", err)
+		http.Error(w, http.StatusText(500), 500)
+		return
+	}
+	w.WriteHeader(http.StatusOK)
+}
+
+func GetEachTeamsCapturedFlags(w http.ResponseWriter, r *http.Request) {
+	t := r.Context().Value("team").(Team)
+	if !AllowedToConfigureChallenges(t) {
+		http.Error(w, http.StatusText(403), 403)
+		return
+	}
+
+	chalGroups := getChallengesOwnerOf(t.AdminOf, t.Group)
+
+	teamsWithCapturedFlags, err := DataGetEachTeamsCapturedFlags(chalGroups)
+	if err != nil {
+		Logger.Error("Failed to get each teams' flag captures: ", err)
+		http.Error(w, http.StatusText(500), 500)
+		return
+	}
+	w.Header().Set("Content-Type", "application/json; charset=UTF-8")
+	err = json.NewEncoder(w).Encode(teamsWithCapturedFlags)
+	if err != nil {
+		Logger.Error("Error encoding each teams' flag captures breakdown json: ", err)
+		http.Error(w, http.StatusText(500), 500)
+		return
+	}
+	w.WriteHeader(http.StatusOK)
+}

@@ -11,8 +11,8 @@
     {{- if eq .Title "services" }}
     <link rel="stylesheet" href="/assets/css/checks.css">
     {{- else if eq .Title "dashboard" }}
-        {{- if eq .T.Group "admin" }}
-        <link rel="stylesheet" href="/assets/css/admin-dashboard.css">
+        {{- if isChallengeOwner .T }}
+        <link rel="stylesheet" href="/assets/css/config-dashboard.css">
         <link rel="stylesheet" href="/assets/bootstrap-dialog/bootstrap-dialog.min.css">
         {{ end }}
     {{- end }}

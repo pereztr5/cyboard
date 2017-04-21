@@ -1,0 +1,61 @@
+/* Center the tiny AJAX response messages and buttons */
+.status-region,
+.config-table .controls div,
+.dash-section-selector .btn-group {
+    display: flex;
+    flex-flow: row;
+    justify-content: center;
+}
+
+/* Expand the config/score breakdown selection buttons */
+.dash-section-selector .btn-group {
+    align-items: stretch;
+}
+.grow {
+    flex-grow: 1;
+}
+
+.config-panel .guidelines,
+.config-panel .guidelines h4 {
+    color: #cdcbc9;
+    font-size: 1.35em;
+}
+
+
+/*
+ * Editing via CSV (Adding users, adding challenges, etc.)
+ */
+.csv-upload textarea {
+    /*color: #080808;*/
+    font-family: monospace;
+    white-space: nowrap;
+}
+
+.csv-upload form button {
+    width: 100%;
+}
+
+/*
+ * Update & Delete users table
+ */
+.config-table .controls {
+    padding: 0;
+}
+
+.config-table thead>tr>th:last-of-type {
+    text-align: center;
+}
+/* The bootstrap btn-success is too bright */
+.config-table .controls .btn-success {
+    filter: contrast(75%);
+}
+
+/* Make "edited" columns look like the "do update" button */
+[data-original] {
+    background-color: rgba(255, 136, 0, 0.79);
+}
+
+/* Improve legibility by spacing flag names in breakdown */
+.ctf-bd .teams-captured-flags .text-justify {
+    word-spacing: 1em;
+}
