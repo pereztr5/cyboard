@@ -276,6 +276,7 @@ func DataGetAllScore() []Result {
 		{"$sort": bson.M{"teamnumber": 1}},
 		{"$group": bson.M{"_id": bson.M{"tname": "$teamname", "tnum": "$teamnumber"}, "points": bson.M{"$sum": "$points"}}},
 		{"$project": bson.M{"_id": 0, "points": 1, "teamnumber": "$_id.tnum", "teamname": "$_id.tname"}},
+		{"$sort": bson.M{"teamnumber": 1}},
 	})
 	err := pipe.All(&tmScore)
 	if err != nil {
