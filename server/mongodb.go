@@ -79,7 +79,6 @@ func CreateIndexes() {
 			{Key: []string{"teamname", "details"}}, // HasFlag
 			{Key: []string{"teamname", "type"}},    // DataGetTeamChallenges
 			{Key: []string{"group"}},               // DataGetSubmissionsPerFlag & DataGetEachTeamsCapturedFlags
-			{Key: []string{"teamnumber"}},          // DataGetAllScore
 		},
 	}
 
