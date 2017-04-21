@@ -8,9 +8,8 @@ import (
 	"github.com/gorilla/mux"
 )
 
-func GetChallenges(w http.ResponseWriter, r *http.Request) {
-	// TODO: For now this will only get one group of challenges
-	chal, err := DataGetChallenges("Rusted Bunions")
+func GetPublicChallenges(w http.ResponseWriter, r *http.Request) {
+	chal, err := DataGetChallenges(specialChallenges)
 	if err != nil {
 		Logger.Error("Error with DataGetChallenges: ", err)
 		http.Error(w, http.StatusText(500), 500)

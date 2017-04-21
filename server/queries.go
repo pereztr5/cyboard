@@ -114,14 +114,18 @@ func DataGetAllUsers() []Team {
 }
 
 // Query statements
-func DataGetChallenges(group string) ([]Challenge, error) {
+func DataGetChallenges(groups []string) ([]Challenge, error) {
 	challenges := []Challenge{}
 
 	session, chalCollection := GetSessionAndCollection("challenges")
 	defer session.Close()
 
 	// TODO: .Select to include fields required, rather than excluding unsafe ones
-	err := chalCollection.Find(bson.M{"group": group}).Sort("description").Select(bson.M{"_id": 0, "flag": 0}).All(&challenges)
+	err := chalCollection.
+		Find(bson.M{"group": bson.M{"$in": groups}}).
+		Sort("description").
+		Select(bson.M{"_id": 0, "flag": 0}).
+		All(&challenges)
 	if err != nil {
 		return challenges, err
 	}

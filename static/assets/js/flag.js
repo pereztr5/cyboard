@@ -54,7 +54,8 @@ function getList() {
     var url = '/challenges/list';
     $.getJSON(url, function(json) {
         challenges = json;
-        $('.page-header').append(' <small>' + challenges[0].group + '</small>');
+        var challengeListText = uniqueBy(challenges, function(c){return c.group}).join(", ");
+        $('.page-header').append($('<small/>').text(" - " + challengeListText));
         makeList(json);
     });
 }
@@ -179,4 +180,17 @@ function escapeHtml(string) {
     return String(string).replace(/[&<>"'\/]/g, function(s) {
         return entityMap[s];
     });
+}
+
+function uniqueBy(arr, fn) {
+    var unique = {};
+    var distinct = [];
+    arr.forEach(function (x) {
+        var key = fn(x);
+        if (!unique[key]) {
+            distinct.push(key);
+            unique[key] = true;
+        }
+    });
+    return distinct;
 }

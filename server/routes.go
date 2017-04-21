@@ -33,6 +33,7 @@ func init() {
 		"challengesList":     DataGetChallengeGroupsList,
 		"allUsers":           DataGetAllUsers,
 		"isChallengeOwner":   AllowedToConfigureChallenges,
+		"existsSpecialFlags": existsSpecialFlags,
 		"StringsJoin":        strings.Join,
 	}
 
@@ -67,7 +68,7 @@ func CreateTeamRouter() *mux.Router {
 	router := mux.NewRouter()
 	router.HandleFunc("/team/dashboard", ShowTeamDashboard).Methods("GET")
 	router.HandleFunc("/challenges", ShowChallenges).Methods("GET")
-	router.HandleFunc("/challenges/list", GetChallenges).Methods("GET")
+	router.HandleFunc("/challenges/list", GetPublicChallenges).Methods("GET")
 	router.HandleFunc("/challenges/verify", CheckFlag).Methods("POST")
 	router.HandleFunc("/challenges/verify/all", CheckAllFlags).Methods("POST")
 	router.HandleFunc("/ctf/config", CtfConfig).Methods("GET")
@@ -219,6 +220,10 @@ func getTeamScore(teamname string) int {
 
 func getAllTeamScores() []Result {
 	return DataGetAllScore()
+}
+
+func existsSpecialFlags() bool {
+	return len(specialChallenges) > 0
 }
 
 func renderTemplate(w http.ResponseWriter, p Page) {

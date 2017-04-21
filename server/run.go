@@ -8,6 +8,14 @@ import (
 	"github.com/urfave/negroni"
 )
 
+var (
+	specialChallenges []string
+)
+
+func SetupServerCfg(cfg *viper.Viper) {
+	specialChallenges = cfg.GetStringSlice("server.special_challenges")
+}
+
 func Run() {
 	// Setup logs
 	SetupScoringLoggers(viper.GetViper())

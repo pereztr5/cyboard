@@ -29,7 +29,7 @@
                         <li role="presentation"><a href="/">Home </a></li>
                         <li role="presentation"><a href="/scoreboard">Scoreboard</a></li>
                         <li role="presentation"><a href="/team/services">Services</a></li>
-                        {{- if .T.Name }}
+                        {{- if and existsSpecialFlags .T.Name }}
                         <li role="presentation"><a href="/challenges">Challenges</a></li>
                         {{- end }}
                     </ul>

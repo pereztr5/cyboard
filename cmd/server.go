@@ -25,5 +25,6 @@ func init() {
 }
 
 func serverRun(cmd *cobra.Command, args []string) {
+	server.SetupServerCfg(viper.GetViper())
 	server.Run()
 }
