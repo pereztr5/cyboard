@@ -490,7 +490,7 @@ func DataGetSubmissionsPerFlag(challengeGroups []string) ([]bson.M, error) {
 		{"$match": bson.M{"group": bson.M{"$in": challengeGroups}}},
 		{"$group": bson.M{"_id": bson.M{"name": "$details", "group": "$group"}, "submissions": bson.M{"$sum": 1}}},
 		{"$project": bson.M{"name": "$_id.name", "group": "$_id.group", "submissions": 1, "_id": 0}},
-		{"$sort": bson.M{"submissions": -1}},
+		{"$sort": bson.M{"name": 1, "submissions": -1}},
 	}).All(&aggrResult)
 }
 
