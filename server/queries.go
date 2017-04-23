@@ -157,6 +157,8 @@ func DataCheckFlag(team Team, chal Challenge) (int, error) {
 				Details:    chal.Name,
 				Points:     chal.Points,
 			}
+			CaptFlagsLogger.Printf("Team [%d] just scored '%d points' for flag '%s'!",
+				result.Teamnumber, result.Points, result.Details)
 			test := false
 			return 0, DataAddResult(result, test)
 		} else {
@@ -432,8 +434,6 @@ func DataAddResult(result Result, test bool) error {
 		//Logger.Printf("Error inserting %s to team %s: %v", result.Details, result.Teamname, err)
 		return err
 	}
-	CaptFlagsLogger.Printf("Team [%d] just scored '%d points' for flag '%s'!",
-		result.Teamnumber, result.Points, result.Details)
 	return nil
 }
 
