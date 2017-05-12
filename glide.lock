@@ -1,0 +1,82 @@
+hash: 6b5b812a9aa10618ef5373d05a9cd532ac53ad9480c8450210d2d2e3325ca66b
+updated: 2017-05-12T19:35:37.18375145-04:00
+imports:
+- name: github.com/fsnotify/fsnotify
+  version: 4da3e2cfbabc9f751898f250b49f2439785783a1
+- name: github.com/gorilla/context
+  version: 08b5f424b9271eedf6f9f0ce86cb9396ed337a42
+- name: github.com/gorilla/mux
+  version: 4c1c3952b7d9d0a061a3fa7b36fd373ba0398ebc
+- name: github.com/gorilla/securecookie
+  version: e59506cc896acb7f7bf732d4fdf5e25f7ccd8983
+- name: github.com/gorilla/sessions
+  version: 8b6b4cd75f07f7ee036eb37b8127bd40ab1efc49
+- name: github.com/gorilla/websocket
+  version: a91eba7f97777409bc2c443f5534d41dd20c5720
+- name: github.com/hashicorp/hcl
+  version: 392dba7d905ed5d04a5794ba89f558b27e2ba1ca
+  subpackages:
+  - hcl/ast
+  - hcl/parser
+  - hcl/scanner
+  - hcl/strconv
+  - hcl/token
+  - json/parser
+  - json/scanner
+  - json/token
+- name: github.com/inconshreveable/mousetrap
+  version: 76626ae9c91c4f2a10f34cad8ce83ea42c93bb75
+- name: github.com/magiconair/properties
+  version: 51463bfca2576e06c62a8504b5c0f06d61312647
+- name: github.com/meatballhat/negroni-logrus
+  version: 7c570a907cfc69cdc004ad506c6f5e234815b936
+- name: github.com/mitchellh/mapstructure
+  version: cc8532a8e9a55ea36402aa21efdf403a60d34096
+- name: github.com/pelletier/go-buffruneio
+  version: c37440a7cf42ac63b919c752ca73a85067e05992
+- name: github.com/pelletier/go-toml
+  version: 685a1f1cb7a66b9cadbe8f1ac49d9f8f567d6a9d
+- name: github.com/Sirupsen/logrus
+  version: acfabf31db8f45a9174f54a0d48ea4d15627af4d
+- name: github.com/spf13/afero
+  version: 9be650865eab0c12963d8753212f4f9c66cdcf12
+  subpackages:
+  - mem
+- name: github.com/spf13/cast
+  version: acbeb36b902d72a7a4c18e8f3241075e7ab763e4
+- name: github.com/spf13/cobra
+  version: 90687e7bfc7e1e5cd88eb1f513f32f01dc03dd7c
+- name: github.com/spf13/jwalterweatherman
+  version: 8f07c835e5cc1450c082fe3a439cf87b0cbb2d99
+- name: github.com/spf13/pflag
+  version: e57e3eeb33f795204c1ca35f56c44f83227c6e66
+- name: github.com/spf13/viper
+  version: 0967fc9aceab2ce9da34061253ac10fb99bba5b2
+- name: github.com/urfave/negroni
+  version: 1d8981a52d6bda4467a9faacf3fdddd38222dfc4
+- name: golang.org/x/crypto
+  version: ab89591268e0c8b748cbe4047b00197516011af5
+  subpackages:
+  - bcrypt
+  - blowfish
+- name: golang.org/x/sys
+  version: f845067cf72a21fb4929b0e6a35273bd83b56396
+  subpackages:
+  - unix
+- name: golang.org/x/text
+  version: 19e51611da83d6be54ddafce4a4af510cb3e9ea4
+  subpackages:
+  - transform
+  - unicode/norm
+- name: gopkg.in/mgo.v2
+  version: 3f83fa5005286a7fe593b055f0d7771a7dce4655
+  subpackages:
+  - bson
+  - internal/json
+  - internal/sasl
+  - internal/scram
+- name: gopkg.in/natefinch/lumberjack.v2
+  version: dd45e6a67c53f673bb49ca8a001fd3a63ceb640e
+- name: gopkg.in/yaml.v2
+  version: cd8b52f8269e0feb286dfeef29f8fe4d5b397e0b
+testImports: []
