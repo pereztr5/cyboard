@@ -8,7 +8,7 @@ import (
 	"path/filepath"
 	"time"
 
-	"github.com/Sirupsen/logrus"
+	"github.com/sirupsen/logrus"
 	"github.com/meatballhat/negroni-logrus"
 	"github.com/spf13/viper"
 	"github.com/urfave/negroni"

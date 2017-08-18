@@ -4,7 +4,7 @@ owners:
 - name: Tony Perez
 - name: Tyler Butters
 import:
-- package: github.com/Sirupsen/logrus
+- package: github.com/sirupsen/logrus
 - package: github.com/fsnotify/fsnotify
 - package: github.com/gorilla/mux
 - package: github.com/gorilla/securecookie
