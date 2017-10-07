@@ -252,7 +252,7 @@ func DataGetTeamScore(teamname string) int {
 	})
 	err := pipe.One(&points)
 	if err != nil {
-		Logger.Error("Error getting team points: ", err)
+		Logger.Errorf("Error getting `%s` points: %v", teamname, err)
 	} else {
 		p = points["points"].(int)
 	}

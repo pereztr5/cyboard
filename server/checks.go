@@ -4,7 +4,6 @@ import (
 	"bytes"
 	"fmt"
 	"html/template"
-	"io"
 	"os/exec"
 	"path/filepath"
 	"strconv"
@@ -16,31 +15,41 @@ import (
 	"github.com/spf13/viper"
 )
 
-type Check struct {
-	Name   string
-	Script *exec.Cmd
-	Args   string
-	Points map[int]int
+type EventSettings struct {
+	ChecksDir string    `mapstructure:"checks_dir"`
+	End       time.Time `mapstructure:"event_end_time"`
+	Intervals time.Duration
+	Timeout   time.Duration
+	OnBreak   bool `mapstructure:"on_break"`
 }
 
-type EventSettings struct {
-	Start     time.Time
-	End       time.Time
-	Timeout   time.Duration
-	Intervals time.Duration
-	OnBreak   bool
+type Check struct {
+	Name     string `mapstructure:"check_name"`
+	Filename string
+	Script   *exec.Cmd
+	Args     string
+	Points   []int
+	Disable  bool
+}
+
+type CheckConfiguration struct {
+	Event    EventSettings
+	Log      LogSettings
+	Database DBSettings
+	Checks   []Check
 }
 
 var (
-	Event          EventSettings
-	checkcfg       *viper.Viper
+	rawCheckCfg    *viper.Viper
 	cfgNeedsReload bool
-	dryRun         bool
+
+	// dryRun toggles a dummy run of the whole service checker. TODO: Replace with proper tests
+	dryRun bool
 )
 
 func (c *Check) String() string {
-	return fmt.Sprintf(`Check{name=%q, fullcmd="%s %s", pts=%d}`,
-		c.Name, filepath.Base(c.Script.Path), c.Args, c.Points[0])
+	return fmt.Sprintf(`Check{name=%q, fullcmd="%s %s", pts=%v}`,
+		c.Name, filepath.Base(c.Script.Path), c.Args, c.Points)
 }
 
 func (es *EventSettings) String() string {
@@ -48,9 +57,9 @@ func (es *EventSettings) String() string {
 		es.End.Format(time.UnixDate), es.Intervals, es.Timeout, es.OnBreak)
 }
 
-func SetupCfg(cfg *viper.Viper, dryRunBool bool) {
-	checkcfg = cfg
-	dryRun = dryRunBool
+func SetupChecksCfg(v *viper.Viper) {
+	rawCheckCfg = v
+	dryRun = v.GetBool("dryRun")
 
 	// FIXME(butters): There's an unfortunate race condition in the Viper library.
 	//        https://github.com/spf13/viper/issues/174
@@ -58,74 +67,52 @@ func SetupCfg(cfg *viper.Viper, dryRunBool bool) {
 	// feature, so, if the config gets updated really quickly, the check
 	// service would collapse. We could just copy the WatchConfig code
 	// and add our own shared file lock as a quick patch.
-	checkcfg.WatchConfig()
-	checkcfg.OnConfigChange(func(in fsnotify.Event) {
+	rawCheckCfg.OnConfigChange(func(in fsnotify.Event) {
 		cfgNeedsReload = true
-		Logger.Print(checkcfg.ConfigFileUsed(), " has been updated.")
+		Logger.Print(rawCheckCfg.ConfigFileUsed(), " has been updated.")
 		Logger.Print("Settings will reload live at the next set of checks.")
 	})
+	rawCheckCfg.WatchConfig()
 }
 
-func getChecks() (checks []Check) {
-	checksDir := checkcfg.GetString("checks_dir")
-	for n := range checkcfg.GetStringMap("checks") {
-		checkKey := "checks." + n
-		readCfgString := func(s string) string {
-			return checkcfg.GetString(checkKey + "." + s)
-		}
+func prepareChecks(checks []Check, scriptsDir string) []Check {
+	finalChecks := []Check{}
 
-		if checkcfg.GetBool(checkKey + ".disable") {
-			Logger.Warnf("%v: DISABLED.", checkKey)
+	for idx, check := range checks {
+		if check.Disable {
+			Logger.Warnf("check.%d: DISABLED.", idx)
 			continue
 		}
 
-		script, err := getScript(filepath.Join(checksDir, readCfgString("filename")))
+		var err error
+		check.Script, err = getScript(filepath.Join(scriptsDir, check.Filename))
 		if err != nil {
-			Logger.Warnf("%v: SKIPPING! Failed to locate script: %v", checkKey, err)
+			Logger.Warnf("check.%d: SKIPPING! Failed to locate script: %v", idx, err)
 			continue
 		}
-		pts, err := getPoints(checkKey + ".points")
-		if err != nil {
-			Logger.Warnf("%v: SKIPPING! Failed to get point totals: %v", checkKey, err)
-			continue
-		}
-		s := Check{
-			Name:   readCfgString("check_name"),
-			Script: script,
-			Args:   readCfgString("args"),
-			Points: pts,
-		}
-		checks = append(checks, s)
+
+		finalChecks = append(finalChecks, check)
 	}
+
 	Logger.Print("All checks:")
-	for i, chk := range checks {
-		Logger.Printf("  [%d] %v", i, &chk)
+	for i, check := range finalChecks {
+		Logger.Printf("  [%d] %v", i, &check)
 	}
 
-	return checks
+	return finalChecks
 }
 
-func loadSettings() {
-	// Get Event details
-	var err error
-	Event.End, err = time.Parse(time.UnixDate, checkcfg.GetString("event_end_time"))
-	if err != nil {
-		Logger.Fatal("Failed to parse event_end_time: ", err)
-	}
-
-	if time.Now().After(Event.End) {
+func prepareEvent(checkCfg *CheckConfiguration) {
+	if time.Now().After(checkCfg.Event.End) {
 		if dryRun {
 			// Run for 30 seconds if the end time is past already
-			Event.End = time.Now().Add(time.Second * 30)
+			checkCfg.Event.End = time.Now().Add(time.Second * 30)
 		} else {
 			Logger.Error("Event has already ended! " +
 				"(Did you forget to update `event_end_time` in the config?)")
 		}
 	}
-	Event.Intervals = checkcfg.GetDuration("intervals")
-	Event.Timeout = checkcfg.GetDuration("timeout")
-	Event.OnBreak = checkcfg.GetBool("on_break")
-	Logger.Print(&Event)
+	Logger.Print(&checkCfg.Event)
 }
 
 func getScript(path string) (*exec.Cmd, error) {
@@ -140,21 +127,7 @@ func getScript(path string) (*exec.Cmd, error) {
 	return exec.Command(dir), nil
 }
 
-func getPoints(ptsKey string) (map[int]int, error) {
-	var p []int
-	err := checkcfg.UnmarshalKey(ptsKey, &p)
-	if err != nil {
-		return nil, err
-	}
-	points := make(map[int]int)
-	for i, v := range p {
-		points[i] = v
-	}
-	return points, nil
-}
-
 func score(result Result) {
-	//fmt.Printf("%s %s\nService: %s\tStatus: %d\n%v\n", res.Team.Teamname, res.Team.Ips[0], res.Service, res.Status, res.Output)
 	if !dryRun {
 		err := DataAddResult(result, dryRun)
 		if err != nil {
@@ -171,27 +144,25 @@ func score(result Result) {
 	}
 }
 
-func startCheckService(teams []Team, checks []Check) {
-	Event.Start = time.Now()
-	//bio := bufio.NewReader(os.Stdin)
-	//Logger.Print("Press enter to start....")
-	//_, _ = bio.ReadString('\n')
+func startCheckService(checkCfg *CheckConfiguration, teams []Team) {
+	event := &checkCfg.Event
+	checks := checkCfg.Checks
 
 	// Run command every x seconds until scheduled end time
 	Logger.Println("Starting Checks")
-	checkTicker := time.NewTicker(Event.Intervals)
+	checkTicker := time.NewTicker(event.Intervals)
 	status := make(chan Result)
 	waitingOnReload := false
 	for {
 		now := time.Now()
-		if !cfgNeedsReload && now.Before(Event.End) {
+		if !cfgNeedsReload && now.Before(event.End) {
 
 			// When there's nothing to do, log once, then just keep
 			// waiting for the config to be reloaded, or the event to end.
-			if Event.OnBreak || len(checks) == 0 {
+			if event.OnBreak || len(checks) == 0 {
 				if !waitingOnReload {
 					if len(checks) == 0 {
-						Logger.Error("No checks enabled/configured in: ", checkcfg.ConfigFileUsed())
+						Logger.Error("No checks enabled/configured in: ", rawCheckCfg.ConfigFileUsed())
 						Logger.Error("Waiting for config file to be updated...")
 					} else {
 						Logger.Warn("We're on break! Enjoy it! (Then update the config, setting `on_break = false`)")
@@ -207,7 +178,7 @@ func startCheckService(teams []Team, checks []Check) {
 			Logger.Println("Running Checks")
 			for _, team := range teams {
 				for _, check := range checks {
-					go runCmd(team, check, now, status)
+					go runCmd(team, check, now, event.Timeout, status)
 				}
 			}
 			amtChecks := len(teams) * len(checks)
@@ -219,7 +190,7 @@ func startCheckService(teams []Team, checks []Check) {
 			}
 		} else {
 			checkTicker.Stop()
-			if now.After(Event.End) {
+			if now.After(event.End) {
 				Logger.Println("Done Checking Services")
 			}
 			break
@@ -228,12 +199,11 @@ func startCheckService(teams []Team, checks []Check) {
 	}
 }
 
-func runCmd(team Team, check Check, timestamp time.Time, status chan Result) {
+func runCmd(team Team, check Check, timestamp time.Time, timeout time.Duration, status chan Result) {
 	// TODO: Currently only one IP per team is supported
 	cmd := *check.Script
 	cmd.Args = parseArgs(cmd.Path, check.Args, team.Ip)
-	var stdout bytes.Buffer
-	cmd.Stdout = &stdout
+	cmd.Stdout = &bytes.Buffer{}
 	err := cmd.Start()
 	if err != nil {
 		Logger.Error("Could not run script:", err)
@@ -250,7 +220,7 @@ func runCmd(team Team, check Check, timestamp time.Time, status chan Result) {
 			Teamnumber: team.Number,
 		}
 		select {
-		case <-time.After(Event.Timeout):
+		case <-time.After(timeout):
 			if err := cmd.Process.Kill(); err != nil {
 				//TODO: If it cannot kill it what to do we do?
 				// If fatal then everything stops
@@ -261,15 +231,20 @@ func runCmd(team Team, check Check, timestamp time.Time, status chan Result) {
 			status <- result
 		case _ = <-done:
 			// As long as it is done the error doesn't matter
-			s := cmd.ProcessState.Sys().(syscall.WaitStatus).ExitStatus()
+			exitCode := cmd.ProcessState.Sys().(syscall.WaitStatus).ExitStatus()
 			var detail string
 			if !dryRun {
-				detail = fmt.Sprintf("Status: %d", s)
+				detail = fmt.Sprintf("Status: %d", exitCode)
 			} else {
-				detail = stdout.String() + "\t" + strings.Join(cmd.Args, " ")
+				detail = fmt.Sprintf("%s\t%s", cmd.Stdout, strings.Join(cmd.Args, " "))
 			}
 			result.Details = detail
-			result.Points = check.Points[s]
+			if exitCode > len(check.Points) {
+				Logger.Warnf("Unexpected exit code (will be awarded '0' points): exitCode=%d, check=%v", exitCode, check)
+				result.Points = 0
+			} else {
+				result.Points = check.Points[exitCode]
+			}
 			status <- result
 		}
 	}
@@ -281,12 +256,6 @@ func parseArgs(name string, args string, ip string) []string {
 	const ReplacementText = "IP"
 	nArgs := name + " " + strings.Replace(args, ReplacementText, ip, 1)
 	return strings.Split(nArgs, " ")
-}
-
-func getOutput(stdout io.ReadCloser) string {
-	buf := new(bytes.Buffer)
-	buf.ReadFrom(stdout)
-	return buf.String()
 }
 
 func testData() []Team {
@@ -303,25 +272,38 @@ func testData() []Team {
 	return teams
 }
 
-func ChecksRun() {
-	SetupCheckServiceLogger(checkcfg)
+func ChecksRun(checkCfg *CheckConfiguration) {
+	SetupCheckServiceLogger(&checkCfg.Log)
+	SetupMongo(&checkCfg.Database, nil)
 
 	for {
 		cfgNeedsReload = false
-		loadSettings()
-		checks := getChecks()
+		prepareEvent(checkCfg)
+		checkCfg.Checks = prepareChecks(checkCfg.Checks, checkCfg.Event.ChecksDir)
 		if !dryRun {
 			teams, err := DataGetTeamIps()
 			if err != nil {
 				Logger.Fatal("Could not get teams for service checks: ", err)
 			}
-			startCheckService(teams, checks)
+			startCheckService(checkCfg, teams)
 		} else {
 			teams := testData()
-			startCheckService(teams, checks)
+			startCheckService(checkCfg, teams)
 		}
+
+		// If the checker service stopped other than by a config reload, then the event has reached
+		// it's end and it's time to shut down.
+		// Else, reload the config and start again!
 		if !cfgNeedsReload {
 			break
+		} else {
+			c := &CheckConfiguration{}
+			if err := rawCheckCfg.Unmarshal(c); err != nil {
+				Logger.Warnf("Unable to update config:", err)
+				Logger.Warn("Config was not refreshed, but checking will restart!")
+			} else {
+				checkCfg = c
+			}
 		}
 	}
 }
