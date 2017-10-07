@@ -69,12 +69,18 @@ func Run(cfg *Configuration) {
 
 	app.UseHandler(webRouter)
 
-	Logger.Printf("Server running at: http://%s:%s", cfg.Server.IP, cfg.Server.HTTPPort)
-	Logger.Printf("Server running at: https://%s:%s", cfg.Server.IP, cfg.Server.HTTPSPort)
+	sc := &cfg.Server
 
-	go http.ListenAndServe(":"+cfg.Server.HTTPPort, http.HandlerFunc(redirecter(cfg.Server.HTTPSPort)))
-
-	Logger.Fatal(http.ListenAndServeTLS(":"+cfg.Server.HTTPSPort, cfg.Server.CertPath, cfg.Server.CertKeyPath, app))
+	if sc.CertPath == "" || sc.CertKeyPath == "" {
+		Logger.Warn("SSL certs is not configured properly. Serving plain HTTP.")
+		Logger.Printf("Server running at: http://%s:%s", sc.IP, sc.HTTPPort)
+		Logger.Fatal(http.ListenAndServe(":"+sc.HTTPPort, app))
+	} else {
+		Logger.Printf("Server running at: http://%s:%s", sc.IP, sc.HTTPPort)
+		Logger.Printf("Server running at: https://%s:%s", sc.IP, sc.HTTPSPort)
+		go http.ListenAndServe(":"+sc.HTTPPort, http.HandlerFunc(redirecter(sc.HTTPSPort)))
+		Logger.Fatal(http.ListenAndServeTLS(":"+sc.HTTPSPort, sc.CertPath, sc.CertKeyPath, app))
+	}
 }
 
 func redirecter(port string) func(w http.ResponseWriter, r *http.Request) {

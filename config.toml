@@ -4,8 +4,8 @@ appname = "CNY Hackathon"
 ip = "127.0.0.1"
 http_port = "8080"
 https_port = "8081"
-cert = "certs/cert.pem"
-key = "certs/key.pem"
+# cert = "certs/cert.pem"
+# key = "certs/key.pem"
 
 # Most CTF challenges do not show their name to any blue teams.
 # Challenges in the following group will be displayed on a
