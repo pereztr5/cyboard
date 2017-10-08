@@ -8,9 +8,8 @@ import (
 	"path/filepath"
 	"time"
 
-	"github.com/sirupsen/logrus"
 	"github.com/meatballhat/negroni-logrus"
-	"github.com/spf13/viper"
+	"github.com/sirupsen/logrus"
 	"github.com/urfave/negroni"
 	"gopkg.in/natefinch/lumberjack.v2"
 )
@@ -34,8 +33,10 @@ var (
 	RequestLogger   *negronilogrus.Middleware // Sits in the server mw stack, not called directly
 )
 
-func SetupScoringLoggers(cfg *viper.Viper) {
-	setupLogManager(cfg)
+// SetupScoringLoggers uses the log configuration to instantiate
+// global loggers used by the CTF + Web server component
+func SetupScoringLoggers(lc *LogSettings) {
+	setupLogManager(lc)
 
 	Logger = LogManager.newLogger(applicationLogName)
 	CaptFlagsLogger = LogManager.newLogger(capturedFlagsLogName)
@@ -44,17 +45,19 @@ func SetupScoringLoggers(cfg *viper.Viper) {
 	RequestLogger = LogManager.newRequestMiddleware(requestsLog)
 }
 
-func SetupCheckServiceLogger(cfg *viper.Viper) {
-	setupLogManager(cfg)
+// SetupCheckServiceLogger uses the log configuration to instantiate
+// a global logger used by the Service Checker component
+func SetupCheckServiceLogger(lc *LogSettings) {
+	setupLogManager(lc)
 
 	Logger = LogManager.newLogger(checkServiceLogName)
 }
 
-func setupLogManager(cfg *viper.Viper) {
+func setupLogManager(lc *LogSettings) {
 	if LogManager == nil {
 		LogManager = &LoggerManager{
-			Level:     mustParseLevel(cfg.GetString("log.level")),
-			UseStdout: cfg.GetBool("log.stdout"),
+			Level:     mustParseLevel(lc.Level),
+			UseStdout: lc.Stdout,
 			Formatter: &logrus.TextFormatter{FullTimestamp: true},
 		}
 	}
@@ -96,6 +99,7 @@ func (m *LoggerManager) newLogOutput(logfilename string) io.WriteCloser {
 			Filename:   filepath.Join(LogDir, logfilename),
 			MaxSize:    DefaultRotateSize,
 			MaxBackups: DefaultMaxBackups,
+			Compress:   true,
 		}
 	}
 	return out
@@ -140,7 +144,7 @@ func (m *LoggerManager) newRequestMiddleware(logger *logrus.Logger) *negronilogr
 func mustParseLevel(levelStr string) logrus.Level {
 	lvl, err := logrus.ParseLevel(levelStr)
 	if err != nil {
-		fmt.Printf("Failed to parse log level '%s': %v", lvl, err)
+		fmt.Printf("Failed to parse log level '%s': %v\n", levelStr, err)
 		fmt.Println("Valid levels:", logrus.AllLevels)
 		os.Exit(1)
 	}

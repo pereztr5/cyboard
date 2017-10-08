@@ -2,30 +2,30 @@ package server
 
 import (
 	"fmt"
-	"os"
 
-	"github.com/spf13/viper"
 	"golang.org/x/crypto/bcrypt"
 	"gopkg.in/mgo.v2"
 	"gopkg.in/mgo.v2/bson"
 )
 
-var mongodbSession *mgo.Session
+var (
+	mongodbSession    *mgo.Session
+	dbSettings        *DBSettings
+	specialChallenges []string
+)
 
 func DBSession() *mgo.Session {
 	if mongodbSession == nil {
 		Logger.Println("Making new MongoDB Session")
-		uri := os.Getenv("MONGODB_URI")
+		uri := dbSettings.URI
 		if uri == "" {
-			uri = viper.GetString("database.mongodb_uri")
-			if uri == "" {
-				Logger.Fatalln("No connection uri for MongoDB provided")
-			}
+			Logger.Fatalln("No connection uri for MongoDB provided")
 		}
+
 		var err error
 		mongodbSession, err = mgo.Dial(uri)
 		if mongodbSession == nil || err != nil {
-			Logger.Fatalf("Can't connect to MongoDB: ", err)
+			Logger.Fatalln("Can't connect to MongoDB: ", err)
 		}
 		mongodbSession.SetSafe(&mgo.Safe{})
 		Logger.Println("Connected to mongodb:", mongodbSession.LiveServers())
@@ -34,7 +34,7 @@ func DBSession() *mgo.Session {
 }
 
 func DB() *mgo.Database {
-	return DBSession().DB(viper.GetString("database.dbname"))
+	return DBSession().DB(dbSettings.DBName)
 }
 
 func Teams() *mgo.Collection {
@@ -98,8 +98,21 @@ func GetSessionAndCollection(collectionName string) (sessionCopy *mgo.Session, c
 		Logger.Println("No sessions available making new one")
 		sessionCopy = DBSession().Copy()
 	}
-	collection = sessionCopy.DB(viper.GetString("database.dbname")).C(collectionName)
+	collection = sessionCopy.DB(dbSettings.DBName).C(collectionName)
 	return
+}
+
+// SetupMongo copies settings into app-wide vars used for connecting & interacting with MongoDB
+func SetupMongo(settings *DBSettings, special []string) {
+	// If the DBName is empty, the mongo driver will fallback to `test`, but we'd rather fail fast.
+	if settings.DBName == "" {
+		Logger.Fatal(`DB name is empty: database.dbname=""`)
+	}
+
+	s := *settings
+	dbSettings = &s
+
+	specialChallenges = special
 }
 
 func EnsureAdmin() {

@@ -5,22 +5,41 @@ import (
 	"net/http"
 	"net/url"
 
-	"github.com/spf13/viper"
 	"github.com/urfave/negroni"
 )
 
-var (
-	specialChallenges []string
-)
-
-func SetupServerCfg(cfg *viper.Viper) {
-	specialChallenges = cfg.GetStringSlice("server.special_challenges")
+type LogSettings struct {
+	Level  string `mapstructure:"level"`
+	Stdout bool   `mapstructure:"stdout"`
 }
 
-func Run() {
+type DBSettings struct {
+	URI    string `mapstructure:"mongodb_uri"`
+	DBName string
+}
+
+type ServerSettings struct {
+	IP                string
+	HTTPPort          string   `mapstructure:"http_port"`
+	HTTPSPort         string   `mapstructure:"https_port"`
+	CertPath          string   `mapstructure:"cert"`
+	CertKeyPath       string   `mapstructure:"key"`
+	SpecialChallenges []string `mapstructure:"special_challenges"`
+}
+
+type Configuration struct {
+	Appname  string      `mapstructure:"appname"`
+	Log      LogSettings `mapstructure:"log"`
+	Server   ServerSettings
+	Database DBSettings
+}
+
+func Run(cfg *Configuration) {
 	// Setup logs
-	SetupScoringLoggers(viper.GetViper())
+	SetupScoringLoggers(&cfg.Log)
+	Logger.Infof("%+v", cfg)
 	// MongoDB setup
+	SetupMongo(&cfg.Database, cfg.Server.SpecialChallenges)
 	CreateIndexes()
 	// Web Server Setup
 	CreateStore()
@@ -50,25 +69,30 @@ func Run() {
 
 	app.UseHandler(webRouter)
 
-	http_port := viper.GetString("server.http_port")
-	https_port := viper.GetString("server.https_port")
-	cert := viper.GetString("server.cert")
-	key := viper.GetString("server.key")
+	sc := &cfg.Server
 
-	Logger.Printf("Server running at: http://%s:%s", viper.GetString("server.ip"), http_port)
-	Logger.Printf("Server running at: https://%s:%s", viper.GetString("server.ip"), https_port)
-
-	go http.ListenAndServe(":"+http_port, http.HandlerFunc(redir))
-
-	Logger.Fatal(http.ListenAndServeTLS(":"+https_port, cert, key, app))
+	if sc.CertPath == "" || sc.CertKeyPath == "" {
+		Logger.Warn("SSL certs is not configured properly. Serving plain HTTP.")
+		Logger.Printf("Server running at: http://%s:%s", sc.IP, sc.HTTPPort)
+		Logger.Fatal(http.ListenAndServe(":"+sc.HTTPPort, app))
+	} else {
+		Logger.Printf("Server running at: http://%s:%s", sc.IP, sc.HTTPPort)
+		Logger.Printf("Server running at: https://%s:%s", sc.IP, sc.HTTPSPort)
+		go http.ListenAndServe(":"+sc.HTTPPort, http.HandlerFunc(redirecter(sc.HTTPSPort)))
+		Logger.Fatal(http.ListenAndServeTLS(":"+sc.HTTPSPort, sc.CertPath, sc.CertKeyPath, app))
+	}
 }
 
-func redir(w http.ResponseWriter, r *http.Request) {
-	u, err := url.Parse("http://" + r.Host)
-	if err != nil {
-		Logger.Printf("Error redirecting: %s\n", err)
-	}
+func redirecter(port string) func(w http.ResponseWriter, r *http.Request) {
+	return func(w http.ResponseWriter, r *http.Request) {
+		u, err := url.Parse(fmt.Sprintf("http://%s", r.Host))
+		if err != nil {
+			Logger.Println("Error redirecting:", err)
+			errCode := http.StatusInternalServerError
+			http.Error(w, http.StatusText(errCode), errCode)
+		}
 
-	http.Redirect(w, r, fmt.Sprintf("https://%s:%s%s",
-		u.Hostname(), viper.GetString("server.https_port"), r.URL.Path), http.StatusMovedPermanently)
+		dest := fmt.Sprintf("https://%s:%s%s", u.Hostname(), port, r.URL.Path)
+		http.Redirect(w, r, dest, http.StatusMovedPermanently)
+	}
 }
