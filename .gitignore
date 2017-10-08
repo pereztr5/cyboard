@@ -1,10 +1,15 @@
-vendor
-event
-.*
-!/.gitignore
+# Binaries
+cyboard
+*.exe
+
+# Dependency management
+.glide/
+vendor/
+
+# Default cyboard dirs
+log/
+scripts/
+
+# Secrets
 *.pem
 *.key
-cyboard
-scripts/*
-captured_flags.log
-log/*
