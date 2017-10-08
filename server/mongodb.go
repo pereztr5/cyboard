@@ -2,7 +2,6 @@ package server
 
 import (
 	"fmt"
-	"os"
 
 	"golang.org/x/crypto/bcrypt"
 	"gopkg.in/mgo.v2"
@@ -18,13 +17,11 @@ var (
 func DBSession() *mgo.Session {
 	if mongodbSession == nil {
 		Logger.Println("Making new MongoDB Session")
-		uri := os.Getenv("MONGODB_URI")
+		uri := dbSettings.URI
 		if uri == "" {
-			uri = dbSettings.URI
-			if uri == "" {
-				Logger.Fatalln("No connection uri for MongoDB provided")
-			}
+			Logger.Fatalln("No connection uri for MongoDB provided")
 		}
+
 		var err error
 		mongodbSession, err = mgo.Dial(uri)
 		if mongodbSession == nil || err != nil {

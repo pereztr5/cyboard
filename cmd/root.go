@@ -51,7 +51,9 @@ func initConfig(v *viper.Viper, configName string) {
 		os.Exit(1)
 	}
 
-	// Bind global flags to this specific config's values
+	// Bind global flags & env vars to this specific config's values
+	v.BindEnv("database.mongodb_uri", "MONGODB_URI")
+
 	flags := RootCmd.PersistentFlags()
 	v.BindPFlag("database.mongodb_uri", flags.Lookup("mongodb-uri"))
 	v.BindPFlag("log.stdout", flags.Lookup("stdout"))
