@@ -1,0 +1,19 @@
+# Binaries
+cyboard
+*.exe
+
+# Dependency management
+.glide/
+vendor/
+
+# Default cyboard dirs
+log/
+scripts/
+
+# Secrets
+*.pem
+*.key
+certs/
+
+# Version Control
+.git/
