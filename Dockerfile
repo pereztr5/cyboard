@@ -34,6 +34,7 @@ COPY --from=builder /srv/cyboard /bin/cyboard
 COPY static/ /srv/static
 COPY tmpl/ /srv/tmpl
 
+RUN mkdir -p /srv/log
 VOLUME /srv/log/
 
 # `docker run --entrypoint ""` will override this setting, if required (say, to examine the container).

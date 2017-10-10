@@ -1,0 +1,45 @@
+version: '3'
+services:
+
+  # Two cyboard containers are used for the CTF & Service Checker compoenents
+  server:
+    build: .
+    image: cyboard:latest
+    volumes:
+      - ./certs:/srv/certs:ro
+      - ./cfg:/srv/.cyboard:ro
+      - logs:/srv/log
+    command: server
+    environment:
+      MONGODB_URI: mongodb://db:27017
+    links:
+      - db
+    ports:
+      - 80:8080
+      - 443:8081
+
+  checks:
+    build: .
+    image: cyboard:latest
+    command: checks
+    environment:
+      MONGODB_URI: mongodb://db:27017
+    volumes:
+      - ./scripts:/srv/scripts:ro
+      - ./cfg:/srv/.cyboard:ro
+      - logs:/srv/log
+    links:
+      - db
+
+  db:
+    image: mongo:3.4
+    volumes:
+      - db-data:/data/db
+    expose:
+      - "27017"
+    ulimits:
+      nproc: 65535
+
+volumes:
+  logs:
+  db-data:

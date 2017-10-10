@@ -2,6 +2,12 @@
 # Sample `docker run` commands when working with
 # the image produced by the Dockerfile
 
+# To build the docker image to begin with,
+# simple install docker and run at the root of the repo:
+#
+#   `docker build -t cyboard .`
+#
+
 server() {
     # For running the web server with the CTF event:
     #   This mounts the host's ./certs and ./cfg folders, making them available (read-only) in the container.
