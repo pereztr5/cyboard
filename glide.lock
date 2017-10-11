@@ -1,5 +1,5 @@
-hash: 3ac1bb4d5a21c4d9580cc4f2d1e7d8fc84ee944b90ca39697e13e9c2a4e26cab
-updated: 2017-08-18T14:23:30.628824131-04:00
+hash: 664da2cb51a94b03ce80bab7c884e7741f8f58c165d7c689100993ea83ce0a58
+updated: 2017-10-10T12:40:48.171797051-04:00
 imports:
 - name: github.com/fsnotify/fsnotify
   version: 4da3e2cfbabc9f751898f250b49f2439785783a1
@@ -50,6 +50,8 @@ imports:
   version: e57e3eeb33f795204c1ca35f56c44f83227c6e66
 - name: github.com/spf13/viper
   version: 25b30aa063fc18e48662b86996252eabdcf2f0c7
+- name: github.com/stretchr/testify
+  version: 890a5c3458b43e6104ff5da8dfa139d013d77544
 - name: github.com/urfave/negroni
   version: c262547a5086067ebe455c81db5cc52eb298ac3c
 - name: golang.org/x/crypto
