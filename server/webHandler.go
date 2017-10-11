@@ -1,7 +1,6 @@
 package server
 
 import (
-	"context"
 	"encoding/gob"
 	"net/http"
 
@@ -9,6 +8,11 @@ import (
 	"github.com/gorilla/sessions"
 	"golang.org/x/crypto/bcrypt"
 	"gopkg.in/mgo.v2/bson"
+)
+
+const (
+	FormCredsTeam = "teamname"
+	FormCredsPass = "password"
 )
 
 func init() {
@@ -27,31 +31,32 @@ func CreateStore() {
 	}
 }
 
-func CheckCreds(w http.ResponseWriter, r *http.Request) (bool, *http.Request) {
-	teamname, password := r.FormValue("teamname"), r.FormValue("password")
+func CheckCreds(w http.ResponseWriter, r *http.Request) bool {
+	teamname, password := r.FormValue(FormCredsTeam), r.FormValue(FormCredsPass)
 	session, err := Store.Get(r, "cyboard")
 	if err != nil {
 		Logger.Error("Error getting session: ", err)
+		return false
 	}
 
 	t, err := GetTeamByTeamname(teamname)
 	if err != nil {
-		return false, r
+		return false
 	}
 
-	err = bcrypt.CompareHashAndPassword([]byte(t.Hash), []byte(password))
-	if err != nil {
-		Logger.Error("Invalid credentials: ", err)
-		return false, r
+	if err = bcrypt.CompareHashAndPassword([]byte(t.Hash), []byte(password)); err != nil {
+		if err != bcrypt.ErrMismatchedHashAndPassword {
+			Logger.Error(err)
+		}
+		return false
 	}
 
-	r = r.WithContext(context.WithValue(r.Context(), "team", t))
 	session.Values["id"] = t.Id
 	err = session.Save(r, w)
 	if err != nil {
 		http.Error(w, http.StatusText(500), 500)
 		Logger.Error("Error saving session: ", err)
-		return false, r
+		return false
 	}
-	return true, r
+	return true
 }

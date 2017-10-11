@@ -11,23 +11,25 @@ import (
 	"gopkg.in/mgo.v2/bson"
 )
 
-var TestTeams []Team = []Team{
-	{bson.NewObjectId(), "blueteam", 1, "team1", "10.0.0.1", genPass("team1"), ""},
-	{bson.NewObjectId(), "blueteam", 2, "team2", "10.0.0.2", genPass("team2"), ""},
+var TestTeams = []Team{
+	{bson.NewObjectId(), "blueteam", 1, "team1", "127.0.0.1", genPass("pass1"), ""},
+	{bson.NewObjectId(), "blueteam", 2, "team2", "127.0.0.2", genPass("pass2"), ""},
 }
 
 func init() {
-	SetupMongo(&DBSettings{URI: "mongodb://127.0.0.1:27017", DBName: "test"}, []string{})
 	SetupScoringLoggers(&LogSettings{Level: "warn", Stdout: true})
+	ensureTestDB()
+}
+
+func ensureTestDB() {
+	SetupMongo(&DBSettings{URI: "mongodb://127.0.0.1:27017", DBName: "test"}, []string{})
 
 	if DBSession() == nil {
 		os.Exit(1)
 	}
-
-	cleanup()
 }
 
-func cleanup() {
+func cleanupDB() {
 	for _, c := range []*mgo.Collection{Teams(), Challenges(), DB().C("challenges")} {
 		c.RemoveAll(nil)
 	}
@@ -43,12 +45,12 @@ func genPass(s string) string {
 }
 
 func TestDataGetTeams(t *testing.T) {
+	cleanupDB()
 	var docs []interface{}
 	for _, doc := range TestTeams {
 		docs = append(docs, doc)
 	}
 	Teams().Insert(docs...)
-	defer cleanup()
 
 	for _, tt := range TestTeams {
 		if tt.Group == "blueteam" {
@@ -66,8 +68,8 @@ func TestDataGetTeams(t *testing.T) {
 }
 
 func TestDataAddTeams(t *testing.T) {
+	cleanupDB()
 	assert.Nil(t, DataAddTeams(TestTeams))
-	defer cleanup()
 
 	dbTeams := []Team{}
 	Teams().Find(nil).All(&dbTeams)

@@ -113,7 +113,7 @@ func SubmitLogin(w http.ResponseWriter, r *http.Request) {
 	//	Logger.Warn("Getting session cookie from Store failed: ", err)
 	//}
 
-	succ, r := CheckCreds(w, r)
+	succ := CheckCreds(w, r)
 	if succ {
 		err = session.Save(r, w)
 		if err != nil {
