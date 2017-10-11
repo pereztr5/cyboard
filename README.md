@@ -1,5 +1,7 @@
 # Cyboard
 
+[![Build Status](https://travis-ci.org/pereztr5/cyboard.svg?branch=master)](https://travis-ci.org/pereztr5/cyboard)
+
 This is a scoring engine for cyber defense competitions. This currently includes:
 - Database (MongoDB)  
 - Front-End  
