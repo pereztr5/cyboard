@@ -50,7 +50,6 @@ func Test_runCmd(t *testing.T) {
 		// test the argument replacement
 		"with args": {"ping", "-c 1 IP", 0},
 		// If the script goes missing, runCmd should send a no-score result on the chan
-		// FIXME(tbutts): Missing script hangs checker
 		"missing cmd": {"gone-fishing", "", 127},
 	}
 
