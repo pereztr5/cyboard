@@ -18,8 +18,11 @@ type Page struct {
 var templates map[string]*template.Template
 
 // Parse templates at startup
-// TODO Loop through all templates in directory
-func init() {
+func ensureAppTemplates() {
+	if templates != nil {
+		return
+	}
+
 	templates = make(map[string]*template.Template)
 	funcMap := template.FuncMap{
 		"title":              strings.Title,

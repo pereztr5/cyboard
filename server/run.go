@@ -35,6 +35,9 @@ type Configuration struct {
 }
 
 func Run(cfg *Configuration) {
+	// Verify web app template files are available in working dir
+	ensureAppTemplates()
+
 	// Setup logs
 	SetupScoringLoggers(&cfg.Log)
 	Logger.Infof("%+v", cfg)
