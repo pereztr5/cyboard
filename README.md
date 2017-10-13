@@ -58,7 +58,7 @@ FreeBSD, CentOS, Arch, and Ubuntu. To build `cyboard`:
 1. Install Golang
     * The simplest method is to use your system's package manager
       to download the `golang` package - e.g. `yum install golang`
-    * Alternatively Download & Install [Go v1.7+][go-install]
+    * Alternatively Download & Install [Go v1.8+][go-install]
 2. _Optional_: Go demands all code be located in one central folder,
     which you may configure before proceeding: [Guide to GOPATH][gopath]
 2. Install [Glide][glide], which manages Go dependencies
