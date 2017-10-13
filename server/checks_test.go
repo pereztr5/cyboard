@@ -47,8 +47,8 @@ func Test_runCmd(t *testing.T) {
 		"exit 0": {"echo", "", 0},
 		// whoami will exit 1 with unknown arg
 		"exit 1": {"whoami", "--nil", 1},
-		// test the argument replacement
-		"with args": {"ping", "-c 1 IP", 0},
+		// test the argument replacement; `arp` is available everywhere, where `ping` may be restricted
+		"with args": {"arp", "IP", 0},
 		// If the script goes missing, runCmd should send a no-score result on the chan
 		"missing cmd": {"gone-fishing", "", 127},
 	}
