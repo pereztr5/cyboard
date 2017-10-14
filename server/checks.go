@@ -203,51 +203,57 @@ func runCmd(team Team, check Check, timestamp time.Time, timeout time.Duration, 
 	// TODO: Currently only one IP per team is supported
 	cmd := *check.Script
 	cmd.Args = parseArgs(cmd.Path, check.Args, team.Ip)
-	cmd.Stdout = &bytes.Buffer{}
+
+	var out bytes.Buffer
+	if dryRun {
+		cmd.Stdout, cmd.Stderr = &out, &out
+	}
+
 	err := cmd.Start()
+
+	result := Result{
+		Type:       "Service",
+		Timestamp:  timestamp,
+		Group:      check.Name,
+		Teamname:   team.Name,
+		Teamnumber: team.Number,
+	}
+
 	if err != nil {
 		Logger.Error("Could not run script:", err)
-	} else {
-		done := make(chan error, 1)
-		go func() {
-			done <- cmd.Wait()
-		}()
-		result := Result{
-			Type:       "Service",
-			Timestamp:  timestamp,
-			Group:      check.Name,
-			Teamname:   team.Name,
-			Teamnumber: team.Number,
+		result.Details = "Status: 127" // 127=command not found: http://www.tldp.org/LDP/abs/html/exitcodes.html
+		status <- result
+		return
+	}
+
+	done := make(chan error, 1)
+	go func() {
+		done <- cmd.Wait()
+	}()
+	select {
+	case <-time.After(timeout):
+		if err := cmd.Process.Kill(); err != nil {
+			//TODO: If it cannot kill it what to do we do?
+			Logger.Error("Failed to Kill:", err)
 		}
-		select {
-		case <-time.After(timeout):
-			if err := cmd.Process.Kill(); err != nil {
-				//TODO: If it cannot kill it what to do we do?
-				// If fatal then everything stops
-				Logger.Error("Failed to Kill:", err)
-			}
-			//Logger.Println(check.Name, "timed out")
-			result.Details = "Status: timed out"
-			status <- result
-		case _ = <-done:
-			// As long as it is done the error doesn't matter
-			exitCode := cmd.ProcessState.Sys().(syscall.WaitStatus).ExitStatus()
-			var detail string
-			if !dryRun {
-				detail = fmt.Sprintf("Status: %d", exitCode)
-			} else {
-				detail = fmt.Sprintf("%s\t%s", cmd.Stdout, strings.Join(cmd.Args, " "))
-			}
-			result.Details = detail
-			if exitCode > len(check.Points) {
-				Logger.Warnf("Unexpected exit code (will be awarded '0' points): exitCode=%d, check=%v", exitCode, check)
-				result.Points = 0
-			} else {
-				result.Points = check.Points[exitCode]
-			}
-			status <- result
+		result.Details = "Status: timed out"
+	case <-done:
+		// As long as it is done the error doesn't matter
+		exitCode := cmd.ProcessState.Sys().(syscall.WaitStatus).ExitStatus()
+
+		if !dryRun {
+			result.Details = fmt.Sprintf("Status: %d", exitCode)
+		} else {
+			result.Details = fmt.Sprintf("%s -- %s", strings.Join(cmd.Args, " "), out.Bytes())
+		}
+
+		if exitCode >= len(check.Points) {
+			Logger.Warnf("Unexpected exit code (will be awarded '0' points): exitCode=%d, checkName=%s", exitCode, check.Name)
+		} else {
+			result.Points = check.Points[exitCode]
 		}
 	}
+	status <- result
 }
 
 func parseArgs(name string, args string, ip string) []string {

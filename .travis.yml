@@ -1,0 +1,20 @@
+sudo: false
+language: go
+go:
+  - 1.8.x
+  - 1.9.x
+  - tip
+
+# A local Mongo is required for tests
+services: mongodb
+
+# Thanks to: https://github.com/Masterminds/glide/issues/408#issuecomment-217493627
+install:
+  - go get -v github.com/Masterminds/glide
+  - cd $GOPATH/src/github.com/Masterminds/glide && git checkout v0.13.0 && go install && cd -
+  - glide install
+
+# Prior to Go 1.9, wildcard matching `./...` would include the vendor/ dir:
+#     https://golang.org/doc/go1.9#vendor-dotdotdot
+# We do not want to run our dependencies' tests, so we use glide's helper:
+script: go test $(glide novendor)

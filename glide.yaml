@@ -21,3 +21,4 @@ import:
   subpackages:
   - bson
 - package: gopkg.in/natefinch/lumberjack.v2
+- package: github.com/stretchr/testify

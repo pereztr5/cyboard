@@ -17,8 +17,10 @@ import (
 // globRequired is the "Must" idiom for filepath.Glob
 func mustGlobFiles(pattern string) []string {
 	matches, err := filepath.Glob(pattern)
-	if err != nil {
-		Logger.Fatal(err)
+	if matches == nil {
+		panic("Unable to locate required template files in working dir that match: " + pattern)
+	} else if err != nil {
+		panic(err) // Programmer error, bad glob pattern
 	}
 	return matches
 }
