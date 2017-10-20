@@ -62,6 +62,7 @@ func CreateWebRouter() *mux.Router {
 	// Public API
 	// TODO: Make this the name of AIS challenge
 	router.HandleFunc("/team/scores", GetScores).Methods("GET")
+	router.HandleFunc("/team/scores/split", GetScoresSplit).Methods("GET")
 	router.HandleFunc("/team/scores/live", ServeScoresWs).Methods("GET")
 	router.HandleFunc("/team/services/live", ServeServicesWs).Methods("GET")
 	return router
@@ -186,6 +187,14 @@ func ShowServices(w http.ResponseWriter, r *http.Request) {
 
 func GetScores(w http.ResponseWriter, r *http.Request) {
 	scores := DataGetAllScore()
+	w.Header().Set("Content-Type", "application/json; charset=UTF-8")
+	if err := json.NewEncoder(w).Encode(scores); err != nil {
+		Logger.Error("Error encoding json: ", err)
+	}
+}
+
+func GetScoresSplit(w http.ResponseWriter, r *http.Request) {
+	scores := DataGetAllScoreSplitByType()
 	w.Header().Set("Content-Type", "application/json; charset=UTF-8")
 	if err := json.NewEncoder(w).Encode(scores); err != nil {
 		Logger.Error("Error encoding json: ", err)

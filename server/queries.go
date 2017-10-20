@@ -292,6 +292,32 @@ func DataGetAllScore() []Result {
 	return tmScore
 }
 
+func DataGetAllScoreSplitByType() []Result {
+	session, collection := GetSessionAndCollection("results")
+	defer session.Close()
+	tmScore := []Result{}
+
+	teams := DataGetTeams()
+	pipe := collection.Pipe([]bson.M{
+		{"$group": bson.M{"_id": bson.M{"tname": "$teamname", "tnum": "$teamnumber", "type": "$type"}, "points": bson.M{"$sum": "$points"}}},
+		{"$project": bson.M{"_id": 0, "points": 1, "teamnumber": "$_id.tnum", "teamname": "$_id.tname", "type": "$_id.type"}},
+		{"$sort": bson.M{"teamnumber": 1}},
+	})
+	err := pipe.All(&tmScore)
+	if err != nil {
+		Logger.Error("Error getting all team scores: ", err)
+	}
+
+	// TODO: Handle a team without any score in either category more gracefully than this
+	if len(tmScore) < len(teams)*2 {
+		tmScore = []Result{}
+		for _, t := range teams {
+			tmScore = append(tmScore, Result{Teamname: t.Name, Teamnumber: t.Number})
+		}
+	}
+	return tmScore
+}
+
 func DataGetServiceStatus() []interface{} {
 	session, results := GetSessionAndCollection("results")
 	defer session.Close()
