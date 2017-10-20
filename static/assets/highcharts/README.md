@@ -1,16 +1,17 @@
 # Custom Built HC Package
 
-Version 4.2.4
+Version 6.0.2
 
 ## Origin / Details
 
-[Built through Highcharts' own tool](http://www.highcharts.com/download)
+[Built through Highcharts' own tool](https://www.highcharts.com/download)
 
 Contains only the bare minimum needed.
 
 In this case:
 - Core
 - Html
+- Stacking
 - Datalabels
 - Tooltip
 - Interaction
@@ -20,7 +21,8 @@ In this case:
 - Column
 - Exporting
 - Offline exporting
-- Data
+- No data to display
+- Drilldown
 
 ## Licensing
 
