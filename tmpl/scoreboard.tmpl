@@ -3,12 +3,14 @@
 
 <div id="hc_scoreboard"><!-- Init in assets/js/hc_scoreboard.js --></div>
 
-<table class="table table-striped table-hover ">
+<table class="table table-striped table-hover scores-table">
     <thead>
         <tr>
             <th>#</th>
-            <th>Team Name</th>
+            <th>Team</th>
             <th>Points</th>
+            <th>CTF</th>
+            <th>Services</th>
         </tr>
     </thead>
     <tbody id="result-list">
@@ -17,6 +19,8 @@
             <td class="teamnumber">{{ .Teamnumber }}</td>
             <td class="teamname">{{ .Teamname }}</td>
             <td class="points">{{ .Points }}</td>
+            <td class="ctf">{{ .CTF }}</td>
+            <td class="service">{{ .Service }}</td>
         </tr>
     {{- end }}
     </tbody>
