@@ -31,7 +31,7 @@ func getTeamScoreIfModified(lastMod time.Time) ([]Result, time.Time, error) {
 	if !mod.After(lastMod) {
 		return nil, lastMod, nil
 	}
-	r := DataGetAllScore()
+	r := DataGetAllScoreSplitByType()
 	return r, mod, nil
 }
 

@@ -230,8 +230,27 @@ func getTeamScore(teamname string) int {
 	return DataGetTeamScore(teamname)
 }
 
-func getAllTeamScores() []Result {
-	return DataGetAllScore()
+func getAllTeamScores() []map[string]interface{} {
+	results := DataGetAllScoreSplitByType()
+	scores := make([]map[string]interface{}, 0, len(results)/2)
+
+	acc := make(map[string]map[string]interface{})
+	for _, r := range results {
+		score, ok := acc[r.Teamname]
+		if ok {
+			score[r.Type] = r.Points
+			score["Points"] = score["CTF"].(int) + score["Service"].(int)
+			scores = append(scores, score)
+		} else {
+			acc[r.Teamname] = map[string]interface{}{
+				"Teamnumber": r.Teamnumber,
+				"Teamname":   r.Teamname,
+				r.Type:       r.Points,
+			}
+		}
+	}
+
+	return scores
 }
 
 func existsSpecialFlags() bool {
