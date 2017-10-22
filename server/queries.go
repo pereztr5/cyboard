@@ -28,12 +28,12 @@ type Challenge struct {
 
 type Result struct {
 	Id         bson.ObjectId `json:"id,omitempty" bson:"_id,omitempty"`
-	Type       string        `json:"type" bson:"type"`
+	Type       string        `json:"type,omitempty" bson:"type"`
 	Timestamp  time.Time     `json:"timestamp" bson:"timestamp"`
-	Group      string        `json:"group" bson:"group"`
+	Group      string        `json:"group,omitempty" bson:"group"`
 	Teamname   string        `json:"teamname" bson:"teamname"`
 	Teamnumber int           `json:"teamnumber" bson:"teamnumber"`
-	Details    string        `json:"details" bson:"details"`
+	Details    string        `json:"details,omitempty" bson:"details"`
 	Points     int           `json:"points" bson:"points"`
 }
 
@@ -386,23 +386,12 @@ func DataGetServiceList() []string {
 	session, collection := GetSessionAndCollection("results")
 	defer session.Close()
 	var list []string
-	res := bson.M{}
 
-	pipe := collection.Pipe([]bson.M{
-		{"$match": bson.M{"type": "Service"}},
-		{"$group": bson.M{"_id": "$group"}},
-		{"$project": bson.M{"_id": 0, "group": "$_id"}},
-		{"$sort": bson.M{"group": 1}},
-	})
-	iter := pipe.Iter()
-	for iter.Next(&res) {
-		list = append(list, res["group"].(string))
-	}
-	if err := iter.Close(); err != nil {
+	err := collection.Find(bson.M{"type": "Service"}).Distinct("group", &list)
+	if err != nil {
 		Logger.Error("Error getting service list: ", err)
 	}
 	return list
-
 }
 
 // TODO: Combine queries since this has repeating code

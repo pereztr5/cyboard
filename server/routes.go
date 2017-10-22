@@ -30,6 +30,7 @@ func ensureAppTemplates() {
 		"teamChallenges":     getTeamChallenges,
 		"teamScore":          getTeamScore,
 		"allTeamScores":      getAllTeamScores,
+		"allBlueTeams":       DataGetTeams,
 		"getOwnedChalGroups": getChallengesOwnerOf,
 		"getStatus":          DataGetResultByService,
 		"serviceList":        DataGetServiceList,
@@ -65,6 +66,7 @@ func CreateWebRouter() *mux.Router {
 	router.HandleFunc("/team/scores/split", GetScoresSplit).Methods("GET")
 	router.HandleFunc("/team/scores/live", ServeScoresWs).Methods("GET")
 	router.HandleFunc("/team/services/live", ServeServicesWs).Methods("GET")
+	router.HandleFunc("/services", GetServices).Methods("GET")
 	return router
 }
 
@@ -197,6 +199,14 @@ func GetScoresSplit(w http.ResponseWriter, r *http.Request) {
 	scores := DataGetAllScoreSplitByType()
 	w.Header().Set("Content-Type", "application/json; charset=UTF-8")
 	if err := json.NewEncoder(w).Encode(scores); err != nil {
+		Logger.Error("Error encoding json: ", err)
+	}
+}
+
+func GetServices(w http.ResponseWriter, r *http.Request) {
+	services := DataGetServiceList()
+	w.Header().Set("Content-Type", "application/json; charset=UTF-8")
+	if err := json.NewEncoder(w).Encode(services); err != nil {
 		Logger.Error("Error encoding json: ", err)
 	}
 }
