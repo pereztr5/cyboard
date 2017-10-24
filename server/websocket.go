@@ -26,7 +26,7 @@ var upgrader = websocket.Upgrader{
 	WriteBufferSize: 1024,
 }
 
-func getTeamScoreIfModified(lastMod time.Time) ([]Result, time.Time, error) {
+func getTeamScoreIfModified(lastMod time.Time) ([]ScoreResult, time.Time, error) {
 	mod := DataGetLastResult()
 	if !mod.After(lastMod) {
 		return nil, lastMod, nil
@@ -73,7 +73,7 @@ func writer(ws *websocket.Conn, lastMod time.Time, which string) {
 	for {
 		select {
 		case <-updateTicker.C:
-			var r []Result
+			var r []ScoreResult
 			var t []ServiceStatus
 			var err error
 

@@ -30,7 +30,7 @@
                     <div><span>{{ . }}</span></div>
                 </div>
             </div>
-            {{- range getStatus . }}
+            {{- range getStatus $teams . }}
             <div class='square-box'>
                 <div class='square-content'>
                     {{- if eq .Details "Status: 0" }}

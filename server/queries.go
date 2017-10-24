@@ -28,14 +28,21 @@ type Challenge struct {
 
 type Result struct {
 	Id         bson.ObjectId `json:"id,omitempty" bson:"_id,omitempty"`
-	Type       string        `json:"type,omitempty" bson:"type"`
+	Type       string        `json:"type" bson:"type"`
 	Timestamp  time.Time     `json:"timestamp" bson:"timestamp"`
-	Group      string        `json:"group,omitempty" bson:"group"`
+	Group      string        `json:"group" bson:"group"`
 	Teamname   string        `json:"teamname" bson:"teamname"`
 	Teamnumber int           `json:"teamnumber" bson:"teamnumber"`
-	Details    string        `json:"details,omitempty" bson:"details"`
+	Details    string        `json:"details" bson:"details"`
 	Points     int           `json:"points" bson:"points"`
 }
+
+const (
+	CTF     = "CTF"
+	Service = "Service"
+)
+
+var ScoreCategories = []string{CTF, Service}
 
 // Authentication Queries
 func GetTeamByTeamname(teamname string) (Team, error) {
@@ -266,21 +273,30 @@ func DataGetTeamScore(teamname string) int {
 	return p
 }
 
-func DataGetAllScore() []Result {
+// ScoreResult represents the data returned from a query for a team's score.
+// This is slimmed down from the `Result` model type, to reduce processing & bandwidth,
+// and improve ease-of-use.
+type ScoreResult struct {
+	Teamnumber int    `json:"teamnumber"`
+	Teamname   string `json:"teamname"`
+	Type       string `json:"type,omitempty"`
+	Points     int    `json:"points"`
+}
+
+func DataGetAllScore() []ScoreResult {
 	session, collection := GetSessionAndCollection("results")
 	defer session.Close()
-	tmScore := []Result{}
+	tmScore := []ScoreResult{}
 
 	// todo: optimize this query for an index
 	//       Mongo does not let $groupby operations use indexes,
 	//       but this query is used very often.
 	teams := DataGetTeams()
-	pipe := collection.Pipe([]bson.M{
+	err := collection.Pipe([]bson.M{
 		{"$group": bson.M{"_id": bson.M{"tname": "$teamname", "tnum": "$teamnumber"}, "points": bson.M{"$sum": "$points"}}},
-		{"$project": bson.M{"_id": 0, "points": 1, "teamnumber": "$_id.tnum", "teamname": "$_id.tname"}},
+		{"$project": bson.M{"_id": 0, "teamnumber": "$_id.tnum", "teamname": "$_id.tname", "points": 1}},
 		{"$sort": bson.M{"teamnumber": 1}},
-	})
-	err := pipe.All(&tmScore)
+	}).All(&tmScore)
 	if err != nil {
 		Logger.Error("Error getting all team scores: ", err)
 	}
@@ -288,40 +304,47 @@ func DataGetAllScore() []Result {
 	if l := len(tmScore); l < len(teams) {
 		if l == 0 {
 			for _, t := range teams {
-				tmScore = append(tmScore, Result{Teamname: t.Name, Teamnumber: t.Number, Points: 0})
+				tmScore = append(tmScore, ScoreResult{Teamname: t.Name, Teamnumber: t.Number, Points: 0})
 			}
 		} else {
 			for i := 0; i < len(teams); i++ {
-				tmScore = append(tmScore, Result{Teamname: teams[i].Name, Teamnumber: teams[i].Number, Points: 0})
+				tmScore = append(tmScore, ScoreResult{Teamname: teams[i].Name, Teamnumber: teams[i].Number, Points: 0})
 			}
 		}
 	}
 	return tmScore
 }
 
-func DataGetAllScoreSplitByType() []Result {
+func DataGetAllScoreSplitByType() []ScoreResult {
 	session, collection := GetSessionAndCollection("results")
 	defer session.Close()
-	tmScore := []Result{}
-
 	teams := DataGetTeams()
-	pipe := collection.Pipe([]bson.M{
+	tmScore := make([]ScoreResult, 0, len(teams)*2)
+	err := collection.Pipe([]bson.M{
 		{"$group": bson.M{"_id": bson.M{"tname": "$teamname", "tnum": "$teamnumber", "type": "$type"}, "points": bson.M{"$sum": "$points"}}},
-		{"$project": bson.M{"_id": 0, "points": 1, "teamnumber": "$_id.tnum", "teamname": "$_id.tname", "type": "$_id.type"}},
-		{"$sort": bson.M{"teamnumber": 1}},
-	})
-	err := pipe.All(&tmScore)
+		{"$project": bson.M{"_id": 0, "teamnumber": "$_id.tnum", "teamname": "$_id.tname", "type": "$_id.type", "points": 1}},
+		{"$sort": bson.M{"teamnumber": 1, "type": 1}},
+	}).All(&tmScore)
 	if err != nil {
 		Logger.Error("Error getting all team scores: ", err)
 	}
 
-	// TODO: Handle a team without any score in either category more gracefully than this
-	if len(tmScore) < len(teams)*2 {
-		tmScore = []Result{}
-		for _, t := range teams {
-			tmScore = append(tmScore, Result{Teamname: t.Name, Teamnumber: t.Number})
+	// Fill in default score for each category for every team
+	if len(tmScore) != len(teams)*2 {
+		var team *Team
+		var cat *string
+		for i := 0; i < len(teams)*2; i++ {
+			team, cat = &teams[i/2], &ScoreCategories[i%2]
+			if i >= len(tmScore) {
+				tmScore = append(tmScore, ScoreResult{Teamname: team.Name, Teamnumber: team.Number, Type: *cat})
+			} else if tmScore[i].Teamnumber != team.Number || (tmScore[i].Teamnumber == team.Number && tmScore[i].Type != *cat) {
+				tmScore = append(tmScore, ScoreResult{})
+				copy(tmScore[i+1:], tmScore[i:])
+				tmScore[i] = ScoreResult{Teamname: team.Name, Teamnumber: team.Number, Type: *cat}
+			}
 		}
 	}
+
 	return tmScore
 }
 
@@ -369,19 +392,39 @@ func DataGetServiceResult() []Result {
 	return sList
 }
 
-func DataGetResultByService(service string) []Result {
+// ServiceResult represents the data returned from a query regarding a team's latest service check.
+type ServiceResult struct {
+	Teamnumber int    `json:"teamnumber"`
+	Details    string `json:"details"`
+}
+
+func DataGetResultByService(blueteams []Team, service string) []ServiceResult {
 	session, collection := GetSessionAndCollection("results")
 	defer session.Close()
-	teamStatus := []Result{}
+	teamStatus := make([]ServiceResult, 0, len(blueteams))
 
 	err := collection.Pipe([]bson.M{
 		{"$match": bson.M{"type": "Service", "group": service}},
-		{"$group": bson.M{"_id": bson.M{"service": "$group", "tnum": "$teamnumber", "tname": "$teamname"}, "status": bson.M{"$last": "$details"}}},
-		{"$project": bson.M{"_id": 0, "group": "$_id.service", "teamnumber": "$_id.tnum", "teamname": "$_id.tname", "details": "$status"}},
+		{"$group": bson.M{"_id": bson.M{"service": "$group", "tnum": "$teamnumber"}, "status": bson.M{"$last": "$details"}}},
+		{"$project": bson.M{"_id": 0, "teamnumber": "$_id.tnum", "details": "$status"}},
 		{"$sort": bson.M{"teamnumber": 1}},
 	}).All(&teamStatus)
 	if err != nil {
 		Logger.Error("Error getting team status by service: ", err)
+	}
+
+	// Fill in an empty result for any teams without a status for any service
+	if len(blueteams) != len(teamStatus) {
+		for idx, team := range blueteams {
+			// Search for teamStatuses being too short, or holes (team1, team2, ___, team4)
+			if idx >= len(teamStatus) {
+				teamStatus = append(teamStatus, ServiceResult{Teamnumber: team.Number, Details: "N/A"})
+			} else if teamStatus[idx].Teamnumber != team.Number {
+				teamStatus = append(teamStatus, ServiceResult{})
+				copy(teamStatus[idx+1:], teamStatus[idx:])
+				teamStatus[idx] = ServiceResult{Teamnumber: team.Number, Details: "N/A"}
+			}
+		}
 	}
 	return teamStatus
 }
