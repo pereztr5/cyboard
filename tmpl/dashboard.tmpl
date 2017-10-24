@@ -20,9 +20,9 @@
     </div>
     <div class="col-md-6">
         <div class="row">
-            {{- $total := totalChallenges }}
+            {{- $allTotals := totalChallenges }}
             {{- $aquired := teamChallenges .T.Name }}
-            {{- range $key, $value := $total }}
+            {{- range $idx, $total := $allTotals }}
             <div class="col-lg-5 col-md-6">
                 <div class="panel panel-default">
                     <div id="flag-panel" class="panel-heading">
@@ -31,8 +31,8 @@
                                 <i class="fa fa-flag fa-4x"></i>
                             </div>
                             <div class="col-xs-9 text-right">
-                                <div class="huge">{{ index $aquired $key }}/{{ $value }}</div>
-                                <div>{{ $key }}</div>
+                                <div class="huge">{{ if $aquired }}{{ (index $aquired $idx).Amount }}{{ else }}0{{ end }}/{{ $total.Amount }}</div>
+                                <div>{{ $total.Group }}</div>
                             </div>
                         </div>
                     </div>

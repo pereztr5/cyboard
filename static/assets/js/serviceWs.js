@@ -14,7 +14,7 @@ $(function() {
 function appendScores(res) {
     var icons = 'fa-arrow-circle-up fa-arrow-circle-down fa-exclamation-circle fa-question-circle-o text-success text-danger text-warning text-muted blink';
     res.forEach(function(r) {
-        var group = $('div').find('[data-check="' + r._id + '"]');
+        var group = $('div').find('[data-check="' + r.service + '"]');
         r.teams.forEach(function(team) {
             var stat = group.find('[data-team=' + team.number + ']');
             var newIcon = 'fa-question-circle-o text-muted';

@@ -23,41 +23,36 @@ func GetPublicChallenges(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
-func CheckFlag(w http.ResponseWriter, r *http.Request) {
+func checkFlag(w http.ResponseWriter, r *http.Request, justOne bool) {
 	t := r.Context().Value("team").(Team)
-	challenge := r.FormValue("challenge")
-	flag := r.FormValue("flag")
-	var found int
-	var err error
-	// Correct flag = 0
-	// Wrong flag = 1
-	// Got challenge already = 2
-	if len(flag) > 0 {
-		found, err = DataCheckFlag(t, Challenge{Name: challenge, Flag: flag})
-		if err != nil {
-			Logger.Errorf("Error checking flag: %s for team: %s: %v", flag, t.Name, err)
-		}
+	flag, challenge := r.FormValue("flag"), r.FormValue("challenge")
+	if flag == "" || (justOne && challenge == "") {
+		w.WriteHeader(http.StatusBadRequest)
+		return
 	}
-	fmt.Fprint(w, found)
+
+	var found FlagState
+	var err error
+	challengeQuery := Challenge{Flag: flag}
+	if justOne {
+		challengeQuery.Name = challenge
+	}
+	found, err = DataCheckFlag(t, challengeQuery)
+	if err != nil {
+		Logger.Errorf("Error checking flag: %s for team: %s: %v", flag, t.Name, err)
+		w.WriteHeader(http.StatusBadRequest)
+		return
+	}
 	w.WriteHeader(http.StatusOK)
+	fmt.Fprint(w, found)
+}
+
+func CheckFlag(w http.ResponseWriter, r *http.Request) {
+	checkFlag(w, r, true)
 }
 
 func CheckAllFlags(w http.ResponseWriter, r *http.Request) {
-	t := r.Context().Value("team").(Team)
-	flag := r.FormValue("flag")
-	var found int
-	var err error
-	// Correct flag = 0
-	// Wrong flag = 1
-	// Got challenge already = 2
-	if len(flag) > 0 {
-		found, err = DataCheckFlag(t, Challenge{Flag: flag})
-		if err != nil {
-			Logger.Errorf("Error checking flag: %s for team: %s: %v", flag, t.Name, err)
-		}
-	}
-	fmt.Fprint(w, found)
-	w.WriteHeader(http.StatusOK)
+	checkFlag(w, r, false)
 }
 
 func GetAllUsers(w http.ResponseWriter, r *http.Request) {

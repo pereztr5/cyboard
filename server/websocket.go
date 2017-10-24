@@ -35,7 +35,7 @@ func getTeamScoreIfModified(lastMod time.Time) ([]Result, time.Time, error) {
 	return r, mod, nil
 }
 
-func getServiceIfModified(lastMod time.Time) ([]interface{}, time.Time, error) {
+func getServiceIfModified(lastMod time.Time) ([]ServiceStatus, time.Time, error) {
 	mod := DataGetLastServiceResult()
 	if !mod.After(lastMod) {
 		return nil, lastMod, nil
@@ -74,7 +74,7 @@ func writer(ws *websocket.Conn, lastMod time.Time, which string) {
 		select {
 		case <-updateTicker.C:
 			var r []Result
-			var t []interface{}
+			var t []ServiceStatus
 			var err error
 
 			if which == "score" {

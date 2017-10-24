@@ -211,7 +211,7 @@ func GetServices(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
-func getChallenges() map[string]int {
+func getChallenges() []ChallengeCount {
 	totals, err := DataGetTotalChallenges()
 	if err != nil {
 		Logger.Error("Could not get challenges: ", err)
@@ -219,7 +219,7 @@ func getChallenges() map[string]int {
 	return totals
 }
 
-func getTeamChallenges(teamname string) map[string]int {
+func getTeamChallenges(teamname string) []ChallengeCount {
 	acquired, err := DataGetTeamChallenges(teamname)
 	if err != nil {
 		Logger.Error("Could not get team challenges: ", err)
