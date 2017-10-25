@@ -4,6 +4,8 @@ import (
 	"fmt"
 	"time"
 
+	"gopkg.in/mgo.v2"
+
 	"gopkg.in/mgo.v2/bson"
 )
 
@@ -159,11 +161,15 @@ func DataCheckFlag(team Team, chal Challenge) (FlagState, error) {
 	if len(chal.Name) > 0 {
 		query["name"] = chal.Name
 	}
-	cnt, err := chalCollection.Find(query).Select(bson.M{"_id": 0, "flag": 0}).Count()
-	if cnt == 0 || err != nil {
+	err := chalCollection.Find(query).One(&chal)
+	if err != nil {
+		if err == mgo.ErrNotFound {
+			CaptFlagsLogger.WithField("team", team.Name).WithField("guess", chal.Flag).WithField("challenge", chal.Name).Println("Bad guess")
+			return InvalidFlag, nil
+		}
 		return InvalidFlag, err
 	}
-	if HasFlag(team.Number, chal.Name) {
+	if HasFlag(team.Number, chal.Group, chal.Name) {
 		// Got challenge already
 		return AlreadyCaptured, nil
 	}
@@ -177,18 +183,18 @@ func DataCheckFlag(team Team, chal Challenge) (FlagState, error) {
 		Details:    chal.Name,
 		Points:     chal.Points,
 	}
-	CaptFlagsLogger.Printf("Team [%d] just scored '%d points' for flag '%s'!",
-		result.Teamnumber, result.Points, result.Details)
+	CaptFlagsLogger.WithField("team", result.Teamname).WithField("challenge", result.Details).WithField("chalGroup", result.Group).
+		WithField("points", result.Points).Println("Score!!")
 	test := false
 	return ValidFlag, DataAddResult(result, test)
 }
 
-func HasFlag(teamnumber int, challengeName string) bool {
+func HasFlag(teamnumber int, challengeGroup, challengeName string) bool {
 	session, resultCollection := GetSessionAndCollection("results")
 	defer session.Close()
 
 	cnt, err := resultCollection.
-		Find(bson.M{"type": "CTF", "teamnumber": teamnumber, "details": challengeName}).
+		Find(bson.M{"type": CTF, "group": challengeGroup, "teamnumber": teamnumber, "details": challengeName}).
 		Count()
 	if err != nil {
 		Logger.WithError(err).Errorf("HasFlag failed for team '%d' for challenge '%s'", teamnumber, challengeName)
@@ -228,7 +234,7 @@ func DataGetTeamChallenges(teamname string) ([]ChallengeCount, error) {
 	defer session.Close()
 	acquired := []ChallengeCount{}
 	err := collection.Pipe([]bson.M{
-		{"$match": bson.M{"teamname": teamname, "type": "CTF"}},
+		{"$match": bson.M{"type": CTF, "teamname": teamname}},
 		{"$group": bson.M{"_id": "$group", "amount": bson.M{"$sum": 1}}},
 		{"$sort": bson.M{"group": -1}},
 	}).All(&acquired)
@@ -288,11 +294,9 @@ func DataGetAllScore() []ScoreResult {
 	defer session.Close()
 	tmScore := []ScoreResult{}
 
-	// todo: optimize this query for an index
-	//       Mongo does not let $groupby operations use indexes,
-	//       but this query is used very often.
 	teams := DataGetTeams()
 	err := collection.Pipe([]bson.M{
+		{"$match": bson.M{"points": bson.M{"$gt": 0}}},
 		{"$group": bson.M{"_id": bson.M{"tname": "$teamname", "tnum": "$teamnumber"}, "points": bson.M{"$sum": "$points"}}},
 		{"$project": bson.M{"_id": 0, "teamnumber": "$_id.tnum", "teamname": "$_id.tname", "points": 1}},
 		{"$sort": bson.M{"teamnumber": 1}},
@@ -320,7 +324,9 @@ func DataGetAllScoreSplitByType() []ScoreResult {
 	defer session.Close()
 	teams := DataGetTeams()
 	tmScore := make([]ScoreResult, 0, len(teams)*2)
+
 	err := collection.Pipe([]bson.M{
+		{"$match": bson.M{"points": bson.M{"$gt": 0}}},
 		{"$group": bson.M{"_id": bson.M{"tname": "$teamname", "tnum": "$teamnumber", "type": "$type"}, "points": bson.M{"$sum": "$points"}}},
 		{"$project": bson.M{"_id": 0, "teamnumber": "$_id.tnum", "teamname": "$_id.tname", "type": "$_id.type", "points": 1}},
 		{"$sort": bson.M{"teamnumber": 1, "type": 1}},
