@@ -516,6 +516,21 @@ func DataAddResult(result Result, test bool) error {
 	return nil
 }
 
+func DataAddResults(results []Result, test bool) error {
+	docs := make([]interface{}, len(results))
+	for i, result := range results {
+		docs[i] = result
+	}
+
+	collName := "results"
+	if test {
+		collName = "testResults"
+	}
+	session, collection := GetSessionAndCollection(collName)
+	defer session.Close()
+	return collection.Insert(docs...)
+}
+
 func DataAddTeams(teams []Team) error {
 	session, teamC := GetSessionAndCollection("teams")
 	defer session.Close()
