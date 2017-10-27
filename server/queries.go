@@ -4,6 +4,8 @@ import (
 	"fmt"
 	"time"
 
+	"gopkg.in/mgo.v2"
+
 	"gopkg.in/mgo.v2/bson"
 )
 
@@ -36,6 +38,13 @@ type Result struct {
 	Details    string        `json:"details" bson:"details"`
 	Points     int           `json:"points" bson:"points"`
 }
+
+const (
+	CTF     = "CTF"
+	Service = "Service"
+)
+
+var ScoreCategories = []string{CTF, Service}
 
 // Authentication Queries
 func GetTeamByTeamname(teamname string) (Team, error) {
@@ -132,93 +141,104 @@ func DataGetChallenges(groups []string) ([]Challenge, error) {
 	return challenges, nil
 }
 
-func DataCheckFlag(team Team, chal Challenge) (int, error) {
+// FlagState represents the possibilities when user submits a flag guess
+type FlagState int
+
+const (
+	// ValidFlag is for successful guesses of flags which were not previously submitted
+	ValidFlag FlagState = 0
+	// InvalidFlag is for bad guesses
+	InvalidFlag = 1
+	// AlreadyCaptured is for flags that were claimed by the team already
+	AlreadyCaptured = 2
+)
+
+func DataCheckFlag(team Team, chal Challenge) (FlagState, error) {
 	session, chalCollection := GetSessionAndCollection("challenges")
 	defer session.Close()
-	var err error
 
+	query := bson.M{"flag": chal.Flag}
 	if len(chal.Name) > 0 {
-		err = chalCollection.Find(bson.M{"flag": chal.Flag, "name": chal.Name}).Select(bson.M{"_id": 0, "flag": 0}).One(&chal)
-	} else {
-		err = chalCollection.Find(bson.M{"flag": chal.Flag}).Select(bson.M{"_id": 0, "flag": 0}).One(&chal)
+		query["name"] = chal.Name
 	}
+	err := chalCollection.Find(query).One(&chal)
 	if err != nil {
-		// Wrong flag = 1
-		return 1, err
-	} else {
-		if !HasFlag(team.Name, chal.Name) {
-			// Correct flag = 0
-			result := Result{
-				Type:       "CTF",
-				Timestamp:  time.Now(),
-				Group:      chal.Group,
-				Teamname:   team.Name,
-				Teamnumber: team.Number,
-				Details:    chal.Name,
-				Points:     chal.Points,
-			}
-			CaptFlagsLogger.Printf("Team [%d] just scored '%d points' for flag '%s'!",
-				result.Teamnumber, result.Points, result.Details)
-			test := false
-			return 0, DataAddResult(result, test)
-		} else {
-			// Got challenge already
-			return 2, nil
+		if err == mgo.ErrNotFound {
+			CaptFlagsLogger.WithField("team", team.Name).WithField("guess", chal.Flag).WithField("challenge", chal.Name).Println("Bad guess")
+			return InvalidFlag, nil
 		}
+		return InvalidFlag, err
 	}
+	if HasFlag(team.Number, chal.Group, chal.Name) {
+		// Got challenge already
+		return AlreadyCaptured, nil
+	}
+
+	result := Result{
+		Type:       "CTF",
+		Timestamp:  time.Now(),
+		Group:      chal.Group,
+		Teamname:   team.Name,
+		Teamnumber: team.Number,
+		Details:    chal.Name,
+		Points:     chal.Points,
+	}
+	CaptFlagsLogger.WithField("team", result.Teamname).WithField("challenge", result.Details).WithField("chalGroup", result.Group).
+		WithField("points", result.Points).Println("Score!!")
+	test := false
+	return ValidFlag, DataAddResult(result, test)
 }
 
-func HasFlag(teamname, challengeName string) bool {
-	chal := Challenge{}
-
+func HasFlag(teamnumber int, challengeGroup, challengeName string) bool {
 	session, resultCollection := GetSessionAndCollection("results")
 	defer session.Close()
 
-	// TODO: Do not need the returned document.
-	// Need to find better way to check if exists
-	err := resultCollection.Find(bson.M{"teamname": teamname, "details": challengeName}).One(&chal)
+	cnt, err := resultCollection.
+		Find(bson.M{"type": CTF, "group": challengeGroup, "teamnumber": teamnumber, "details": challengeName}).
+		Count()
 	if err != nil {
-		// TODO: Log error
-		return false
+		Logger.WithError(err).Errorf("HasFlag failed for team '%d' for challenge '%s'", teamnumber, challengeName)
+		return true
 	}
-	return true
+	return cnt > 0
 }
 
-func DataGetTotalChallenges() (map[string]int, error) {
+type ChallengeCount struct {
+	Group  string `json:"group" bson:"_id"`
+	Amount int    `json:"count"`
+}
+
+// DataGetTotalChallenges returns all the CTF groups and counts the amount
+// of challenges in each group. E.g.
+// `[{"group": "Wireless", "amount": 4}, {"group": "Embedded", "amount": 3}]`
+func DataGetTotalChallenges() ([]ChallengeCount, error) {
 	session, collection := GetSessionAndCollection("challenges")
 	defer session.Close()
-	totals := make(map[string]int)
-	t := bson.M{}
-	pipe := collection.Pipe([]bson.M{
-		{"$group": bson.M{"_id": "$group", "total": bson.M{"$sum": 1}}},
+	totals := []ChallengeCount{}
+	err := collection.Pipe([]bson.M{
+		{"$group": bson.M{"_id": "$group", "amount": bson.M{"$sum": 1}}},
 		{"$sort": bson.M{"_id": -1}},
-	})
-	iter := pipe.Iter()
-	for iter.Next(&t) {
-		totals[t["_id"].(string)] = t["total"].(int)
-	}
-	if err := iter.Close(); err != nil {
+	}).All(&totals)
+	if err != nil {
 		Logger.Error("Error getting challenges: ", err)
 		return totals, err
 	}
 	return totals, nil
 }
 
-func DataGetTeamChallenges(teamname string) (map[string]int, error) {
+// DataGetTeamChallenges returns the amount of each CTF group that has been
+// scored by a given team. E.g. "team1" may have results such as
+// `[{"group": "Wireless", "amount" 4}, {"group": "Embedded", "amount": 0}]`
+func DataGetTeamChallenges(teamname string) ([]ChallengeCount, error) {
 	session, collection := GetSessionAndCollection("results")
 	defer session.Close()
-	acquired := make(map[string]int)
-	a := bson.M{}
-	pipe := collection.Pipe([]bson.M{
-		{"$match": bson.M{"teamname": teamname, "type": "CTF"}},
-		{"$group": bson.M{"_id": "$group", "acquired": bson.M{"$sum": 1}}},
-		{"$sort": bson.M{"_id": -1}},
-	})
-	iter := pipe.Iter()
-	for iter.Next(&a) {
-		acquired[a["_id"].(string)] = a["acquired"].(int)
-	}
-	if err := iter.Close(); err != nil {
+	acquired := []ChallengeCount{}
+	err := collection.Pipe([]bson.M{
+		{"$match": bson.M{"type": CTF, "teamname": teamname}},
+		{"$group": bson.M{"_id": "$group", "amount": bson.M{"$sum": 1}}},
+		{"$sort": bson.M{"group": -1}},
+	}).All(&acquired)
+	if err != nil {
 		Logger.Error("Error getting challenges: ", err)
 		return acquired, err
 	}
@@ -259,21 +279,28 @@ func DataGetTeamScore(teamname string) int {
 	return p
 }
 
-func DataGetAllScore() []Result {
+// ScoreResult represents the data returned from a query for a team's score.
+// This is slimmed down from the `Result` model type, to reduce processing & bandwidth,
+// and improve ease-of-use.
+type ScoreResult struct {
+	Teamnumber int    `json:"teamnumber"`
+	Teamname   string `json:"teamname"`
+	Type       string `json:"type,omitempty"`
+	Points     int    `json:"points"`
+}
+
+func DataGetAllScore() []ScoreResult {
 	session, collection := GetSessionAndCollection("results")
 	defer session.Close()
-	tmScore := []Result{}
+	tmScore := []ScoreResult{}
 
-	// todo: optimize this query for an index
-	//       Mongo does not let $groupby operations use indexes,
-	//       but this query is used very often.
 	teams := DataGetTeams()
-	pipe := collection.Pipe([]bson.M{
+	err := collection.Pipe([]bson.M{
+		{"$match": bson.M{"points": bson.M{"$ne": 0}}},
 		{"$group": bson.M{"_id": bson.M{"tname": "$teamname", "tnum": "$teamnumber"}, "points": bson.M{"$sum": "$points"}}},
-		{"$project": bson.M{"_id": 0, "points": 1, "teamnumber": "$_id.tnum", "teamname": "$_id.tname"}},
+		{"$project": bson.M{"_id": 0, "teamnumber": "$_id.tnum", "teamname": "$_id.tname", "points": 1}},
 		{"$sort": bson.M{"teamnumber": 1}},
-	})
-	err := pipe.All(&tmScore)
+	}).All(&tmScore)
 	if err != nil {
 		Logger.Error("Error getting all team scores: ", err)
 	}
@@ -281,54 +308,71 @@ func DataGetAllScore() []Result {
 	if l := len(tmScore); l < len(teams) {
 		if l == 0 {
 			for _, t := range teams {
-				tmScore = append(tmScore, Result{Teamname: t.Name, Teamnumber: t.Number, Points: 0})
+				tmScore = append(tmScore, ScoreResult{Teamname: t.Name, Teamnumber: t.Number, Points: 0})
 			}
 		} else {
 			for i := 0; i < len(teams); i++ {
-				tmScore = append(tmScore, Result{Teamname: teams[i].Name, Teamnumber: teams[i].Number, Points: 0})
+				tmScore = append(tmScore, ScoreResult{Teamname: teams[i].Name, Teamnumber: teams[i].Number, Points: 0})
 			}
 		}
 	}
 	return tmScore
 }
 
-func DataGetAllScoreSplitByType() []Result {
+func DataGetAllScoreSplitByType() []ScoreResult {
 	session, collection := GetSessionAndCollection("results")
 	defer session.Close()
-	tmScore := []Result{}
-
 	teams := DataGetTeams()
-	pipe := collection.Pipe([]bson.M{
+	tmScore := make([]ScoreResult, 0, len(teams)*2)
+
+	err := collection.Pipe([]bson.M{
+		{"$match": bson.M{"points": bson.M{"$ne": 0}}},
 		{"$group": bson.M{"_id": bson.M{"tname": "$teamname", "tnum": "$teamnumber", "type": "$type"}, "points": bson.M{"$sum": "$points"}}},
-		{"$project": bson.M{"_id": 0, "points": 1, "teamnumber": "$_id.tnum", "teamname": "$_id.tname", "type": "$_id.type"}},
-		{"$sort": bson.M{"teamnumber": 1}},
-	})
-	err := pipe.All(&tmScore)
+		{"$project": bson.M{"_id": 0, "teamnumber": "$_id.tnum", "teamname": "$_id.tname", "type": "$_id.type", "points": 1}},
+		{"$sort": bson.M{"teamnumber": 1, "type": 1}},
+	}).All(&tmScore)
 	if err != nil {
 		Logger.Error("Error getting all team scores: ", err)
 	}
 
-	// TODO: Handle a team without any score in either category more gracefully than this
-	if len(tmScore) < len(teams)*2 {
-		tmScore = []Result{}
-		for _, t := range teams {
-			tmScore = append(tmScore, Result{Teamname: t.Name, Teamnumber: t.Number})
+	// Fill in default score for each category for every team
+	if len(tmScore) != len(teams)*2 {
+		var team *Team
+		var cat *string
+		for i := 0; i < len(teams)*2; i++ {
+			team, cat = &teams[i/2], &ScoreCategories[i%2]
+			if i >= len(tmScore) {
+				tmScore = append(tmScore, ScoreResult{Teamname: team.Name, Teamnumber: team.Number, Type: *cat})
+			} else if tmScore[i].Teamnumber != team.Number || (tmScore[i].Teamnumber == team.Number && tmScore[i].Type != *cat) {
+				tmScore = append(tmScore, ScoreResult{})
+				copy(tmScore[i+1:], tmScore[i:])
+				tmScore[i] = ScoreResult{Teamname: team.Name, Teamnumber: team.Number, Type: *cat}
+			}
 		}
 	}
+
 	return tmScore
 }
 
-func DataGetServiceStatus() []interface{} {
+type ServiceStatus struct {
+	Service      string `json:"service" bson:"_id"`
+	TeamStatuses []struct {
+		Name   string `json:"name"`
+		Number int    `json:"number"`
+		Status string `json:"status"`
+	} `json:"teams" bson:"teams"`
+}
+
+func DataGetServiceStatus() []ServiceStatus {
 	session, results := GetSessionAndCollection("results")
 	defer session.Close()
-	var cResults []interface{}
+	var cResults []ServiceStatus
 
-	pipe := results.Pipe([]bson.M{
+	err := results.Pipe([]bson.M{
 		{"$match": bson.M{"type": "Service"}},
 		{"$group": bson.M{"_id": bson.M{"service": "$group", "tnum": "$teamnumber", "tname": "$teamname"}, "status": bson.M{"$last": "$details"}}},
 		{"$group": bson.M{"_id": "$_id.service", "teams": bson.M{"$addToSet": bson.M{"number": "$_id.tnum", "name": "$_id.tname", "status": "$status"}}}},
-	})
-	err := pipe.All(&cResults)
+	}).All(&cResults)
 	if err != nil {
 		Logger.Error("Error getting all team scores: ", err)
 	}
@@ -354,19 +398,39 @@ func DataGetServiceResult() []Result {
 	return sList
 }
 
-func DataGetResultByService(service string) []Result {
+// ServiceResult represents the data returned from a query regarding a team's latest service check.
+type ServiceResult struct {
+	Teamnumber int    `json:"teamnumber"`
+	Details    string `json:"details"`
+}
+
+func DataGetResultByService(blueteams []Team, service string) []ServiceResult {
 	session, collection := GetSessionAndCollection("results")
 	defer session.Close()
-	teamStatus := []Result{}
+	teamStatus := make([]ServiceResult, 0, len(blueteams))
 
 	err := collection.Pipe([]bson.M{
 		{"$match": bson.M{"type": "Service", "group": service}},
-		{"$group": bson.M{"_id": bson.M{"service": "$group", "tnum": "$teamnumber", "tname": "$teamname"}, "status": bson.M{"$last": "$details"}}},
-		{"$project": bson.M{"_id": 0, "group": "$_id.service", "teamnumber": "$_id.tnum", "teamname": "$_id.tname", "details": "$status"}},
+		{"$group": bson.M{"_id": bson.M{"service": "$group", "tnum": "$teamnumber"}, "status": bson.M{"$last": "$details"}}},
+		{"$project": bson.M{"_id": 0, "teamnumber": "$_id.tnum", "details": "$status"}},
 		{"$sort": bson.M{"teamnumber": 1}},
 	}).All(&teamStatus)
 	if err != nil {
 		Logger.Error("Error getting team status by service: ", err)
+	}
+
+	// Fill in an empty result for any teams without a status for any service
+	if len(blueteams) != len(teamStatus) {
+		for idx, team := range blueteams {
+			// Search for teamStatuses being too short, or holes (team1, team2, ___, team4)
+			if idx >= len(teamStatus) {
+				teamStatus = append(teamStatus, ServiceResult{Teamnumber: team.Number, Details: "N/A"})
+			} else if teamStatus[idx].Teamnumber != team.Number {
+				teamStatus = append(teamStatus, ServiceResult{})
+				copy(teamStatus[idx+1:], teamStatus[idx:])
+				teamStatus[idx] = ServiceResult{Teamnumber: team.Number, Details: "N/A"}
+			}
+		}
 	}
 	return teamStatus
 }
@@ -386,23 +450,12 @@ func DataGetServiceList() []string {
 	session, collection := GetSessionAndCollection("results")
 	defer session.Close()
 	var list []string
-	res := bson.M{}
 
-	pipe := collection.Pipe([]bson.M{
-		{"$match": bson.M{"type": "Service"}},
-		{"$group": bson.M{"_id": "$group"}},
-		{"$project": bson.M{"_id": 0, "group": "$_id"}},
-		{"$sort": bson.M{"group": 1}},
-	})
-	iter := pipe.Iter()
-	for iter.Next(&res) {
-		list = append(list, res["group"].(string))
-	}
-	if err := iter.Close(); err != nil {
+	err := collection.Find(bson.M{"type": "Service"}).Distinct("group", &list)
+	if err != nil {
 		Logger.Error("Error getting service list: ", err)
 	}
 	return list
-
 }
 
 // TODO: Combine queries since this has repeating code
@@ -418,7 +471,9 @@ func DataGetLastServiceResult() time.Time {
 	}).One(&id)
 	var latest time.Time
 	if err != nil {
-		Logger.Error("Error getting last Service result: ", err)
+		if err != mgo.ErrNotFound {
+			Logger.Error("Error getting last Service result: ", err)
+		}
 	} else {
 		latest = id["last"].(bson.ObjectId).Time()
 	}
@@ -438,7 +493,9 @@ func DataGetLastResult() time.Time {
 	}).One(&id)
 	var latest time.Time
 	if err != nil {
-		Logger.Error("Error getting last document: ", err)
+		if err != mgo.ErrNotFound {
+			Logger.Error("Error getting last document: ", err)
+		}
 	} else {
 		latest = id["last"].(bson.ObjectId).Time()
 	}
@@ -461,6 +518,21 @@ func DataAddResult(result Result, test bool) error {
 		return err
 	}
 	return nil
+}
+
+func DataAddResults(results []Result, test bool) error {
+	docs := make([]interface{}, len(results))
+	for i, result := range results {
+		docs[i] = result
+	}
+
+	collName := "results"
+	if test {
+		collName = "testResults"
+	}
+	session, collection := GetSessionAndCollection(collName)
+	defer session.Close()
+	return collection.Insert(docs...)
 }
 
 func DataAddTeams(teams []Team) error {
@@ -498,33 +570,43 @@ func DataDeleteTeam(teamName string) error {
 
 // Score breakdown methods
 
+type FlagSubmissions struct {
+	Name        string `json:"name"`
+	Group       string `json:"group"`
+	Submissions int    `json:"submissions"`
+}
+
 // Gets the number of times each flag was captured in any of 'challengeGroups'.
 // Json results: [{ "name": "FLAG-01", "group": "Wireless", "submissions": 5 }, ...]
-func DataGetSubmissionsPerFlag(challengeGroups []string) ([]bson.M, error) {
+func DataGetSubmissionsPerFlag(challengeGroups []string) ([]FlagSubmissions, error) {
 	session, collection := GetSessionAndCollection("results")
 	defer session.Close()
 
-	var aggrResult []bson.M
+	var aggrResult []FlagSubmissions
 	return aggrResult, collection.Pipe([]bson.M{
-		{"$match": bson.M{"group": bson.M{"$in": challengeGroups}}},
+		{"$match": bson.M{"type": "CTF", "group": bson.M{"$in": challengeGroups}}},
 		{"$group": bson.M{"_id": bson.M{"name": "$details", "group": "$group"}, "submissions": bson.M{"$sum": 1}}},
 		{"$project": bson.M{"name": "$_id.name", "group": "$_id.group", "submissions": 1, "_id": 0}},
 		{"$sort": bson.M{"name": 1, "submissions": -1}},
 	}).All(&aggrResult)
 }
 
+type CapturedFlagsOfTeam struct {
+	Team  string   `json:"team" bson:"_id"`
+	Flags []string `json:"flags"`
+}
+
 // Gets the flags each team has captured in any of 'challengeGroups'.
 // Json results: [{ "team": "team1", "flags": ["Crypto-04", "Wifi-01"]}, ...]
-func DataGetEachTeamsCapturedFlags(challengeGroups []string) ([]bson.M, error) {
+func DataGetEachTeamsCapturedFlags(challengeGroups []string) ([]CapturedFlagsOfTeam, error) {
 	session, collection := GetSessionAndCollection("results")
 	defer session.Close()
 
-	var aggrResult []bson.M
+	var aggrResult []CapturedFlagsOfTeam
 	return aggrResult, collection.Pipe([]bson.M{
-		{"$match": bson.M{"group": bson.M{"$in": challengeGroups}}},
+		{"$match": bson.M{"type": "CTF", "group": bson.M{"$in": challengeGroups}}},
 		{"$sort": bson.M{"details": 1}},
 		{"$group": bson.M{"_id": "$teamname", "flags": bson.M{"$push": "$details"}}},
 		{"$sort": bson.M{"_id": 1}},
-		{"$project": bson.M{"team": "$_id", "flags": "$flags", "_id": 0}},
 	}).All(&aggrResult)
 }

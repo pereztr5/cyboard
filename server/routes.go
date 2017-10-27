@@ -30,6 +30,7 @@ func ensureAppTemplates() {
 		"teamChallenges":     getTeamChallenges,
 		"teamScore":          getTeamScore,
 		"allTeamScores":      getAllTeamScores,
+		"allBlueTeams":       DataGetTeams,
 		"getOwnedChalGroups": getChallengesOwnerOf,
 		"getStatus":          DataGetResultByService,
 		"serviceList":        DataGetServiceList,
@@ -50,7 +51,7 @@ func ensureAppTemplates() {
 	}
 }
 
-func CreateWebRouter() *mux.Router {
+func CreateWebRouter(teamScoreUpdater, servicesUpdater *broadcastHub) *mux.Router {
 	router := mux.NewRouter()
 	// Public Routes
 	router.HandleFunc("/", ShowHome).Methods("GET")
@@ -63,8 +64,9 @@ func CreateWebRouter() *mux.Router {
 	// TODO: Make this the name of AIS challenge
 	router.HandleFunc("/team/scores", GetScores).Methods("GET")
 	router.HandleFunc("/team/scores/split", GetScoresSplit).Methods("GET")
-	router.HandleFunc("/team/scores/live", ServeScoresWs).Methods("GET")
-	router.HandleFunc("/team/services/live", ServeServicesWs).Methods("GET")
+	router.HandleFunc("/team/scores/live", teamScoreUpdater.ServeWs()).Methods("GET")
+	router.HandleFunc("/team/services/live", servicesUpdater.ServeWs()).Methods("GET")
+	router.HandleFunc("/services", GetServices).Methods("GET")
 	return router
 }
 
@@ -201,7 +203,15 @@ func GetScoresSplit(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
-func getChallenges() map[string]int {
+func GetServices(w http.ResponseWriter, r *http.Request) {
+	services := DataGetServiceList()
+	w.Header().Set("Content-Type", "application/json; charset=UTF-8")
+	if err := json.NewEncoder(w).Encode(services); err != nil {
+		Logger.Error("Error encoding json: ", err)
+	}
+}
+
+func getChallenges() []ChallengeCount {
 	totals, err := DataGetTotalChallenges()
 	if err != nil {
 		Logger.Error("Could not get challenges: ", err)
@@ -209,7 +219,7 @@ func getChallenges() map[string]int {
 	return totals
 }
 
-func getTeamChallenges(teamname string) map[string]int {
+func getTeamChallenges(teamname string) []ChallengeCount {
 	acquired, err := DataGetTeamChallenges(teamname)
 	if err != nil {
 		Logger.Error("Could not get team challenges: ", err)

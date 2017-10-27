@@ -10,14 +10,14 @@
                     <div></div>
                 </div>
             </div>
-            {{ $teams := allTeamScores }}
+            {{ $teams := allBlueTeams }}
             {{ $max := len $teams }}
             {{- range $teams }}
             <div class='square-box'>
                 <div class='square-content labels'>
                     <div><span>
-                        <small>TEAM</small> 
-                        <b class='teamnumber'>{{ .Teamnumber }}</b>
+                        <small>TEAM</small>
+                        <b class='teamnumber'>{{ .Number }}</b>
                     </span></div>
                 </div>
             </div>
@@ -30,7 +30,7 @@
                     <div><span>{{ . }}</span></div>
                 </div>
             </div>
-            {{- range getStatus . }}
+            {{- range getStatus $teams . }}
             <div class='square-box'>
                 <div class='square-content'>
                     {{- if eq .Details "Status: 0" }}

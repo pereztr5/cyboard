@@ -16,8 +16,6 @@ var TestTeams = []Team{
 	{bson.NewObjectId(), "blueteam", 2, "team2", "127.0.0.2", genPass("pass2"), ""},
 }
 
-var ScoreCategories = []string{"CTF", "Service"}
-
 func init() {
 	SetupScoringLoggers(&LogSettings{Level: "warn", Stdout: true})
 	ensureTestDB()

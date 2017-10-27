@@ -135,7 +135,7 @@ func score(result Result) {
 		}
 	} else {
 		result.Timestamp = result.Timestamp.Round(time.Millisecond)
-		scoreTmplStr := "Timestamp: {{ .Timestamp }} | Group: {{ .Group }} | Team: {{ .Teamname }} | Details: {{ .Details }} | Points: {{ .Points }}\n"
+		scoreTmplStr := "Timestamp: {{ .Timestamp }} | Group: {{ .Group }} | Team: {{ .Teamname }} | Points: {{ .Points }} | Details: {{ .Details }}\n"
 		scoreTmpl := template.Must(template.New("result").Parse(scoreTmplStr))
 		err := scoreTmpl.Execute(Logger.Out, result)
 		if err != nil {
@@ -144,15 +144,30 @@ func score(result Result) {
 	}
 }
 
+func scoreAll(results []Result) {
+	if !dryRun {
+		err := DataAddResults(results, dryRun)
+		if err != nil {
+			Logger.Error("Could not insert service result:", err)
+		}
+	} else {
+		for _, result := range results {
+			score(result)
+		}
+	}
+}
+
 func startCheckService(checkCfg *CheckConfiguration, teams []Team) {
 	event := &checkCfg.Event
 	checks := checkCfg.Checks
+	status := make(chan Result)
+	resultsBuf := make([]Result, len(teams)*len(checks))
 
 	// Run command every x seconds until scheduled end time
 	Logger.Println("Starting Checks")
 	checkTicker := time.NewTicker(event.Intervals)
-	status := make(chan Result)
 	waitingOnReload := false
+
 	for {
 		now := time.Now()
 		if !cfgNeedsReload && now.Before(event.End) {
@@ -181,13 +196,10 @@ func startCheckService(checkCfg *CheckConfiguration, teams []Team) {
 					go runCmd(team, check, now, event.Timeout, status)
 				}
 			}
-			amtChecks := len(teams) * len(checks)
-			for j := 0; j < amtChecks; j++ {
-				select {
-				case res := <-status:
-					go score(res)
-				}
+			for idx := range resultsBuf {
+				resultsBuf[idx] = <-status
 			}
+			scoreAll(resultsBuf)
 		} else {
 			checkTicker.Stop()
 			if now.After(event.End) {
@@ -244,7 +256,7 @@ func runCmd(team Team, check Check, timestamp time.Time, timeout time.Duration, 
 		if !dryRun {
 			result.Details = fmt.Sprintf("Status: %d", exitCode)
 		} else {
-			result.Details = fmt.Sprintf("%s -- %s", strings.Join(cmd.Args, " "), out.Bytes())
+			result.Details = fmt.Sprintf("%s\n%s", strings.Join(cmd.Args, " "), out.Bytes())
 		}
 
 		if exitCode >= len(check.Points) {
