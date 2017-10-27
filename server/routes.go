@@ -51,7 +51,7 @@ func ensureAppTemplates() {
 	}
 }
 
-func CreateWebRouter() *mux.Router {
+func CreateWebRouter(teamScoreUpdater, servicesUpdater *broadcastHub) *mux.Router {
 	router := mux.NewRouter()
 	// Public Routes
 	router.HandleFunc("/", ShowHome).Methods("GET")
@@ -64,8 +64,8 @@ func CreateWebRouter() *mux.Router {
 	// TODO: Make this the name of AIS challenge
 	router.HandleFunc("/team/scores", GetScores).Methods("GET")
 	router.HandleFunc("/team/scores/split", GetScoresSplit).Methods("GET")
-	router.HandleFunc("/team/scores/live", ServeScoresWs).Methods("GET")
-	router.HandleFunc("/team/services/live", ServeServicesWs).Methods("GET")
+	router.HandleFunc("/team/scores/live", teamScoreUpdater.ServeWs()).Methods("GET")
+	router.HandleFunc("/team/services/live", servicesUpdater.ServeWs()).Methods("GET")
 	router.HandleFunc("/services", GetServices).Methods("GET")
 	return router
 }

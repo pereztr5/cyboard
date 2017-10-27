@@ -471,7 +471,9 @@ func DataGetLastServiceResult() time.Time {
 	}).One(&id)
 	var latest time.Time
 	if err != nil {
-		Logger.Error("Error getting last Service result: ", err)
+		if err != mgo.ErrNotFound {
+			Logger.Error("Error getting last Service result: ", err)
+		}
 	} else {
 		latest = id["last"].(bson.ObjectId).Time()
 	}
@@ -491,7 +493,9 @@ func DataGetLastResult() time.Time {
 	}).One(&id)
 	var latest time.Time
 	if err != nil {
-		Logger.Error("Error getting last document: ", err)
+		if err != mgo.ErrNotFound {
+			Logger.Error("Error getting last document: ", err)
+		}
 	} else {
 		latest = id["last"].(bson.ObjectId).Time()
 	}

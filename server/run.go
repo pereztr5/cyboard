@@ -49,7 +49,10 @@ func Run(cfg *Configuration) {
 	// On first run, prompt to set up an admin user
 	EnsureAdmin()
 
-	webRouter := CreateWebRouter()
+	teamScoreUpdater, servicesUpdater := TeamScoreWsServer(), ServiceStatusWsServer()
+	defer teamScoreUpdater.Stop()
+	defer servicesUpdater.Stop()
+	webRouter := CreateWebRouter(teamScoreUpdater, servicesUpdater)
 	teamRouter := CreateTeamRouter()
 	adminRouter := CreateAdminRouter()
 
