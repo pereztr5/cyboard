@@ -296,7 +296,7 @@ func DataGetAllScore() []ScoreResult {
 
 	teams := DataGetTeams()
 	err := collection.Pipe([]bson.M{
-		{"$match": bson.M{"points": bson.M{"$gt": 0}}},
+		{"$match": bson.M{"points": bson.M{"$ne": 0}}},
 		{"$group": bson.M{"_id": bson.M{"tname": "$teamname", "tnum": "$teamnumber"}, "points": bson.M{"$sum": "$points"}}},
 		{"$project": bson.M{"_id": 0, "teamnumber": "$_id.tnum", "teamname": "$_id.tname", "points": 1}},
 		{"$sort": bson.M{"teamnumber": 1}},
@@ -326,7 +326,7 @@ func DataGetAllScoreSplitByType() []ScoreResult {
 	tmScore := make([]ScoreResult, 0, len(teams)*2)
 
 	err := collection.Pipe([]bson.M{
-		{"$match": bson.M{"points": bson.M{"$gt": 0}}},
+		{"$match": bson.M{"points": bson.M{"$ne": 0}}},
 		{"$group": bson.M{"_id": bson.M{"tname": "$teamname", "tnum": "$teamnumber", "type": "$type"}, "points": bson.M{"$sum": "$points"}}},
 		{"$project": bson.M{"_id": 0, "teamnumber": "$_id.tnum", "teamname": "$_id.tname", "type": "$_id.type", "points": 1}},
 		{"$sort": bson.M{"teamnumber": 1, "type": 1}},
