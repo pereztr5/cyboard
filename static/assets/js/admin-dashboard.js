@@ -235,6 +235,11 @@ var populateUsersTable = function() {
  */
 $(function() {
     populateChallengesTable();
+
+    $('#bonus-points-form').submit(function(e) {
+        e.preventDefault();
+        submitBonusPoints($(this));
+    });
 });
 
 // --- Refresh the Challenge listing table completely ---
@@ -265,6 +270,24 @@ var populateChallengesTable = function() {
         // chal_cfg.editableTableWidget({});
     }, "json");
 };
+
+function submitBonusPoints(form) {
+    const serialize = (inputName, fn) => fn(form.find(`input[name=${inputName}]`).val());
+    const data = {
+        teams:   serialize('teams',   (val) => val.replace(/\s+/g, '').split(/,/)),
+        points:  serialize('points',  (val) => window.parseInt(val, 10)),
+        details: serialize('details', (val) => val),
+    }
+
+    const status_node = form.parentsUntil('.bonus-display').parent().find('.status');
+    $.ajax({
+        url: '/black/team/bonus',
+        type: 'POST',
+        contentType: 'application/json; charset=UTF-8',
+        data: JSON.stringify(data),
+        complete: (xhr) => status_node.text(xhr.responseText || `${data.points} points awarded`),
+    });
+}
 
 /*
  *    CTF Flag Score breakdowns
