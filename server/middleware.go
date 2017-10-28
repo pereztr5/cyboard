@@ -35,6 +35,19 @@ func RequireLogin(w http.ResponseWriter, r *http.Request, next http.HandlerFunc)
 	}
 }
 
+func RequireGroupIsAnyOf(whitelistedGroups []string) func(http.ResponseWriter, *http.Request, http.HandlerFunc) {
+	return func(w http.ResponseWriter, r *http.Request, next http.HandlerFunc) {
+		team := r.Context().Value("team").(Team)
+		for _, group := range whitelistedGroups {
+			if team.Group == group {
+				next(w, r)
+				return
+			}
+		}
+		http.Error(w, http.StatusText(http.StatusForbidden), http.StatusForbidden)
+	}
+}
+
 func RequireAdmin(w http.ResponseWriter, r *http.Request, next http.HandlerFunc) {
 	team := r.Context().Value("team").(Team)
 	if team.Group == "admin" {
