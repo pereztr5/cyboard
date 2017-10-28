@@ -3,7 +3,7 @@ language: go
 go:
   - 1.8.x
   - 1.9.x
-  - tip
+  - 1.x
 
 # A local Mongo is required for tests
 services: mongodb
