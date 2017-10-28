@@ -66,7 +66,6 @@ func GetAllUsers(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, http.StatusText(500), 500)
 		return
 	}
-	w.WriteHeader(http.StatusOK)
 }
 
 func AddTeams(w http.ResponseWriter, r *http.Request) {
@@ -184,6 +183,8 @@ func grantBonusPoints(bonus BonusDescriptor) error {
 			Points:     bonus.Points,
 		}
 	}
+	CaptFlagsLogger.WithField("teams", bonus.Teams).WithField("challenge", bonus.Details).WithField("chalGroup", "BONUS").
+		WithField("points", bonus.Points).Println("Bonus awarded!")
 
 	return DataAddResults(results, false)
 }
