@@ -20,6 +20,8 @@
     + [Scheduled Event End and Intermissions](#scheduled-event-end-and-intermissions)
     + [Running the Service Checker](#running-the-service-checker)
   * [MongoDB](#mongodb)
+- [API](#api)
+  * [Endpoints](#endpoints)
 - [Docker](#docker)
 - [Contributors](#contributors)
 
@@ -299,6 +301,134 @@ If you believe you must manually edit the data in Mongo, please be careful!
 Mongo's implicit data types can cause confusing problems. E.g. All numbers are
 `double` values by default, when inserted or updated with the `mongo` shell.
 
+## API
+
+For scripted tasks or bots, Cyboard has a growing selection of API endpoints
+to work with.
+
+**Note**: The API is due for substantial changes in the future. Be advised.
+
+You will need to be authenticated to call most endpoints. This can be
+achieved a couple of ways:
+- From a browser session, after having logged in manually. The cookie is
+    available in the web developer tools, under the "cyboard" key name.
+    - In Firefox: Hit `F12`, go to "Storage" -> "Cookies" -> [domain of cyboard]
+    - In Chrome: Hit `F12`, go to "Application" -> "Cookies" -> [domain of cyboard]
+    - Copy the cookie, and include it in your script or tool with each request
+        to `cyboard` from then on.
+- Alternatively, if your tools or interfaces support persistent session storage,
+    you may log in with the `/login` POST endpoint and go about your way.
+
+<!-- TODO: Swagger docs would be much better -->
+
+### Endpoints
+
+#### Function: Login
++ Endpoint: `/login`
++ Role: <any>
++ Methods: POST
++ Request:
+    * Headers: ContentType: form
+    * Body:
+        - `teamname` string
+        - `password` string
++ Response: text/plain
+    * On success: A cookie under the key `cyboard` is saved to
+        the browser. Finally, issues an HTTP redirect to `/team/dashboard`.
+    * On failure: Issues HTTP redirect to `/login`
+
+#### Function: Logout
++ Endpoint: `/logout`
++ Role: <any>
++ Methods: GET
++ Request: <ignored>
++ Response: text/plain
+    * On success: The logged in user's cookie under the key `cyboard`
+        will be wiped. Then, HTTP redirect to `/login`.
+    * On failure: If not logged in, issues HTTP redirect to `/login`
+
+#### Function: Submit a flag guess
++ Endpoint: `/challenges/verify`
++ Role: "blueteam"
++ Methods: POST
++ Request:
+    * Headers: ContentType: form
+    * Body:
+        - `flag` string
+        - `challenge` string
++ Response: text/plain
+    * On success: Adds the flag's value to the submitting team's score,
+        and writes a '0', indicating the flag was captured.
+    * On failure:
+        - '1': if the flag was already captured by the submitting team
+        - '2': if the guessed flag was incorrect.
+        - Other HTTP Status Code: Bad request, server error, etc.
+
+#### Function: List CTF challenges
++ Endpoint: `/ctf/config`
++ Role: "admin", "blackteam", or designated CTF group owner
++ Methods: GET
++ Request: <ignored>
++ Response: application/json
+    * On success: Returns everything about each challenge flags that
+        the requesting user has access to view.
+    * On failure: Standard HTTP error code.
+
+#### Function: List all teams
++ Endpoint: `/admin/teams`
++ Role: "admin"
++ Methods: GET
++ Request: <ignored>
++ Response: application/json
+    * On success: Returns everything but password hashes, for every user.
+    * On failure: Standard HTTP error code.
+
+#### Function: Add or Subtract Points from score
++ Endpoint: `/black/team/bonus`
++ Role: "blackteam" or "admin"
++ Methods: POST
++ Request:
+    * Headers: ContentType: json
+    * Body:
+        - `teams` array of strings
+        - `points` integer
+            + Can be positive or negative
+        - `details` string
+            + Provide a reason why points are being given or taken away
++ Response: text/plain
+    * On success: Each teams score is updated accordingly.
+    * On failure: Standard HTTP error code (4XX or 5XX) and plain-text
+        reason for the error.
+
+### Examples using [httpie](https://httpie.org/ "aitch-tee-tee-pie")
+
+`httpie` is a handy tool that can be used for scripting API work. Here's
+a demonstration, using it to poke at Cyboard:
+``` bash
+$ http --session cyboard-demo --form POST https://localhost:8081/login teamname=admin password=p
+HTTP/1.1 302 Found
+Content-Length: 0
+Content-Type: text/plain; charset=utf-8
+Date: Sat, 28 Oct 2017 16:36:45 GMT
+Location: /team/dashboard
+Set-Cookie: cyboard=<snip>; Expires=Sat, 28 Oct 2017 17:36:45 GMT; Max-Age=3600; HttpOnly
+
+# `http` saves the authenticated cookie in the '--session', making further requests simple
+$ http --session cyboard-demo --json POST https://localhost:8081/black/team/bonus teams:='["team1"]' points:=42 details="You deserve it"
+HTTP/1.1 200 OK
+Content-Length: 0
+Content-Type: text/plain; charset=utf-8
+Date: Sat, 28 Oct 2017 16:38:31 GMT
+
+$ http --session cyboard-demo --json GET https://localhost:8081/admin/teams
+HTTP/1.1 200 OK
+Content-Length: 1070
+Content-Type: application/json; charset=UTF-8
+Date: Sat, 28 Oct 2017 16:41:56 GMT
+
+[ ... ]
+$
+```
 
 ## Docker
 
