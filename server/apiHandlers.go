@@ -4,8 +4,10 @@ import (
 	"encoding/json"
 	"fmt"
 	"net/http"
+	"time"
 
 	"github.com/gorilla/mux"
+	"gopkg.in/mgo.v2"
 )
 
 func GetPublicChallenges(w http.ResponseWriter, r *http.Request) {
@@ -125,6 +127,67 @@ func DeleteTeam(w http.ResponseWriter, r *http.Request) {
 	w.WriteHeader(http.StatusOK)
 }
 
+type BonusDescriptor struct {
+	Teams   []string `json:"teams"`
+	Points  int      `json:"points"`
+	Details string   `json:"details"`
+}
+
+func GrantBonusPoints(w http.ResponseWriter, r *http.Request) {
+	var bonus BonusDescriptor
+
+	if err := json.NewDecoder(r.Body).Decode(&bonus); err != nil {
+		Logger.Error("GrantBonusPoints: failed to decode request body: ", err)
+		http.Error(w, err.Error(), http.StatusBadRequest)
+		return
+	}
+
+	if err := grantBonusPoints(bonus); err != nil {
+		Logger.Errorln("GrantBonusPoints failed:", err)
+		if err == mgo.ErrCursor {
+			http.Error(w, err.Error(), http.StatusInternalServerError)
+		} else {
+			http.Error(w, err.Error(), http.StatusBadRequest)
+		}
+		return
+	}
+	w.WriteHeader(http.StatusOK)
+}
+
+func grantBonusPoints(bonus BonusDescriptor) error {
+	if len(bonus.Teams) == 0 {
+		return fmt.Errorf("Field 'teams' must be filled in")
+	}
+
+	teams := make([]Team, len(bonus.Teams))
+	for i, teamName := range bonus.Teams {
+		team, err := GetTeamByTeamname(teamName)
+		if err != nil {
+			return fmt.Errorf("failed to fetch team '%s': %v", teamName, err)
+		}
+		teams[i] = team
+	}
+	if len(teams) != len(bonus.Teams) {
+		return fmt.Errorf("failed to generate complete list of teams (did you have duplicate team names?)")
+	}
+
+	now := time.Now()
+	results := make([]Result, len(teams))
+	for i := range results {
+		results[i] = Result{
+			Type:       CTF,
+			Group:      "BONUS",
+			Timestamp:  now,
+			Teamname:   teams[i].Name,
+			Teamnumber: teams[i].Number,
+			Details:    bonus.Details,
+			Points:     bonus.Points,
+		}
+	}
+
+	return DataAddResults(results, false)
+}
+
 func CtfConfig(w http.ResponseWriter, r *http.Request) {
 	t := r.Context().Value("team").(Team)
 	if !AllowedToConfigureChallenges(t) {
@@ -145,7 +208,6 @@ func CtfConfig(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, http.StatusText(500), 500)
 		return
 	}
-	w.WriteHeader(http.StatusOK)
 }
 
 // todo(tbutts): Reduce copied code. Particularly in the Breakdown methods, and anything that returns JSON.
