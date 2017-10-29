@@ -57,6 +57,15 @@ func RequireAdmin(w http.ResponseWriter, r *http.Request, next http.HandlerFunc)
 	}
 }
 
+func RequireCtfGroupOwner(w http.ResponseWriter, r *http.Request, next http.HandlerFunc) {
+	t := r.Context().Value("team").(Team)
+	if !AllowedToConfigureChallenges(t) {
+		http.Error(w, http.StatusText(http.StatusForbidden), http.StatusForbidden)
+		return
+	}
+	next(w, r)
+}
+
 func AllowedToConfigureChallenges(t Team) bool {
 	switch t.Group {
 	case "admin", "blackteam":

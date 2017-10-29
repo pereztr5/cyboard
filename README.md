@@ -325,7 +325,7 @@ achieved a couple of ways:
 
 #### Function: Login
 + Endpoint: `/login`
-+ Role: <any>
++ Role: &lt;any&gt;
 + Methods: POST
 + Request:
     * Headers: ContentType: form
@@ -339,9 +339,9 @@ achieved a couple of ways:
 
 #### Function: Logout
 + Endpoint: `/logout`
-+ Role: <any>
++ Role: &lt;any&gt;
 + Methods: GET
-+ Request: <ignored>
++ Request: &lt;ignored&gt;
 + Response: text/plain
     * On success: The logged in user's cookie under the key `cyboard`
         will be wiped. Then, HTTP redirect to `/login`.
@@ -365,10 +365,10 @@ achieved a couple of ways:
         - Other HTTP Status Code: Bad request, server error, etc.
 
 #### Function: List CTF challenges
-+ Endpoint: `/ctf/config`
++ Endpoint: `/ctf/flags`
 + Role: "admin", "blackteam", or designated CTF group owner
 + Methods: GET
-+ Request: <ignored>
++ Request: &lt;ignored&gt;
 + Response: application/json
     * On success: Returns everything about each challenge flags that
         the requesting user has access to view.
@@ -378,7 +378,7 @@ achieved a couple of ways:
 + Endpoint: `/admin/teams`
 + Role: "admin"
 + Methods: GET
-+ Request: <ignored>
++ Request: &lt;ignored&gt;
 + Response: application/json
     * On success: Returns everything but password hashes, for every user.
     * On failure: Standard HTTP error code.

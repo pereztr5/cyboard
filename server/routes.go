@@ -70,21 +70,25 @@ func CreateWebRouter(teamScoreUpdater, servicesUpdater *broadcastHub) *mux.Route
 	return router
 }
 
-func CreateTeamRouter() (*mux.Router, *mux.Router) {
+func CreateTeamRouter() (*mux.Router, *mux.Router, *mux.Router) {
 	router := mux.NewRouter()
 	router.HandleFunc("/team/dashboard", ShowTeamDashboard).Methods("GET")
 	router.HandleFunc("/challenges", ShowChallenges).Methods("GET")
 	router.HandleFunc("/challenges/list", GetPublicChallenges).Methods("GET")
 	router.HandleFunc("/challenges/verify", CheckFlag).Methods("POST")
 	router.HandleFunc("/challenges/verify/all", CheckAllFlags).Methods("POST")
-	router.HandleFunc("/ctf/config", CtfConfig).Methods("GET")
 	router.HandleFunc("/ctf/breakdown/subs_per_flag", GetBreakdownOfSubmissionsPerFlag).Methods("GET")
 	router.HandleFunc("/ctf/breakdown/teams_flags", GetEachTeamsCapturedFlags).Methods("GET")
 
 	blackTeamRouter := router.PathPrefix("/black").Subrouter()
 	blackTeamRouter.HandleFunc("/team/bonus", GrantBonusPoints).Methods("POST")
 
-	return router, blackTeamRouter
+	ctfConfigRouter := router.PathPrefix("/ctf").Subrouter()
+	ctfConfigRouter.HandleFunc("/flags", CtfConfig).Methods("GET")
+	ctfConfigRouter.HandleFunc("/breakdown/subs_per_flag", GetBreakdownOfSubmissionsPerFlag).Methods("GET")
+	ctfConfigRouter.HandleFunc("/breakdown/teams_flags", GetEachTeamsCapturedFlags).Methods("GET")
+
+	return router, blackTeamRouter, ctfConfigRouter
 }
 
 func CreateAdminRouter() *mux.Router {

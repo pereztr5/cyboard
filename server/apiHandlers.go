@@ -191,11 +191,6 @@ func grantBonusPoints(bonus BonusDescriptor) error {
 
 func CtfConfig(w http.ResponseWriter, r *http.Request) {
 	t := r.Context().Value("team").(Team)
-	if !AllowedToConfigureChallenges(t) {
-		http.Error(w, http.StatusText(403), 403)
-		return
-	}
-
 	chals, err := DataGetChallengesByGroup(t.AdminOf)
 	if err != nil {
 		Logger.Error("Failed to get flags by group: ", err)
@@ -216,11 +211,6 @@ func CtfConfig(w http.ResponseWriter, r *http.Request) {
 
 func GetBreakdownOfSubmissionsPerFlag(w http.ResponseWriter, r *http.Request) {
 	t := r.Context().Value("team").(Team)
-	if !AllowedToConfigureChallenges(t) {
-		http.Error(w, http.StatusText(403), 403)
-		return
-	}
-
 	chalGroups := getChallengesOwnerOf(t.AdminOf, t.Group)
 
 	flagsWithCapCounts, err := DataGetSubmissionsPerFlag(chalGroups)
@@ -236,16 +226,10 @@ func GetBreakdownOfSubmissionsPerFlag(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, http.StatusText(500), 500)
 		return
 	}
-	w.WriteHeader(http.StatusOK)
 }
 
 func GetEachTeamsCapturedFlags(w http.ResponseWriter, r *http.Request) {
 	t := r.Context().Value("team").(Team)
-	if !AllowedToConfigureChallenges(t) {
-		http.Error(w, http.StatusText(403), 403)
-		return
-	}
-
 	chalGroups := getChallengesOwnerOf(t.AdminOf, t.Group)
 
 	teamsWithCapturedFlags, err := DataGetEachTeamsCapturedFlags(chalGroups)
@@ -261,5 +245,4 @@ func GetEachTeamsCapturedFlags(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, http.StatusText(500), 500)
 		return
 	}
-	w.WriteHeader(http.StatusOK)
 }

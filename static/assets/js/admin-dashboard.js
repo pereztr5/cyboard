@@ -246,7 +246,7 @@ $(function() {
 var populateChallengesTable = function() {
     var chal_cfg = $('.flag-config-table');
     if (!chal_cfg.length) return;
-    $.get( "/ctf/config", function(chals) {
+    $.get( "/ctf/flags", function(chals) {
         // Wipe the current table, replace with new data
         var tbody = chal_cfg.find('tbody');
         tbody.empty();
