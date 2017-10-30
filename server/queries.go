@@ -568,6 +568,44 @@ func DataDeleteTeam(teamName string) error {
 	return teamC.Remove(bson.M{"name": teamName})
 }
 
+func DataGetChallengeByName(name string) (chal Challenge, err error) {
+	session, collection := GetChallengesCollection()
+	defer session.Close()
+	return chal, collection.Find(bson.M{"name": name}).One(&chal)
+}
+
+func DataAddChallenge(chal *Challenge) error {
+	session, collection := GetChallengesCollection()
+	defer session.Close()
+	return collection.Insert(&chal)
+}
+
+func DataDeleteChallenge(id *bson.ObjectId) error {
+	session, collection := GetChallengesCollection()
+	defer session.Close()
+	return collection.RemoveId(&id)
+}
+
+func DataUpdateChallenge(id *bson.ObjectId, updateOp *Challenge) error {
+	session, collection := GetChallengesCollection()
+	defer session.Close()
+	return collection.UpdateId(id, &updateOp)
+}
+
+func DataAddChallenges(team *Team, challenges []Challenge) error {
+	docs := make([]interface{}, len(challenges))
+	for i, chal := range challenges {
+		if !ctfIsAdminOf(team, &chal) {
+			return fmt.Errorf("AddFlags: unauthorized to add %v: %v\n", chal.Name, team.Name)
+		}
+		docs[i] = chal
+	}
+
+	session, collection := GetChallengesCollection()
+	defer session.Close()
+	return collection.Insert(docs...)
+}
+
 // Score breakdown methods
 
 type FlagSubmissions struct {

@@ -63,7 +63,15 @@ func RequireCtfGroupOwner(w http.ResponseWriter, r *http.Request, next http.Hand
 		http.Error(w, http.StatusText(http.StatusForbidden), http.StatusForbidden)
 		return
 	}
-	next(w, r)
+
+	chals, err := DataGetChallengesByGroup(t.AdminOf)
+	if err != nil {
+		Logger.Error("RequireCtfGroupOwner: failed to get flags by group: ", err)
+		http.Error(w, http.StatusText(500), 500)
+		return
+	}
+	ctx := context.WithValue(r.Context(), ctxOwnedChallenges, chals)
+	next(w, r.WithContext(ctx))
 }
 
 func AllowedToConfigureChallenges(t Team) bool {

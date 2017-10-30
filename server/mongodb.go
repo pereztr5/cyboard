@@ -8,6 +8,12 @@ import (
 	"gopkg.in/mgo.v2/bson"
 )
 
+const (
+	dbTeamsCollection      = "teams"
+	dbChallengesCollection = "challenges"
+	dbResultsCollection    = "results"
+)
+
 var (
 	mongodbSession    *mgo.Session
 	dbSettings        *DBSettings
@@ -61,6 +67,8 @@ func CreateIndexes() {
 
 	chalUniqInx := inx
 	chalUniqInx.Key = []string{"name"}
+	chalUniqFlagInx := inx
+	chalUniqFlagInx.Key = []string{"flag"}
 
 	// Comments below indicate at least one method the index is used in (there may be more)
 
@@ -71,12 +79,13 @@ func CreateIndexes() {
 		},
 		"challenges": {
 			chalUniqInx,
+			chalUniqFlagInx,
 			{Key: []string{"group"}},        // DataGetChallenges
 			{Key: []string{"flag", "name"}}, // DataCheckFlag
 		},
 		"results": {
 			{Key: []string{"type", "group"}}, // DataGetResultByService, DataGetSubmissionsPerFlag, DataGetEachTeamsCapturedFlags, HasFlag, DataGetTeamChallenges (partial)
-			{Key: []string{"points"}}, // DataGetAllScore & DataGetAllScoreSplitByType
+			{Key: []string{"points"}},        // DataGetAllScore & DataGetAllScoreSplitByType
 		},
 	}
 
@@ -98,6 +107,18 @@ func GetSessionAndCollection(collectionName string) (sessionCopy *mgo.Session, c
 	}
 	collection = sessionCopy.DB(dbSettings.DBName).C(collectionName)
 	return
+}
+
+func GetTeamsCollection() (*mgo.Session, *mgo.Collection) {
+	return GetSessionAndCollection(dbTeamsCollection)
+}
+
+func GetChallengesCollection() (*mgo.Session, *mgo.Collection) {
+	return GetSessionAndCollection(dbChallengesCollection)
+}
+
+func GetResultsCollection() (*mgo.Session, *mgo.Collection) {
+	return GetSessionAndCollection(dbResultsCollection)
 }
 
 // SetupMongo copies settings into app-wide vars used for connecting & interacting with MongoDB

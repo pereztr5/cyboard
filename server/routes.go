@@ -70,8 +70,8 @@ func CreateWebRouter(teamScoreUpdater, servicesUpdater *broadcastHub) *mux.Route
 	return router
 }
 
-func CreateTeamRouter() (*mux.Router, *mux.Router, *mux.Router) {
-	router := mux.NewRouter()
+func CreateTeamRouter() (router *mux.Router, blackTeamRouter *mux.Router, ctfConfigRouter *mux.Router) {
+	router = mux.NewRouter()
 	router.HandleFunc("/team/dashboard", ShowTeamDashboard).Methods("GET")
 	router.HandleFunc("/challenges", ShowChallenges).Methods("GET")
 	router.HandleFunc("/challenges/list", GetPublicChallenges).Methods("GET")
@@ -80,20 +80,31 @@ func CreateTeamRouter() (*mux.Router, *mux.Router, *mux.Router) {
 	router.HandleFunc("/ctf/breakdown/subs_per_flag", GetBreakdownOfSubmissionsPerFlag).Methods("GET")
 	router.HandleFunc("/ctf/breakdown/teams_flags", GetEachTeamsCapturedFlags).Methods("GET")
 
-	blackTeamRouter := router.PathPrefix("/black").Subrouter()
+	blackTeamRouter = router.PathPrefix("/black/").Subrouter()
 	blackTeamRouter.HandleFunc("/team/bonus", GrantBonusPoints).Methods("POST")
 
-	ctfConfigRouter := router.PathPrefix("/ctf").Subrouter()
-	ctfConfigRouter.HandleFunc("/flags", CtfConfig).Methods("GET")
+	ctfConfigRouter = router.PathPrefix("/ctf/").Subrouter()
 	ctfConfigRouter.HandleFunc("/breakdown/subs_per_flag", GetBreakdownOfSubmissionsPerFlag).Methods("GET")
 	ctfConfigRouter.HandleFunc("/breakdown/teams_flags", GetEachTeamsCapturedFlags).Methods("GET")
+	{
+		r := ctfConfigRouter.Path("/flags").Subrouter()
+		r.Methods("GET").HandlerFunc(GetConfigurableFlags)
+		r.Methods("POST").HandlerFunc(AddFlags)
+	}
+	{
+		r := ctfConfigRouter.Path("/flags/{flag}").Subrouter()
+		r.Methods("GET").HandlerFunc(GetFlagByName)
+		r.Methods("POST").HandlerFunc(AddFlag)
+		r.Methods("PUT").HandlerFunc(UpdateFlag)
+		r.Methods("DELETE").HandlerFunc(DeleteFlag)
+	}
 
-	return router, blackTeamRouter, ctfConfigRouter
+	return
 }
 
 func CreateAdminRouter() *mux.Router {
 	router := mux.NewRouter()
-	admin := router.PathPrefix("/admin").Subrouter()
+	admin := router.PathPrefix("/admin/").Subrouter()
 	admin.HandleFunc("/teams", GetAllUsers).Methods("GET")
 	admin.HandleFunc("/teams/add", AddTeams).Methods("POST").Headers("Content-Type", "text/csv; charset=UTF-8")
 	admin.HandleFunc("/team/update/{teamName}", UpdateTeam).Methods("PUT").Headers("Content-Type", "application/json; charset=UTF-8")
