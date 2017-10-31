@@ -233,8 +233,9 @@ func DataGetTeamChallenges(teamname string) ([]ChallengeCount, error) {
 	session, collection := GetSessionAndCollection("results")
 	defer session.Close()
 	acquired := []ChallengeCount{}
+	challengeGroups := DataGetChallengeGroupsList()
 	err := collection.Pipe([]bson.M{
-		{"$match": bson.M{"type": CTF, "teamname": teamname}},
+		{"$match": bson.M{"type": CTF, "group": bson.M{"$in": challengeGroups}, "teamname": teamname}},
 		{"$group": bson.M{"_id": "$group", "amount": bson.M{"$sum": 1}}},
 		{"$sort": bson.M{"group": -1}},
 	}).All(&acquired)
