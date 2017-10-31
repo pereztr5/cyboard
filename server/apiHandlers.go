@@ -239,7 +239,7 @@ func AddFlags(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, err.Error(), http.StatusBadRequest)
 		return
 	}
-	w.WriteHeader(http.StatusOK)
+	w.WriteHeader(http.StatusCreated)
 }
 
 func GetFlagByName(w http.ResponseWriter, r *http.Request) {
@@ -269,7 +269,7 @@ func AddFlag(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, "URL flag name and body's flag name must match", http.StatusBadRequest)
 		return
 	} else if !ctfIsAdminOf(&team, &insertOp) {
-		Logger.Errorf("AddFlag: unauthorized to add %v: %v\n", insertOp.Name, team.Name)
+		Logger.WithField("challenge", insertOp.Name).WithField("team", team.Name).Error("AddFlag: unauthorized to add flag")
 		http.Error(w, http.StatusText(http.StatusForbidden), http.StatusForbidden)
 		return
 	}
@@ -277,7 +277,7 @@ func AddFlag(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
 	}
-	w.WriteHeader(http.StatusOK)
+	w.WriteHeader(http.StatusCreated)
 }
 
 func UpdateFlag(w http.ResponseWriter, r *http.Request) {
@@ -305,7 +305,8 @@ func UpdateFlag(w http.ResponseWriter, r *http.Request) {
 func DeleteFlag(w http.ResponseWriter, r *http.Request) {
 	team, deleteOp := getCtxTeam(r), findConfigurableFlagFromReq(r)
 	if deleteOp == nil {
-		Logger.Errorf("DeleteFlag: unauthorized to remove %v: %v\n", deleteOp.Name, team.Name)
+		flagName := mux.Vars(r)["flag"]
+		Logger.WithField("challenge", flagName).WithField("team", team.Name).Error("DeleteFlag: unauthorized")
 		http.Error(w, http.StatusText(http.StatusForbidden), http.StatusForbidden)
 		return
 	}

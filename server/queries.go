@@ -596,7 +596,8 @@ func DataAddChallenges(team *Team, challenges []Challenge) error {
 	docs := make([]interface{}, len(challenges))
 	for i, chal := range challenges {
 		if !ctfIsAdminOf(team, &chal) {
-			return fmt.Errorf("AddFlags: unauthorized to add %v: %v\n", chal.Name, team.Name)
+			return fmt.Errorf("AddChallenges: user %s (adminOf=%s) unauthorized to add flags into group: %v",
+				team.Name, team.AdminOf, chal.Group)
 		}
 		docs[i] = chal
 	}

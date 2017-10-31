@@ -404,6 +404,7 @@ achieved a couple of ways:
 
 `httpie` is a handy tool that can be used for scripting API work. Here's
 a demonstration, using it to poke at Cyboard:
+
 ``` bash
 $ http --session cyboard-demo --form POST https://localhost:8081/login teamname=admin password=p
 HTTP/1.1 302 Found
@@ -420,12 +421,19 @@ Content-Length: 0
 Content-Type: text/plain; charset=utf-8
 Date: Sat, 28 Oct 2017 16:38:31 GMT
 
-$ http --session cyboard-demo --json GET https://localhost:8081/admin/teams
+$ http --session cyboard-demo GET https://localhost:8081/admin/teams
 HTTP/1.1 200 OK
 Content-Length: 1070
 Content-Type: application/json; charset=UTF-8
 Date: Sat, 28 Oct 2017 16:41:56 GMT
 
+[ ... ]
+# Combine with the powerful json parser utility `jq` to splice and select fields!
+# The following returns a newline-separated list of all challenge names
+$ http --session cyboard-demo GET https://localhost:8081/ctf/flags | jq -cr '.[] | .name'
+crypto-1
+crypto-2
+programming-1
 [ ... ]
 $
 ```
