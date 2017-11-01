@@ -189,26 +189,134 @@ func grantBonusPoints(bonus BonusDescriptor) error {
 	return DataAddResults(results, false)
 }
 
-func CtfConfig(w http.ResponseWriter, r *http.Request) {
-	t := r.Context().Value("team").(Team)
-	if !AllowedToConfigureChallenges(t) {
-		http.Error(w, http.StatusText(403), 403)
+// CTF Configuration
+
+// findConfigurableFlagFromReq will find the matching flag in the URL
+// from the list of owned challenges that exist on the request context.
+// (They are added by the RequireCtfGroupOwner middleware)
+func findConfigurableFlagFromReq(r *http.Request) *Challenge {
+	chals, flagName := getCtxOwnedChallenges(r), mux.Vars(r)["flag"]
+	for _, c := range chals {
+		if c.Name == flagName {
+			return &c
+		}
+	}
+	return nil
+}
+
+// ctfIsAdminOf returns true if the team is allowed control
+// over the challenge.
+func ctfIsAdminOf(t *Team, c *Challenge) bool {
+	switch t.Group {
+	case "admin", "blackteam":
+		return true
+	default:
+		return t.AdminOf == c.Group
+	}
+}
+
+func GetConfigurableFlags(w http.ResponseWriter, r *http.Request) {
+	chals := getCtxOwnedChallenges(r)
+	w.Header().Set("Content-Type", "application/json; charset=UTF-8")
+	if err := json.NewEncoder(w).Encode(chals); err != nil {
+		Logger.Error("Error encoding GetConfigurableFlags json: ", err)
+		http.Error(w, http.StatusText(500), 500)
+		return
+	}
+}
+
+func AddFlags(w http.ResponseWriter, r *http.Request) {
+	team := getCtxTeam(r)
+	var insertOp []Challenge
+
+	if err := json.NewDecoder(r.Body).Decode(&insertOp); err != nil {
+		Logger.Error("AddFlags: decode req body: ", err)
+		http.Error(w, err.Error(), http.StatusBadRequest)
+		return
+	}
+	if err := DataAddChallenges(&team, insertOp); err != nil {
+		Logger.Error("AddFlags:", err)
+		http.Error(w, err.Error(), http.StatusBadRequest)
+		return
+	}
+	w.WriteHeader(http.StatusCreated)
+}
+
+func GetFlagByName(w http.ResponseWriter, r *http.Request) {
+	chal := findConfigurableFlagFromReq(r)
+	if chal == nil {
+		http.Error(w, http.StatusText(http.StatusForbidden), http.StatusForbidden)
 		return
 	}
 
-	chals, err := DataGetChallengesByGroup(t.AdminOf)
-	if err != nil {
-		Logger.Error("Failed to get flags by group: ", err)
-		http.Error(w, http.StatusText(500), 500)
-		return
-	}
 	w.Header().Set("Content-Type", "application/json; charset=UTF-8")
-	err = json.NewEncoder(w).Encode(chals)
-	if err != nil {
-		Logger.Error("Error encoding CtfConfig json: ", err)
-		http.Error(w, http.StatusText(500), 500)
+	if err := json.NewEncoder(w).Encode(chal); err != nil {
+		Logger.Error("GetFlagByName: ", err)
+		http.Error(w, http.StatusText(http.StatusInternalServerError), http.StatusInternalServerError)
 		return
 	}
+}
+
+func AddFlag(w http.ResponseWriter, r *http.Request) {
+	team := getCtxTeam(r)
+	var insertOp Challenge
+
+	if err := json.NewDecoder(r.Body).Decode(&insertOp); err != nil {
+		Logger.Error("AddFlag: decode req body: ", err)
+		http.Error(w, err.Error(), http.StatusBadRequest)
+		return
+	} else if mux.Vars(r)["flag"] != insertOp.Name {
+		http.Error(w, "URL flag name and body's flag name must match", http.StatusBadRequest)
+		return
+	} else if !ctfIsAdminOf(&team, &insertOp) {
+		Logger.WithField("challenge", insertOp.Name).WithField("team", team.Name).Error("AddFlag: unauthorized to add flag")
+		http.Error(w, http.StatusText(http.StatusForbidden), http.StatusForbidden)
+		return
+	}
+	if err := DataAddChallenge(&insertOp); err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
+	w.WriteHeader(http.StatusCreated)
+}
+
+func UpdateFlag(w http.ResponseWriter, r *http.Request) {
+	chal := findConfigurableFlagFromReq(r)
+	if chal == nil {
+		http.Error(w, http.StatusText(http.StatusForbidden), http.StatusForbidden)
+		return
+	}
+
+	var updateOp Challenge
+	if err := json.NewDecoder(r.Body).Decode(&updateOp); err != nil {
+		Logger.Error("UpdateFlag: decode req body: ", err)
+		http.Error(w, err.Error(), http.StatusBadRequest)
+		return
+	}
+
+	if err := DataUpdateChallenge(&chal.Id, &updateOp); err != nil {
+		Logger.Error("UpdateFlag: db update: ", err)
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
+	w.WriteHeader(http.StatusOK)
+}
+
+func DeleteFlag(w http.ResponseWriter, r *http.Request) {
+	team, deleteOp := getCtxTeam(r), findConfigurableFlagFromReq(r)
+	if deleteOp == nil {
+		flagName := mux.Vars(r)["flag"]
+		Logger.WithField("challenge", flagName).WithField("team", team.Name).Error("DeleteFlag: unauthorized")
+		http.Error(w, http.StatusText(http.StatusForbidden), http.StatusForbidden)
+		return
+	}
+
+	if err := DataDeleteChallenge(&deleteOp.Id); err != nil {
+		Logger.Error("DeleteFlag: db remove: ", err)
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
+	w.WriteHeader(http.StatusOK)
 }
 
 // todo(tbutts): Reduce copied code. Particularly in the Breakdown methods, and anything that returns JSON.
@@ -216,11 +324,6 @@ func CtfConfig(w http.ResponseWriter, r *http.Request) {
 
 func GetBreakdownOfSubmissionsPerFlag(w http.ResponseWriter, r *http.Request) {
 	t := r.Context().Value("team").(Team)
-	if !AllowedToConfigureChallenges(t) {
-		http.Error(w, http.StatusText(403), 403)
-		return
-	}
-
 	chalGroups := getChallengesOwnerOf(t.AdminOf, t.Group)
 
 	flagsWithCapCounts, err := DataGetSubmissionsPerFlag(chalGroups)
@@ -236,16 +339,10 @@ func GetBreakdownOfSubmissionsPerFlag(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, http.StatusText(500), 500)
 		return
 	}
-	w.WriteHeader(http.StatusOK)
 }
 
 func GetEachTeamsCapturedFlags(w http.ResponseWriter, r *http.Request) {
 	t := r.Context().Value("team").(Team)
-	if !AllowedToConfigureChallenges(t) {
-		http.Error(w, http.StatusText(403), 403)
-		return
-	}
-
 	chalGroups := getChallengesOwnerOf(t.AdminOf, t.Group)
 
 	teamsWithCapturedFlags, err := DataGetEachTeamsCapturedFlags(chalGroups)
@@ -261,5 +358,4 @@ func GetEachTeamsCapturedFlags(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, http.StatusText(500), 500)
 		return
 	}
-	w.WriteHeader(http.StatusOK)
 }

@@ -325,7 +325,7 @@ achieved a couple of ways:
 
 #### Function: Login
 + Endpoint: `/login`
-+ Role: <any>
++ Role: &lt;any&gt;
 + Methods: POST
 + Request:
     * Headers: ContentType: form
@@ -339,9 +339,9 @@ achieved a couple of ways:
 
 #### Function: Logout
 + Endpoint: `/logout`
-+ Role: <any>
++ Role: &lt;any&gt;
 + Methods: GET
-+ Request: <ignored>
++ Request: &lt;ignored&gt;
 + Response: text/plain
     * On success: The logged in user's cookie under the key `cyboard`
         will be wiped. Then, HTTP redirect to `/login`.
@@ -365,10 +365,10 @@ achieved a couple of ways:
         - Other HTTP Status Code: Bad request, server error, etc.
 
 #### Function: List CTF challenges
-+ Endpoint: `/ctf/config`
++ Endpoint: `/ctf/flags`
 + Role: "admin", "blackteam", or designated CTF group owner
 + Methods: GET
-+ Request: <ignored>
++ Request: &lt;ignored&gt;
 + Response: application/json
     * On success: Returns everything about each challenge flags that
         the requesting user has access to view.
@@ -378,7 +378,7 @@ achieved a couple of ways:
 + Endpoint: `/admin/teams`
 + Role: "admin"
 + Methods: GET
-+ Request: <ignored>
++ Request: &lt;ignored&gt;
 + Response: application/json
     * On success: Returns everything but password hashes, for every user.
     * On failure: Standard HTTP error code.
@@ -404,6 +404,7 @@ achieved a couple of ways:
 
 `httpie` is a handy tool that can be used for scripting API work. Here's
 a demonstration, using it to poke at Cyboard:
+
 ``` bash
 $ http --session cyboard-demo --form POST https://localhost:8081/login teamname=admin password=p
 HTTP/1.1 302 Found
@@ -420,12 +421,19 @@ Content-Length: 0
 Content-Type: text/plain; charset=utf-8
 Date: Sat, 28 Oct 2017 16:38:31 GMT
 
-$ http --session cyboard-demo --json GET https://localhost:8081/admin/teams
+$ http --session cyboard-demo GET https://localhost:8081/admin/teams
 HTTP/1.1 200 OK
 Content-Length: 1070
 Content-Type: application/json; charset=UTF-8
 Date: Sat, 28 Oct 2017 16:41:56 GMT
 
+[ ... ]
+# Combine with the powerful json parser utility `jq` to splice and select fields!
+# The following returns a newline-separated list of all challenge names
+$ http --session cyboard-demo GET https://localhost:8081/ctf/flags | jq -cr '.[] | .name'
+crypto-1
+crypto-2
+programming-1
 [ ... ]
 $
 ```

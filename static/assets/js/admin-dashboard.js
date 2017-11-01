@@ -240,36 +240,162 @@ $(function() {
         e.preventDefault();
         submitBonusPoints($(this));
     });
+
+    /*
+     * CHALLENGE CONFIGURATION TABLE
+     */
+    const flag_cfg = $('.flag-config-table');
+    flag_cfg.editableTableWidget({});
+
+    // --- Editing CTF ---
+    // Flag cells as changed, to provide feedback to the flag admin
+    flag_cfg.find('tbody').on('change', 'td', function(evt) {
+        const cell = $(this);
+        if (!cell.attr('data-original')) {
+            cell.closest('tr').addClass('changed');
+            cell.attr('data-original', '_');
+        }
+    });
+
+    // --- Update Challenge for CTF ---
+    flag_cfg.find('tbody').on("click", ".flag-update", function() {
+
+        const status_node = $('.edit-flag-controls').find('.status');
+        const row = $(this).closest('tr');
+        if (!row.hasClass('changed')) {
+            status_node.text("Skipping unchanged row");
+            return;
+        }
+
+        const [name, group, flag, points, description] = $.map( row.find('td'), (c) => c.textContent);
+        const updateOp = createFlagFromStrings(name, group, flag, points, description);
+
+        const flagName = row.attr('data-flag-name');
+        BootstrapDialog.confirm(`Update flag '${flagName}'?`, function(yes) {
+            if(!yes) { return }
+
+            $.ajax({
+                url: `/ctf/flags/${flagName}`,
+                type: 'PUT',
+                contentType: 'application/json; charset=UTF-8',
+                data: JSON.stringify(updateOp),
+                success: populateChallengesTable,
+                complete: (xhr) => status_node.text(xhr.responseText || `Updated: ${updateOp['name']}`),
+            });
+        });
+    });
+
+    // --- Delete Challenge ---
+    flag_cfg.find('tbody').on("click", ".flag-del", function() {
+        const flagName = $(this).closest('tr').attr('data-flag-name');
+
+        BootstrapDialog.confirm(`Delete flag '${flagName}'?`, function(yes) {
+            if(!yes) { return }
+
+            $.ajax({
+                url: `/ctf/flags/${flagName}`,
+                type: 'DELETE',
+                complete: populateChallengesTable,
+            });
+        });
+    });
+
+    /* CSV Upload extras */
+    const placeholderFlagCsv =
+        "     Name,     Group,                     Flag, Points, Description\n" +
+        " crypto-1,       CTF,         flag{s3cReT2no1},    100,            \n" +
+        " crypto-2,       CTF,      flag{trU5tTh3CENt_},    150,            \n" +
+        "   prog-1,       CTF,   flag{wh0suRdaddaddy?!},     50,            \n" +
+        "  Stage 1,      Wifi,          easy wasn't it?,     25,            \n" +
+        "  Stage 2,      Wifi,      Getting tougher now,     50,            \n" +
+        "  Stage 3,      Wifi,         j0nc4n5b3st0Pp3D,     75,            \n";
+
+    $('.flag-config-csv-upload').find('textarea')
+        .val(placeholderFlagCsv);
+
+    $('.flag-config-csv-upload form').on('submit', function(e) {
+        e.preventDefault();
+        submitFlagTextareaCsv();
+    });
 });
+
+// --- Add Flags ---
+// Convert the plain-text CSV into JSON suitable to post to the server
+// Errors are shown next to the submit button
+var submitFlagTextareaCsv = function() {
+    const status_node = $('.flag-config-csv-upload').find('.status');
+    const flagsCsv = $('.flag-config-csv-upload textarea').val();
+
+    // let rows = csv.split(/\n/)
+    // .map((row) => row.split(/,/, 5)
+    //     .map((col) => col.trimLeft()))
+    // .filter((row) => row.length === 5);
+
+    let rows;
+    try {
+        rows = $.csv.toArrays(flagsCsv, {onParseValue: (e)=>e.trimLeft()});
+    } catch (e) {
+        status_node.text(e.message);
+        throw e;
+    }
+
+    // Remove header if present
+    if (rows[0][0] === "Name" && rows[0][1] === "Group") {
+        rows.shift();
+    }
+
+    const flagsToAdd = rows.map((row) => createFlagFromStrings(...row));
+
+    $.ajax({
+        url: `/ctf/flags`,
+        type: 'POST',
+        contentType: 'application/json; charset=UTF-8',
+        data: JSON.stringify(flagsToAdd),
+        complete: (xhr) => {
+            status_node.text(xhr.responseText || `Added ${flagsToAdd.length} flags!`);
+            populateChallengesTable();
+        },
+    });
+};
 
 // --- Refresh the Challenge listing table completely ---
 var populateChallengesTable = function() {
     var chal_cfg = $('.flag-config-table');
     if (!chal_cfg.length) return;
-    $.get( "/ctf/config", function(chals) {
+    $.get( "/ctf/flags", function(chals) {
         // Wipe the current table, replace with new data
         var tbody = chal_cfg.find('tbody');
         tbody.empty();
         $.each(chals, function(i, chal) {
             /* Build the inner DOM elements of the <tr> */
-            tbody.append($("<tr/>")
+            tbody.append($("<tr/>").attr('data-flag-name', chal['name'])
                     .append($('<td/>').text(chal['name']))
                     .append($('<td/>').text(chal['group']))
                     .append($('<td/>').text(chal['flag']))
                     .append($('<td/>').text(chal['points']))
                     .append($('<td/>').text(chal['description']))
-                // .append($('<th/>').addClass("controls")
-                //     .append($('<div/>').addClass('btn-group')
-                //         // .append(newIconButton("fa-clipboard", "btn-success user-clip"))
-                //             .append(newIconButton("fa-pencil", "btn-warning user-update"))
-                //             .append(newIconButton("fa-trash", "btn-danger user-del"))
-                //     )
-                // )
+                    .append($('<th/>').addClass("controls")
+                        .append($('<div/>').addClass('btn-group')
+                            // .append(newIconButton("fa-clipboard", "btn-success ctf-clip"))
+                                .append(newIconButton("fa-pencil", "btn-warning flag-update"))
+                                .append(newIconButton("fa-trash", "btn-danger flag-del"))
+                        )
+                    )
             );
         });
-        // chal_cfg.editableTableWidget({});
+        chal_cfg.editableTableWidget({});
     }, "json");
 };
+
+function createFlagFromStrings(name, group, flag, points, description) {
+    return {
+        name: name,
+        group: group,
+        flag: flag,
+        points: window.parseInt(points, 10),
+        description: description,
+    }
+}
 
 function submitBonusPoints(form) {
     const serialize = (inputName, fn) => fn(form.find(`input[name=${inputName}]`).val());

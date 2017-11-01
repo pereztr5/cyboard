@@ -260,8 +260,10 @@
     <div class="guidelines">
         <h4>Challenge Editing Guidelines:</h4>
         <ul>
-            <li>Sorry, you can't edit ctf flags from this page, yet.
-                (The feature didn't get complete in time!)</li>
+            <li>The challenge <b>name</b> and <b>group</b> act as the unique keys when
+                blue teams score flags. Do not update them after the competition has started.</li>
+            <li>You can only add flags in your group (show below), unless you are an "admin".</li>
+            <li>Points must be whole numbers.</li>
         </ul>
     </div>
 
@@ -279,7 +281,6 @@
                     <th>Flag</th>
                     <th>Points</th>
                     <th>Description</th>
-                    <!--<th>Notes</th>-->
                 </tr>
                 </thead>
                 <tbody>
@@ -289,7 +290,6 @@
         </div>
     </div>
 
-    <!--
     <div class="csv-upload flag-config-csv-upload form-group">
         <div class="guidelines">
             <h4>Add Flags via CSV</h4>
@@ -313,7 +313,7 @@
             </div>
         </form>
     </div>
-    -->
+
 </div>
 {{ end }}
 

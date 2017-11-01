@@ -53,7 +53,7 @@ func Run(cfg *Configuration) {
 	defer teamScoreUpdater.Stop()
 	defer servicesUpdater.Stop()
 	webRouter := CreateWebRouter(teamScoreUpdater, servicesUpdater)
-	teamRouter, blackTeamRouter := CreateTeamRouter()
+	teamRouter, blackTeamRouter, ctfConfigRouter := CreateTeamRouter()
 	adminRouter := CreateAdminRouter()
 
 	app := negroni.New()
@@ -67,6 +67,11 @@ func Run(cfg *Configuration) {
 	webRouter.PathPrefix("/black").Handler(basicAuth.With(
 		negroni.HandlerFunc(RequireGroupIsAnyOf([]string{"admin", "blackteam"})),
 		negroni.Wrap(blackTeamRouter),
+	))
+
+	webRouter.PathPrefix("/ctf").Handler(basicAuth.With(
+		negroni.HandlerFunc(RequireCtfGroupOwner),
+		negroni.Wrap(ctfConfigRouter),
 	))
 
 	webRouter.PathPrefix("/").Handler(basicAuth.With(
