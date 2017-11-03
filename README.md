@@ -32,6 +32,8 @@
 [Tony](https://github.com/pereztr5 "Tony Perez") started developing Cyboard
 in 2016 as his senior project at SUNY Polytechnic, with the goal to use it
 for the [CNY Hackathon](https://www.cnyhackathon.org "CNY Hackathon Home").
+[Butters](https://github.com/tbutts "Tyler Butters") has helped maintain and
+improve this project since it was created.
 
 CNY Hackathon is a joint cyber security defense & CTF event for intercollegiate
 students of the Central New York region. The event is hosted bi-annually to
