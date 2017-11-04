@@ -92,7 +92,14 @@ $(function () {
                     groupPadding: 0.1,
                     // borderWidth: 0,
                     // colorByPoint: true,
-                    shadow: true
+                    shadow: true,
+                    dataLabels: {
+                        enabled: true,
+                        formatter: function() { return this.y; },
+                        style: {
+                            fontSize: '2.2em',
+                        },
+                    },
                 }
             },
             series: hc_scoreboard_series,
