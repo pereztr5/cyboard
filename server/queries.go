@@ -237,7 +237,7 @@ func DataGetTeamChallenges(teamname string) ([]ChallengeCount, error) {
 	err := collection.Pipe([]bson.M{
 		{"$match": bson.M{"type": CTF, "group": bson.M{"$in": challengeGroups}, "teamname": teamname}},
 		{"$group": bson.M{"_id": "$group", "amount": bson.M{"$sum": 1}}},
-		{"$sort": bson.M{"group": -1}},
+		{"$sort": bson.M{"_id": 1}},
 	}).All(&acquired)
 	if err != nil {
 		Logger.Error("Error getting challenges: ", err)
