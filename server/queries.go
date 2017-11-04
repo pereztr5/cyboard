@@ -217,7 +217,7 @@ func DataGetTotalChallenges() ([]ChallengeCount, error) {
 	totals := []ChallengeCount{}
 	err := collection.Pipe([]bson.M{
 		{"$group": bson.M{"_id": "$group", "amount": bson.M{"$sum": 1}}},
-		{"$sort": bson.M{"_id": -1}},
+		{"$sort": bson.M{"_id": 1}},
 	}).All(&totals)
 	if err != nil {
 		Logger.Error("Error getting challenges: ", err)
@@ -243,6 +243,19 @@ func DataGetTeamChallenges(teamname string) ([]ChallengeCount, error) {
 		Logger.Error("Error getting challenges: ", err)
 		return acquired, err
 	}
+
+	if len(challengeGroups) != len(acquired) {
+		for idx, chalGroup := range challengeGroups {
+			if idx >= len(acquired) {
+				acquired = append(acquired, ChallengeCount{Group: chalGroup})
+			} else if acquired[idx].Group != chalGroup {
+				acquired = append(acquired, ChallengeCount{})
+				copy(acquired[idx+1:], acquired[idx:])
+				acquired[idx] = ChallengeCount{Group: chalGroup}
+			}
+		}
+	}
+
 	return acquired, nil
 }
 
