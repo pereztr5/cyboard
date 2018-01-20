@@ -3,7 +3,8 @@
 # the image produced by the Dockerfile
 
 # To build the docker image to begin with,
-# simple install docker and run at the root of the repo:
+# simply install docker, copy the Dockerfile to the root of the repo,
+# cd to the root, and run:
 #
 #   `docker build -t cyboard .`
 #

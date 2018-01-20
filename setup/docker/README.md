@@ -10,14 +10,15 @@ command.
 As preparation, install [docker][docker-install] &
 [docker-compose][compose-install]. Then, configure `cyboard` itself:
 
-1. Create the directory `cfg/` at the root of the source repo (same folder
-   as `Dockerfile`).
-2. Copy `config.toml` and `checks.toml` into the new folder.
-3. Update their settings as you see fit. Docker will handle details such as
+1. Copy the necessary files from here to the root of the project:
+   `$ cp .dockerignore docker-compose.yml Dockerfile ../../`
+2. Create the directory `cfg/` at the root.
+3. Copy `config.toml` and `checks.toml` into the new folder.
+4. Update their settings as you see fit. Docker will handle details such as
    the mongodb URI, & webserver ports, so those can be left untouched.
-4. Optionally: Create SSL certs using the `setup/generate_cert.go` script,
+5. Optionally: Create SSL certs using the `setup/generate_cert.go` script,
    and place those in a `certs/` folder at the repo root.
-5. Optionally: Create a `scripts/` folder for checks, and add scripts/commands
+6. Optionally: Create a `scripts/` folder for checks, and add scripts/commands
    as needed by `checks.toml`.
 
 ## Running
