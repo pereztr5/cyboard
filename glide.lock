@@ -1,5 +1,5 @@
-hash: 664da2cb51a94b03ce80bab7c884e7741f8f58c165d7c689100993ea83ce0a58
-updated: 2018-04-08T09:51:19.89902065-04:00
+hash: ba35bf08e9a188c6f81c7e44525746601d8c8a0f0ff06415c61dac345b94f7c4
+updated: 2018-04-08T10:06:02.617050715-04:00
 imports:
 - name: github.com/fsnotify/fsnotify
   version: c2828203cd70a50dcccfb2761f8b1f8ceef9a8e9
@@ -27,6 +27,8 @@ imports:
   - json/token
 - name: github.com/inconshreveable/mousetrap
   version: 76626ae9c91c4f2a10f34cad8ce83ea42c93bb75
+- name: github.com/jackc/pgx
+  version: da3231b0b66e2e74cdb779f1d46c5e958ba8be27
 - name: github.com/magiconair/properties
   version: 2c9e9502788518c97fe44e8955cd069417ee89df
 - name: github.com/meatballhat/negroni-logrus

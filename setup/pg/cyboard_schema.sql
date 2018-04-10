@@ -33,7 +33,7 @@ COMMENT ON EXTENSION timescaledb IS 'Enables scalable inserts and complex querie
 -- Name: cy; Type: SCHEMA; Schema: -; Owner: x
 --
 
-CREATE SCHEMA cy;
+CREATE SCHEMA IF NOT EXISTS cy;
 
 
 ALTER SCHEMA cy OWNER TO cyboard_admin;
@@ -62,8 +62,8 @@ SET default_with_oids = false;
 -- Name: result; Type: TABLE; Schema: cy; Owner: cyboard_admin
 --
 
-CREATE TABLE cy.result (
-    "timestamp" timestamp without time zone NOT NULL,
+CREATE TABLE IF NOT EXISTS cy.result (
+    "timestamp" timestamptz NOT NULL,
     teamname text NOT NULL,
     teamnumber smallint NOT NULL,
     points integer NOT NULL,
@@ -115,41 +115,34 @@ COMMENT ON COLUMN cy.result.exit_status IS '(from "details") Exit code for Servi
 -- Name: result_category_index; Type: INDEX; Schema: cy; Owner: cyboard_admin
 --
 
-CREATE INDEX result_category_index ON cy.result USING btree (category);
+CREATE INDEX IF NOT EXISTS result_category_index ON cy.result USING btree (category);
 
 
 --
 -- Name: result_teamname_index; Type: INDEX; Schema: cy; Owner: cyboard_admin
 --
 
-CREATE INDEX result_teamname_index ON cy.result USING btree (teamname);
+CREATE INDEX IF NOT EXISTS result_teamname_index ON cy.result USING btree (teamname);
 
 
 --
 -- Name: result_timestamp_idx; Type: INDEX; Schema: cy; Owner: cyboard_admin
 --
 
-CREATE INDEX result_timestamp_idx ON cy.result USING btree ("timestamp" DESC);
+CREATE INDEX IF NOT EXISTS result_timestamp_idx ON cy.result USING btree ("timestamp" DESC);
 
 
 --
 -- Name: result_type_index; Type: INDEX; Schema: cy; Owner: cyboard_admin
 --
 
-CREATE INDEX result_type_index ON cy.result USING btree (type);
-
-
---
--- Name: teams_name_uindex; Type: INDEX; Schema: cy; Owner: cyboard_admin
---
-
-CREATE UNIQUE INDEX teams_name_uindex ON cy.teams USING btree (name);
+CREATE INDEX IF NOT EXISTS result_type_index ON cy.result USING btree (type);
 
 
 --
 -- Setup Timescale Hypertable
 --
-SELECT create_hypertable('cy.result', 'timestamp')
+SELECT public.create_hypertable('cy.result', 'timestamp');
 
 
 --

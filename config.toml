@@ -21,3 +21,5 @@ stdout = false
 [database]
 mongodb_uri = "mongodb://127.0.0.1"
 dbname = "scorengine"
+# Uncomment & update to enable saving scores to postgres
+#postgres_uri = "postgres://localhost/cyboard"
