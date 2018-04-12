@@ -14,6 +14,8 @@ stdout = false
 [database]
 mongodb_uri = "mongodb://127.0.0.1"
 dbname = "scorengine"
+# Uncomment & update to enable saving scores to postgres
+#postgres_uri = "postgres://localhost/cyboard"
 
 # The double-brackets make an array of structs, zero-indexed.
 # This is just a weird config file quirk, copy it for each script added and move on.
