@@ -32,8 +32,8 @@ import tempfile
 print("dupe.py: Mirror scores from Cyboard's MongoDB into Postgres")
 print()
 
-if sys.version_info < (3,3):
-    sys.exit("ERROR: Python v3.3 or greater is required!")
+if sys.version_info < (3,5):
+    sys.exit("ERROR: Python v3.5 or greater is required!")
 
 """
 Script Configuration:
