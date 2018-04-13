@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"fmt"
 	"html/template"
+	"math/rand"
 	"os/exec"
 	"path/filepath"
 	"strconv"
@@ -42,6 +43,7 @@ type CheckConfiguration struct {
 var (
 	rawCheckCfg    *viper.Viper
 	cfgNeedsReload bool
+	rando          *rand.Rand
 
 	// dryRun toggles a dummy run of the whole service checker. TODO: Replace with proper tests
 	dryRun bool
@@ -170,9 +172,19 @@ func startCheckService(checkCfg *CheckConfiguration, teams []Team) {
 	Logger.Println("Starting Checks")
 	checkTicker := time.NewTicker(event.Intervals)
 	waitingOnReload := false
+	freeTime := event.Intervals - event.Timeout
+	if freeTime <= 0 {
+		// There must be some jitter
+		freeTime = 1
+	}
 
 	for {
 		now := time.Now()
+
+		// Add unpredictability to the service checking by waiting some time
+		jitter := time.Duration(rando.Int63n(int64(freeTime)))
+		<-time.After(jitter)
+
 		if !cfgNeedsReload && now.Before(event.End) {
 
 			// When there's nothing to do, log once, then just keep
@@ -193,7 +205,8 @@ func startCheckService(checkCfg *CheckConfiguration, teams []Team) {
 				continue
 			}
 
-			Logger.Println("Running Checks")
+			Logger.Printf("Running Checks. Started +jitter = %s +%v",
+				now.Format(time.RFC3339), jitter.Truncate(time.Millisecond))
 			for _, team := range teams {
 				for _, check := range checks {
 					go runCmd(team, check, now, event.Timeout, status)
@@ -297,6 +310,7 @@ func ChecksRun(checkCfg *CheckConfiguration) {
 	SetupCheckServiceLogger(&checkCfg.Log)
 	SetupMongo(&checkCfg.Database, nil)
 	SetupPostgres(checkCfg.Database.PostgresURI)
+	rando = rand.New(rand.NewSource(time.Now().UTC().UnixNano()))
 
 	for {
 		cfgNeedsReload = false
