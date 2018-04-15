@@ -1,3 +1,9 @@
+## v0.2018.11 (Spring 2018)
+
+- BREAKING: Dropped support for Go 1.8
+- Add jitter to the service checking interval
+- Add support for exploring event score data in Grafana, via Postgres DB
+
 ## v0.2017.11 (Fall 2017)
 
 - Display scores per category for each team. This allows organizers and contestants to know who is doing better in CTF vs. Infrastructure (#27)
