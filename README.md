@@ -65,15 +65,19 @@ FreeBSD, CentOS, Arch, and Ubuntu. To build `cyboard`:
     * Alternatively Download & Install [Go v1.9+][go-install]
 2. _Optional_: Go demands all code be located in one central folder,
     which you may configure before proceeding: [Guide to GOPATH][gopath]
-2. Install [Glide][glide], which manages Go dependencies
-    * The recommended way: `curl https://glide.sh/get | sh`
+2. Install [dep][dep], which manages Go dependencies
+    * Two line install for linux:
+        ``` bash
+        wget -O $GOPATH/bin/dep https://github.com/golang/dep/releases/download/v0.4.1/dep-linux-amd64
+        chmod 755 $GOPATH/bin/dep
+        ```
 3. Clone this source repo into `$GOPATH/src/github.com/pereztr5/cyboard/`,
     either through:
     * `go get github.com/pereztr5/cyboard`
     * or directly via Github
 4. From the source root, run:
     ``` sh
-    glide install  # Fetches & builds dependencies
+    dep ensure     # Fetches & builds dependencies
     go build       # Build the project
     go test ./...  # Optional: Runs unit tests (Local MongoDB install required)
     ```
@@ -462,7 +466,7 @@ If you have any feedback or suggestions, get in contact or
 <!-- Footnote Back links -->
 
 [exit-code]: https://en.wikipedia.org/wiki/Exit_status
-[glide]: https://github.com/Masterminds/glide
+[dep]: https://golang.github.io/dep/
 [golang]: https://golang.org/
 [go-install]: https://golang.org/doc/install]
 [gopath]: https://golang.org/doc/code.html#GOPATH
