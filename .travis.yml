@@ -5,11 +5,17 @@ go:
   - 1.10.x
   - 1.x
 
+env:
+  - DEP_VERSION="0.4.1"
+
 # A local Mongo is required for tests
 services: mongodb
 
-# Thanks to: https://github.com/Masterminds/glide/issues/408#issuecomment-217493627
+before_install:
+  # Install `dep`
+  - curl -L -s https://github.com/golang/dep/releases/download/v${DEP_VERSION}/dep-linux-amd64 -o $GOPATH/bin/dep
+  - chmod +x $GOPATH/bin/dep
+
 install:
-  - go get -v github.com/Masterminds/glide
-  - cd $GOPATH/src/github.com/Masterminds/glide && git checkout v0.13.0 && go install && cd -
-  - glide install
+  - dep ensure
+
