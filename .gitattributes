@@ -1,1 +1,0 @@
-setup/pg/grafana.db.zip filter=lfs diff=lfs merge=lfs -text

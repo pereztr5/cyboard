@@ -14,9 +14,8 @@ type LogSettings struct {
 }
 
 type DBSettings struct {
-	URI         string `mapstructure:"mongodb_uri"`
-	DBName      string
-	PostgresURI string `mapstructure:"postgres_uri"`
+	URI    string `mapstructure:"mongodb_uri"`
+	DBName string
 }
 
 type ServerSettings struct {
@@ -45,8 +44,6 @@ func Run(cfg *Configuration) {
 	// MongoDB setup
 	SetupMongo(&cfg.Database, cfg.Server.SpecialChallenges)
 	CreateIndexes()
-	// Postgres Setup
-	SetupPostgres(cfg.Database.PostgresURI)
 	// Web Server Setup
 	CreateStore()
 	// On first run, prompt to set up an admin user
