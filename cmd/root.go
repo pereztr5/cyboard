@@ -27,9 +27,6 @@ func init() {
 		"Prints the parsed server / check config (for debugging purposes)")
 	flags.String("mongodb-uri", "mongodb://127.0.0.1",
 		"Address of MongoDB instance to use. Also configured with the environment var: `MONGODB_URI`")
-	flags.String("postgres-uri", "",
-		"Postgres Connection string. Leave blank to disable saving scoring results to Postgres. "+
-			"Passwords can be supplied in a local .pgpass file.")
 	flags.BoolP("stdout", "s", false, "Log to standard out")
 
 	RootCmd.AddCommand(ServerCmd, CheckCmd)
@@ -56,11 +53,9 @@ func initConfig(v *viper.Viper, configName string) {
 
 	// Bind global flags & env vars to this specific config's values
 	v.BindEnv("database.mongodb_uri", "MONGODB_URI")
-	v.BindEnv("database.postgres_uri", "CY_POSTGRES_URI")
 
 	flags := RootCmd.PersistentFlags()
 	v.BindPFlag("database.mongodb_uri", flags.Lookup("mongodb-uri"))
-	v.BindPFlag("database.postgres_uri", flags.Lookup("postgres-uri"))
 	v.BindPFlag("log.stdout", flags.Lookup("stdout"))
 }
 
@@ -91,6 +86,5 @@ func mustUnmarshal(v *viper.Viper, cfg interface{}) {
 }
 
 func RootRun(cmd *cobra.Command, args []string) {
-
 	cmd.Help()
 }

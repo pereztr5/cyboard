@@ -186,9 +186,6 @@ func grantBonusPoints(bonus BonusDescriptor) error {
 	CaptFlagsLogger.WithField("teams", bonus.Teams).WithField("challenge", bonus.Details).WithField("chalGroup", "BONUS").
 		WithField("points", bonus.Points).Println("Bonus awarded!")
 
-	if err := PostgresScoreBonusFlags(results); err != nil {
-		Logger.Error("Failed to save bonus points scored into Postgres: ", err)
-	}
 	return DataAddResults(results, false)
 }
 

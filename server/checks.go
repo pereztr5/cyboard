@@ -150,10 +150,7 @@ func scoreAll(results []Result) {
 	if !dryRun {
 		err := DataAddResults(results, dryRun)
 		if err != nil {
-			Logger.Error("Could not insert service result: ", err)
-		}
-		if err = PostgresScoreServices(results); err != nil {
-			Logger.Error("Could not insert service results in postgres: ", err)
+			Logger.Error("Could not insert service result:", err)
 		}
 	} else {
 		for _, result := range results {
@@ -309,7 +306,6 @@ func testData() []Team {
 func ChecksRun(checkCfg *CheckConfiguration) {
 	SetupCheckServiceLogger(&checkCfg.Log)
 	SetupMongo(&checkCfg.Database, nil)
-	SetupPostgres(checkCfg.Database.PostgresURI)
 	rando = rand.New(rand.NewSource(time.Now().UTC().UnixNano()))
 
 	for {

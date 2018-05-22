@@ -185,11 +185,8 @@ func DataCheckFlag(team Team, chal Challenge) (FlagState, error) {
 	}
 	CaptFlagsLogger.WithField("team", result.Teamname).WithField("challenge", result.Details).WithField("chalGroup", result.Group).
 		WithField("points", result.Points).Println("Score!!")
-
-	if err := PostgresScoreCapturedFlag(&result); err != nil {
-		Logger.Error("Failed to save captured flag scored into Postgres: ", err)
-	}
-	return ValidFlag, DataAddResult(result, false)
+	test := false
+	return ValidFlag, DataAddResult(result, test)
 }
 
 func HasFlag(teamnumber int, challengeGroup, challengeName string) bool {
