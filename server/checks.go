@@ -12,33 +12,11 @@ import (
 	"syscall"
 	"time"
 
+	"github.com/pereztr5/cyboard/server/models"
+
 	"github.com/fsnotify/fsnotify"
 	"github.com/spf13/viper"
 )
-
-type EventSettings struct {
-	ChecksDir string    `mapstructure:"checks_dir"`
-	End       time.Time `mapstructure:"event_end_time"`
-	Intervals time.Duration
-	Timeout   time.Duration
-	OnBreak   bool `mapstructure:"on_break"`
-}
-
-type Check struct {
-	Name     string `mapstructure:"check_name"`
-	Filename string
-	Script   *exec.Cmd
-	Args     string
-	Points   []int
-	Disable  bool
-}
-
-type CheckConfiguration struct {
-	Event    EventSettings
-	Log      LogSettings
-	Database DBSettings
-	Checks   []Check
-}
 
 var (
 	rawCheckCfg    *viper.Viper
@@ -48,16 +26,6 @@ var (
 	// dryRun toggles a dummy run of the whole service checker. TODO: Replace with proper tests
 	dryRun bool
 )
-
-func (c *Check) String() string {
-	return fmt.Sprintf(`Check{name=%q, fullcmd="%s %s", pts=%v}`,
-		c.Name, filepath.Base(c.Script.Path), c.Args, c.Points)
-}
-
-func (es *EventSettings) String() string {
-	return fmt.Sprintf(`Event{end=%v, interval=%v, timeout=%v, OnBreak=%v}`,
-		es.End.Format(time.UnixDate), es.Intervals, es.Timeout, es.OnBreak)
-}
 
 func SetupChecksCfg(v *viper.Viper) {
 	rawCheckCfg = v
@@ -77,8 +45,8 @@ func SetupChecksCfg(v *viper.Viper) {
 	rawCheckCfg.WatchConfig()
 }
 
-func prepareChecks(checks []Check, scriptsDir string) []Check {
-	finalChecks := []Check{}
+func prepareChecks(checks []models.Check, scriptsDir string) []models.Check {
+	finalChecks := []models.Check{}
 
 	for idx, check := range checks {
 		if check.Disable {
@@ -129,7 +97,7 @@ func getScript(path string) (*exec.Cmd, error) {
 	return exec.Command(dir), nil
 }
 
-func score(result Result) {
+func score(result models.Result) {
 	if !dryRun {
 		err := DataAddResult(result, dryRun)
 		if err != nil {
@@ -146,7 +114,7 @@ func score(result Result) {
 	}
 }
 
-func scoreAll(results []Result) {
+func scoreAll(results []models.Result) {
 	if !dryRun {
 		err := DataAddResults(results, dryRun)
 		if err != nil {
@@ -159,11 +127,11 @@ func scoreAll(results []Result) {
 	}
 }
 
-func startCheckService(checkCfg *CheckConfiguration, teams []Team) {
+func startCheckService(checkCfg *CheckConfiguration, teams []models.Team) {
 	event := &checkCfg.Event
 	checks := checkCfg.Checks
-	status := make(chan Result)
-	resultsBuf := make([]Result, len(teams)*len(checks))
+	status := make(chan models.Result)
+	resultsBuf := make([]models.Result, len(teams)*len(checks))
 
 	// Run command every x seconds until scheduled end time
 	Logger.Println("Starting Checks")
@@ -224,7 +192,7 @@ func startCheckService(checkCfg *CheckConfiguration, teams []Team) {
 	}
 }
 
-func runCmd(team Team, check Check, timestamp time.Time, timeout time.Duration, status chan Result) {
+func runCmd(team models.Team, check models.Check, timestamp time.Time, timeout time.Duration, status chan models.Result) {
 	// TODO: Currently only one IP per team is supported
 	cmd := *check.Script
 	cmd.Args = parseArgs(cmd.Path, check.Args, team.Ip)
@@ -236,7 +204,7 @@ func runCmd(team Team, check Check, timestamp time.Time, timeout time.Duration, 
 
 	err := cmd.Start()
 
-	result := Result{
+	result := models.Result{
 		Type:       "Service",
 		Timestamp:  timestamp,
 		Group:      check.Name,
@@ -289,10 +257,10 @@ func parseArgs(name string, args string, ip string) []string {
 	return strings.Split(nArgs, " ")
 }
 
-func testData() []Team {
-	var teams []Team
+func testData() []models.Team {
+	var teams []models.Team
 	for i := 0; i < 2; i++ {
-		t := Team{
+		t := models.Team{
 			Group:  "TEST",
 			Number: 90 + i,
 			Name:   "team9" + strconv.Itoa(i),

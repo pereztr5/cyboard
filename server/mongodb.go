@@ -3,6 +3,7 @@ package server
 import (
 	"fmt"
 
+	"github.com/pereztr5/cyboard/server/models"
 	"golang.org/x/crypto/bcrypt"
 	"gopkg.in/mgo.v2"
 	"gopkg.in/mgo.v2/bson"
@@ -156,7 +157,7 @@ func EnsureAdmin() {
 		if err != nil {
 			Logger.Fatal("Failed to hash password:", err)
 		}
-		admin := &Team{
+		admin := &models.Team{
 			Name:   adminAccName,
 			Group:  "admin",
 			Number: -1,

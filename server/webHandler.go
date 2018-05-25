@@ -6,6 +6,7 @@ import (
 
 	"github.com/gorilla/securecookie"
 	"github.com/gorilla/sessions"
+	"github.com/pereztr5/cyboard/server/models"
 	"golang.org/x/crypto/bcrypt"
 	"gopkg.in/mgo.v2/bson"
 )
@@ -16,7 +17,7 @@ const (
 )
 
 func init() {
-	gob.Register(&Team{})
+	gob.Register(&models.Team{})
 	gob.Register(new(bson.ObjectId))
 }
 

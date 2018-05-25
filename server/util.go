@@ -11,6 +11,7 @@ import (
 	"path/filepath"
 	"strconv"
 
+	"github.com/pereztr5/cyboard/server/models"
 	"golang.org/x/crypto/bcrypt"
 )
 
@@ -73,12 +74,12 @@ func sanitizeUpdateOp(updateOp map[string]interface{}) (map[string]interface{}, 
 
 var TeamCsvHeaders = []string{"Name", "Group", "Number", "IP", "AdminOf", "Password"}
 
-func ParseTeamCsv(r io.Reader) ([]Team, error) {
+func ParseTeamCsv(r io.Reader) ([]models.Team, error) {
 	teamCsv := csv.NewReader(r)
 	teamCsv.TrimLeadingSpace = true
 	teamCsv.FieldsPerRecord = len(TeamCsvHeaders)
 
-	posses := []Team{}
+	posses := []models.Team{}
 	rows, err := teamCsv.ReadAll()
 	if err != nil {
 		return nil, fmt.Errorf("failed to read whole csv: %v", err)
@@ -106,7 +107,7 @@ CsvParseLoop:
 			return row[idx]
 		}
 
-		team := Team{}
+		team := models.Team{}
 		// Check for blank fields
 		for colIdx, column = range row {
 			if column == "" && colIdx != 4 {

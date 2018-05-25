@@ -5,13 +5,15 @@ import (
 	"os"
 	"testing"
 
+	"github.com/pereztr5/cyboard/server/models"
+
 	"github.com/stretchr/testify/assert"
 	"golang.org/x/crypto/bcrypt"
 	"gopkg.in/mgo.v2"
 	"gopkg.in/mgo.v2/bson"
 )
 
-var TestTeams = []Team{
+var TestTeams = []models.Team{
 	{bson.NewObjectId(), "blueteam", 1, "team1", "127.0.0.1", genPass("pass1"), ""},
 	{bson.NewObjectId(), "blueteam", 2, "team2", "127.0.0.2", genPass("pass2"), ""},
 }
@@ -71,18 +73,18 @@ func TestDataAddTeams(t *testing.T) {
 	cleanupDB()
 	assert.Nil(t, DataAddTeams(TestTeams))
 
-	dbTeams := []Team{}
+	dbTeams := []models.Team{}
 	Teams().Find(nil).All(&dbTeams)
 	for _, tt := range TestTeams {
 		assert.Contains(t, dbTeams, tt, "Database did not contain the expected test team %+v", tt)
 	}
 }
 
-func createTestScoreResults(teams []Team, times int) []Result {
-	results := make([]Result, 0, len(ScoreCategories)*len(teams))
+func createTestScoreResults(teams []models.Team, times int) []models.Result {
+	results := make([]models.Result, 0, len(ScoreCategories)*len(teams))
 	for idx, team := range teams {
 		for _, cat := range ScoreCategories {
-			res := Result{
+			res := models.Result{
 				Type:       cat,
 				Teamname:   team.Name,
 				Teamnumber: team.Number,

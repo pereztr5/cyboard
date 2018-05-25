@@ -20,7 +20,7 @@ func init() {
 	flags := CheckCmd.Flags()
 	flags.StringP("config", "c", "", "service check config file (default is $HOME/.cyboard/checks.toml)")
 	flags.BoolP("dry", "d", false, "Do a dry run of checks")
-	
+
 	checkConfig.BindPFlag("configPath", flags.Lookup("config"))
 	checkConfig.BindPFlag("dryRun", flags.Lookup("dry"))
 }
