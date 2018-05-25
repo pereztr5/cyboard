@@ -6,38 +6,9 @@ import (
 
 	"gopkg.in/mgo.v2"
 
+	"github.com/pereztr5/cyboard/server/models"
 	"gopkg.in/mgo.v2/bson"
 )
-
-type Team struct {
-	Id      bson.ObjectId `json:"id,omitempty" bson:"_id,omitempty"`
-	Group   string        `json:"group"`
-	Number  int           `json:"number"`
-	Name    string        `json:"name"`
-	Ip      string        `json:"ip"`
-	Hash    string        `json:"-"`
-	AdminOf string        `json:"adminof"`
-}
-
-type Challenge struct {
-	Id          bson.ObjectId `json:"id,omitempty" bson:"_id,omitempty"`
-	Group       string        `json:"group"`
-	Name        string        `json:"name"`
-	Description string        `json:"description"`
-	Flag        string        `json:"flag" bson:"flag"`
-	Points      int           `json:"points"`
-}
-
-type Result struct {
-	Id         bson.ObjectId `json:"id,omitempty" bson:"_id,omitempty"`
-	Type       string        `json:"type" bson:"type"`
-	Timestamp  time.Time     `json:"timestamp" bson:"timestamp"`
-	Group      string        `json:"group" bson:"group"`
-	Teamname   string        `json:"teamname" bson:"teamname"`
-	Teamnumber int           `json:"teamnumber" bson:"teamnumber"`
-	Details    string        `json:"details" bson:"details"`
-	Points     int           `json:"points" bson:"points"`
-}
 
 const (
 	CTF     = "CTF"
@@ -47,8 +18,8 @@ const (
 var ScoreCategories = []string{CTF, Service}
 
 // Authentication Queries
-func GetTeamByTeamname(teamname string) (Team, error) {
-	t := Team{}
+func GetTeamByTeamname(teamname string) (models.Team, error) {
+	t := models.Team{}
 
 	session, teamCollection := GetSessionAndCollection("teams")
 	defer session.Close()
@@ -61,8 +32,8 @@ func GetTeamByTeamname(teamname string) (Team, error) {
 	return t, nil
 }
 
-func GetTeamById(id *bson.ObjectId) (Team, error) {
-	t := Team{}
+func GetTeamById(id *bson.ObjectId) (models.Team, error) {
+	t := models.Team{}
 
 	session, teamCollection := GetSessionAndCollection("teams")
 	defer session.Close()
@@ -76,8 +47,8 @@ func GetTeamById(id *bson.ObjectId) (Team, error) {
 }
 
 // Get Team name and ip only used for service checking
-func DataGetTeamIps() ([]Team, error) {
-	t := []Team{}
+func DataGetTeamIps() ([]models.Team, error) {
+	t := []models.Team{}
 
 	session, teamCollection := GetSessionAndCollection("teams")
 	defer session.Close()
@@ -90,8 +61,8 @@ func DataGetTeamIps() ([]Team, error) {
 	return t, nil
 }
 
-func DataGetTeams() []Team {
-	t := []Team{}
+func DataGetTeams() []models.Team {
+	t := []models.Team{}
 
 	session, chalCollection := GetSessionAndCollection("teams")
 	defer session.Close()
@@ -105,8 +76,8 @@ func DataGetTeams() []Team {
 }
 
 // Gets everything about all users. Utilized by Admin dashboard
-func DataGetAllUsers() []Team {
-	var t []Team
+func DataGetAllUsers() []models.Team {
+	var t []models.Team
 
 	session, chalCollection := GetSessionAndCollection("teams")
 	defer session.Close()
@@ -123,8 +94,8 @@ func DataGetAllUsers() []Team {
 }
 
 // Query statements
-func DataGetChallenges(groups []string) ([]Challenge, error) {
-	challenges := []Challenge{}
+func DataGetChallenges(groups []string) ([]models.Challenge, error) {
+	challenges := []models.Challenge{}
 
 	session, chalCollection := GetSessionAndCollection("challenges")
 	defer session.Close()
@@ -153,7 +124,7 @@ const (
 	AlreadyCaptured = 2
 )
 
-func DataCheckFlag(team Team, chal Challenge) (FlagState, error) {
+func DataCheckFlag(team models.Team, chal models.Challenge) (FlagState, error) {
 	session, chalCollection := GetSessionAndCollection("challenges")
 	defer session.Close()
 
@@ -174,7 +145,7 @@ func DataCheckFlag(team Team, chal Challenge) (FlagState, error) {
 		return AlreadyCaptured, nil
 	}
 
-	result := Result{
+	result := models.Result{
 		Type:       "CTF",
 		Timestamp:  time.Now(),
 		Group:      chal.Group,
@@ -261,7 +232,7 @@ func DataGetTeamChallenges(teamname string) ([]ChallengeCount, error) {
 
 // Find all the challenges in a group.
 // If flagGroup param is empty "", all challenges are returned.
-func DataGetChallengesByGroup(flagGroup string) ([]Challenge, error) {
+func DataGetChallengesByGroup(flagGroup string) ([]models.Challenge, error) {
 	session, collection := GetSessionAndCollection("challenges")
 	defer session.Close()
 
@@ -270,7 +241,7 @@ func DataGetChallengesByGroup(flagGroup string) ([]Challenge, error) {
 		filter["group"] = flagGroup
 	}
 
-	var chals []Challenge
+	var chals []models.Challenge
 	return chals, collection.Find(filter).Sort("group", "name").All(&chals)
 }
 
@@ -294,7 +265,7 @@ func DataGetTeamScore(teamname string) int {
 }
 
 // ScoreResult represents the data returned from a query for a team's score.
-// This is slimmed down from the `Result` model type, to reduce processing & bandwidth,
+// This is slimmed down from the `models.Result` model type, to reduce processing & bandwidth,
 // and improve ease-of-use.
 type ScoreResult struct {
 	Teamnumber int    `json:"teamnumber"`
@@ -351,7 +322,7 @@ func DataGetAllScoreSplitByType() []ScoreResult {
 
 	// Fill in default score for each category for every team
 	if len(tmScore) != len(teams)*2 {
-		var team *Team
+		var team *models.Team
 		var cat *string
 		for i := 0; i < len(teams)*2; i++ {
 			team, cat = &teams[i/2], &ScoreCategories[i%2]
@@ -393,10 +364,10 @@ func DataGetServiceStatus() []ServiceStatus {
 	return cResults
 }
 
-func DataGetServiceResult() []Result {
+func DataGetServiceResult() []models.Result {
 	session, collection := GetSessionAndCollection("results")
 	defer session.Close()
-	sList := []Result{}
+	sList := []models.Result{}
 
 	err := collection.Pipe([]bson.M{
 		{"$match": bson.M{"type": "Service"}},
@@ -418,7 +389,7 @@ type ServiceResult struct {
 	Details    string `json:"details"`
 }
 
-func DataGetResultByService(blueteams []Team, service string) []ServiceResult {
+func DataGetResultByService(blueteams []models.Team, service string) []ServiceResult {
 	session, collection := GetSessionAndCollection("results")
 	defer session.Close()
 	teamStatus := make([]ServiceResult, 0, len(blueteams))
@@ -517,7 +488,7 @@ func DataGetLastResult() time.Time {
 }
 
 // Insert statements
-func DataAddResult(result Result, test bool) error {
+func DataAddResult(result models.Result, test bool) error {
 	var col string
 	if !test {
 		col = "results"
@@ -534,7 +505,7 @@ func DataAddResult(result Result, test bool) error {
 	return nil
 }
 
-func DataAddResults(results []Result, test bool) error {
+func DataAddResults(results []models.Result, test bool) error {
 	docs := make([]interface{}, len(results))
 	for i, result := range results {
 		docs[i] = result
@@ -549,7 +520,7 @@ func DataAddResults(results []Result, test bool) error {
 	return collection.Insert(docs...)
 }
 
-func DataAddTeams(teams []Team) error {
+func DataAddTeams(teams []models.Team) error {
 	session, teamC := GetSessionAndCollection("teams")
 	defer session.Close()
 	var docs []interface{}
@@ -582,13 +553,13 @@ func DataDeleteTeam(teamName string) error {
 	return teamC.Remove(bson.M{"name": teamName})
 }
 
-func DataGetChallengeByName(name string) (chal Challenge, err error) {
+func DataGetChallengeByName(name string) (chal models.Challenge, err error) {
 	session, collection := GetChallengesCollection()
 	defer session.Close()
 	return chal, collection.Find(bson.M{"name": name}).One(&chal)
 }
 
-func DataAddChallenge(chal *Challenge) error {
+func DataAddChallenge(chal *models.Challenge) error {
 	session, collection := GetChallengesCollection()
 	defer session.Close()
 	return collection.Insert(&chal)
@@ -600,13 +571,13 @@ func DataDeleteChallenge(id *bson.ObjectId) error {
 	return collection.RemoveId(&id)
 }
 
-func DataUpdateChallenge(id *bson.ObjectId, updateOp *Challenge) error {
+func DataUpdateChallenge(id *bson.ObjectId, updateOp *models.Challenge) error {
 	session, collection := GetChallengesCollection()
 	defer session.Close()
 	return collection.UpdateId(id, &updateOp)
 }
 
-func DataAddChallenges(team *Team, challenges []Challenge) error {
+func DataAddChallenges(team *models.Team, challenges []models.Challenge) error {
 	docs := make([]interface{}, len(challenges))
 	for i, chal := range challenges {
 		if !ctfIsAdminOf(team, &chal) {

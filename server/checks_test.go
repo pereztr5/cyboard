@@ -7,6 +7,8 @@ import (
 	"time"
 
 	"github.com/stretchr/testify/assert"
+
+	"github.com/pereztr5/cyboard/server/models"
 )
 
 func init() {
@@ -22,8 +24,8 @@ func mustHaveCommand(t *testing.T, bin string) *exec.Cmd {
 	return exec.Command(binPath)
 }
 
-func expectedCheckResult(team Team, check Check, exitCode int, timestamp time.Time) Result {
-	res := Result{
+func expectedCheckResult(team models.Team, check models.Check, exitCode int, timestamp time.Time) models.Result {
+	res := models.Result{
 		Type:       "Service",
 		Teamname:   team.Name,
 		Teamnumber: team.Number,
@@ -55,7 +57,7 @@ func Test_runCmd(t *testing.T) {
 
 	for name, tt := range tests {
 		t.Run(name, func(t *testing.T) {
-			check := Check{
+			check := models.Check{
 				Name:   name,
 				Script: exec.Command(tt.commandName),
 				Args:   tt.args,
@@ -67,7 +69,7 @@ func Test_runCmd(t *testing.T) {
 			}
 
 			team, timestamp, timeout := TestTeams[0], time.Time{}, time.Second
-			status := make(chan Result)
+			status := make(chan models.Result)
 
 			go runCmd(team, check, timestamp, timeout, status)
 

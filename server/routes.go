@@ -8,11 +8,12 @@ import (
 	"strings"
 
 	"github.com/gorilla/mux"
+	"github.com/pereztr5/cyboard/server/models"
 )
 
 type Page struct {
 	Title string
-	T     Team
+	T     models.Team
 }
 
 var templates map[string]*template.Template
@@ -116,7 +117,7 @@ func ShowHome(w http.ResponseWriter, r *http.Request) {
 	t := r.Context().Value("team")
 	p := Page{Title: "homepage"}
 	if t != nil {
-		p.T = t.(Team)
+		p.T = t.(models.Team)
 	}
 	renderTemplate(w, p)
 }
@@ -172,7 +173,7 @@ func Logout(w http.ResponseWriter, r *http.Request) {
 func ShowTeamDashboard(w http.ResponseWriter, r *http.Request) {
 	p := Page{
 		Title: "dashboard",
-		T:     r.Context().Value("team").(Team),
+		T:     r.Context().Value("team").(models.Team),
 	}
 	renderTemplate(w, p)
 }
@@ -182,7 +183,7 @@ func ShowChallenges(w http.ResponseWriter, r *http.Request) {
 	if t != nil {
 		p := Page{
 			Title: "challenges",
-			T:     t.(Team),
+			T:     t.(models.Team),
 		}
 		renderTemplate(w, p)
 	}
@@ -192,7 +193,7 @@ func ShowScoreboard(w http.ResponseWriter, r *http.Request) {
 	t := r.Context().Value("team")
 	p := Page{Title: "scoreboard"}
 	if t != nil {
-		p.T = t.(Team)
+		p.T = t.(models.Team)
 	}
 	renderTemplate(w, p)
 }
@@ -201,7 +202,7 @@ func ShowServices(w http.ResponseWriter, r *http.Request) {
 	t := r.Context().Value("team")
 	p := Page{Title: "services"}
 	if t != nil {
-		p.T = t.(Team)
+		p.T = t.(models.Team)
 	}
 	renderTemplate(w, p)
 }

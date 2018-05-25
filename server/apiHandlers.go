@@ -7,6 +7,7 @@ import (
 	"time"
 
 	"github.com/gorilla/mux"
+	"github.com/pereztr5/cyboard/server/models"
 	"gopkg.in/mgo.v2"
 )
 
@@ -26,7 +27,7 @@ func GetPublicChallenges(w http.ResponseWriter, r *http.Request) {
 }
 
 func checkFlag(w http.ResponseWriter, r *http.Request, justOne bool) {
-	t := r.Context().Value("team").(Team)
+	t := r.Context().Value("team").(models.Team)
 	flag, challenge := r.FormValue("flag"), r.FormValue("challenge")
 	if flag == "" || (justOne && challenge == "") {
 		w.WriteHeader(http.StatusBadRequest)
@@ -35,7 +36,7 @@ func checkFlag(w http.ResponseWriter, r *http.Request, justOne bool) {
 
 	var found FlagState
 	var err error
-	challengeQuery := Challenge{Flag: flag}
+	challengeQuery := models.Challenge{Flag: flag}
 	if justOne {
 		challengeQuery.Name = challenge
 	}
@@ -158,7 +159,7 @@ func grantBonusPoints(bonus BonusDescriptor) error {
 		return fmt.Errorf("Field 'teams' must be filled in")
 	}
 
-	teams := make([]Team, len(bonus.Teams))
+	teams := make([]models.Team, len(bonus.Teams))
 	for i, teamName := range bonus.Teams {
 		team, err := GetTeamByTeamname(teamName)
 		if err != nil {
@@ -171,9 +172,9 @@ func grantBonusPoints(bonus BonusDescriptor) error {
 	}
 
 	now := time.Now()
-	results := make([]Result, len(teams))
+	results := make([]models.Result, len(teams))
 	for i := range results {
-		results[i] = Result{
+		results[i] = models.Result{
 			Type:       CTF,
 			Group:      "BONUS",
 			Timestamp:  now,
@@ -194,7 +195,7 @@ func grantBonusPoints(bonus BonusDescriptor) error {
 // findConfigurableFlagFromReq will find the matching flag in the URL
 // from the list of owned challenges that exist on the request context.
 // (They are added by the RequireCtfGroupOwner middleware)
-func findConfigurableFlagFromReq(r *http.Request) *Challenge {
+func findConfigurableFlagFromReq(r *http.Request) *models.Challenge {
 	chals, flagName := getCtxOwnedChallenges(r), mux.Vars(r)["flag"]
 	for _, c := range chals {
 		if c.Name == flagName {
@@ -206,7 +207,7 @@ func findConfigurableFlagFromReq(r *http.Request) *Challenge {
 
 // ctfIsAdminOf returns true if the team is allowed control
 // over the challenge.
-func ctfIsAdminOf(t *Team, c *Challenge) bool {
+func ctfIsAdminOf(t *models.Team, c *models.Challenge) bool {
 	switch t.Group {
 	case "admin", "blackteam":
 		return true
@@ -227,7 +228,7 @@ func GetConfigurableFlags(w http.ResponseWriter, r *http.Request) {
 
 func AddFlags(w http.ResponseWriter, r *http.Request) {
 	team := getCtxTeam(r)
-	var insertOp []Challenge
+	var insertOp []models.Challenge
 
 	if err := json.NewDecoder(r.Body).Decode(&insertOp); err != nil {
 		Logger.Error("AddFlags: decode req body: ", err)
@@ -259,7 +260,7 @@ func GetFlagByName(w http.ResponseWriter, r *http.Request) {
 
 func AddFlag(w http.ResponseWriter, r *http.Request) {
 	team := getCtxTeam(r)
-	var insertOp Challenge
+	var insertOp models.Challenge
 
 	if err := json.NewDecoder(r.Body).Decode(&insertOp); err != nil {
 		Logger.Error("AddFlag: decode req body: ", err)
@@ -287,7 +288,7 @@ func UpdateFlag(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	var updateOp Challenge
+	var updateOp models.Challenge
 	if err := json.NewDecoder(r.Body).Decode(&updateOp); err != nil {
 		Logger.Error("UpdateFlag: decode req body: ", err)
 		http.Error(w, err.Error(), http.StatusBadRequest)
@@ -323,7 +324,7 @@ func DeleteFlag(w http.ResponseWriter, r *http.Request) {
 // todo(tbutts): Consider a middleware or some abstraction on the Json encoding (gorilla may already provide this)
 
 func GetBreakdownOfSubmissionsPerFlag(w http.ResponseWriter, r *http.Request) {
-	t := r.Context().Value("team").(Team)
+	t := r.Context().Value("team").(models.Team)
 	chalGroups := getChallengesOwnerOf(t.AdminOf, t.Group)
 
 	flagsWithCapCounts, err := DataGetSubmissionsPerFlag(chalGroups)
@@ -342,7 +343,7 @@ func GetBreakdownOfSubmissionsPerFlag(w http.ResponseWriter, r *http.Request) {
 }
 
 func GetEachTeamsCapturedFlags(w http.ResponseWriter, r *http.Request) {
-	t := r.Context().Value("team").(Team)
+	t := r.Context().Value("team").(models.Team)
 	chalGroups := getChallengesOwnerOf(t.AdminOf, t.Group)
 
 	teamsWithCapturedFlags, err := DataGetEachTeamsCapturedFlags(chalGroups)

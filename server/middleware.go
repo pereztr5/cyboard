@@ -4,6 +4,8 @@ import (
 	"context"
 	"net/http"
 
+	"github.com/pereztr5/cyboard/server/models"
+
 	"gopkg.in/mgo.v2/bson"
 )
 
@@ -37,7 +39,7 @@ func RequireLogin(w http.ResponseWriter, r *http.Request, next http.HandlerFunc)
 
 func RequireGroupIsAnyOf(whitelistedGroups []string) func(http.ResponseWriter, *http.Request, http.HandlerFunc) {
 	return func(w http.ResponseWriter, r *http.Request, next http.HandlerFunc) {
-		team := r.Context().Value("team").(Team)
+		team := r.Context().Value("team").(models.Team)
 		for _, group := range whitelistedGroups {
 			if team.Group == group {
 				next(w, r)
@@ -49,7 +51,7 @@ func RequireGroupIsAnyOf(whitelistedGroups []string) func(http.ResponseWriter, *
 }
 
 func RequireAdmin(w http.ResponseWriter, r *http.Request, next http.HandlerFunc) {
-	team := r.Context().Value("team").(Team)
+	team := r.Context().Value("team").(models.Team)
 	if team.Group == "admin" {
 		next(w, r)
 	} else {
@@ -58,7 +60,7 @@ func RequireAdmin(w http.ResponseWriter, r *http.Request, next http.HandlerFunc)
 }
 
 func RequireCtfGroupOwner(w http.ResponseWriter, r *http.Request, next http.HandlerFunc) {
-	t := r.Context().Value("team").(Team)
+	t := r.Context().Value("team").(models.Team)
 	if !AllowedToConfigureChallenges(t) {
 		http.Error(w, http.StatusText(http.StatusForbidden), http.StatusForbidden)
 		return
@@ -74,7 +76,7 @@ func RequireCtfGroupOwner(w http.ResponseWriter, r *http.Request, next http.Hand
 	next(w, r.WithContext(ctx))
 }
 
-func AllowedToConfigureChallenges(t Team) bool {
+func AllowedToConfigureChallenges(t models.Team) bool {
 	switch t.Group {
 	case "admin", "blackteam":
 		return true

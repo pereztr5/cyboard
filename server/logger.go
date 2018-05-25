@@ -9,6 +9,7 @@ import (
 	"time"
 
 	"github.com/meatballhat/negroni-logrus"
+	"github.com/pereztr5/cyboard/server/models"
 	"github.com/sirupsen/logrus"
 	"github.com/urfave/negroni"
 	"gopkg.in/natefinch/lumberjack.v2"
@@ -117,7 +118,7 @@ func (m *LoggerManager) newRequestMiddleware(logger *logrus.Logger) *negronilogr
 	mw.Before = func(entry *logrus.Entry, req *http.Request, remoteAddr string) *logrus.Entry {
 		team, teamName := "<none>", "<none>"
 		if req.Context().Value("team") != nil {
-			t := req.Context().Value("team").(Team)
+			t := req.Context().Value("team").(models.Team)
 			team = t.Group
 			teamName = t.Name
 		}

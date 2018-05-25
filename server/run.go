@@ -8,32 +8,6 @@ import (
 	"github.com/urfave/negroni"
 )
 
-type LogSettings struct {
-	Level  string `mapstructure:"level"`
-	Stdout bool   `mapstructure:"stdout"`
-}
-
-type DBSettings struct {
-	URI    string `mapstructure:"mongodb_uri"`
-	DBName string
-}
-
-type ServerSettings struct {
-	IP                string
-	HTTPPort          string   `mapstructure:"http_port"`
-	HTTPSPort         string   `mapstructure:"https_port"`
-	CertPath          string   `mapstructure:"cert"`
-	CertKeyPath       string   `mapstructure:"key"`
-	SpecialChallenges []string `mapstructure:"special_challenges"`
-}
-
-type Configuration struct {
-	Appname  string      `mapstructure:"appname"`
-	Log      LogSettings `mapstructure:"log"`
-	Server   ServerSettings
-	Database DBSettings
-}
-
 func Run(cfg *Configuration) {
 	// Verify web app template files are available in working dir
 	ensureAppTemplates()
