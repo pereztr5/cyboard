@@ -16,7 +16,7 @@ function submitFlag() {
 
     if (flagValue.length > 0) {
         $.ajax({
-            url: '/challenges/verify',
+            url: '/api/blue/challenges',
             type: 'POST',
             dataType: 'html',
             data: {
@@ -51,7 +51,7 @@ $('input#flag-value').keypress(function(e) {
 var challenges;
 
 function getList() {
-    var url = '/challenges/list';
+    var url = '/api/blue/challenges';
     $.getJSON(url, function(json) {
         challenges = json;
         var challengeListText = uniqueBy(challenges, function(c){return c.group}).join(", ");

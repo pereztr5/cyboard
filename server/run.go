@@ -4,8 +4,6 @@ import (
 	"fmt"
 	"net/http"
 	"net/url"
-
-	"github.com/urfave/negroni"
 )
 
 func Run(cfg *Configuration) {
@@ -26,38 +24,7 @@ func Run(cfg *Configuration) {
 	teamScoreUpdater, servicesUpdater := TeamScoreWsServer(), ServiceStatusWsServer()
 	defer teamScoreUpdater.Stop()
 	defer servicesUpdater.Stop()
-	webRouter := CreateWebRouter(teamScoreUpdater, servicesUpdater)
-	teamRouter, blackTeamRouter, ctfConfigRouter := CreateTeamRouter()
-	adminRouter := CreateAdminRouter()
-
-	app := negroni.New()
-	basicAuth := negroni.New(negroni.HandlerFunc(RequireLogin))
-
-	webRouter.PathPrefix("/admin").Handler(basicAuth.With(
-		negroni.HandlerFunc(RequireAdmin),
-		negroni.Wrap(adminRouter),
-	))
-
-	webRouter.PathPrefix("/black").Handler(basicAuth.With(
-		negroni.HandlerFunc(RequireGroupIsAnyOf([]string{"admin", "blackteam"})),
-		negroni.Wrap(blackTeamRouter),
-	))
-
-	webRouter.PathPrefix("/ctf").Handler(basicAuth.With(
-		negroni.HandlerFunc(RequireCtfGroupOwner),
-		negroni.Wrap(ctfConfigRouter),
-	))
-
-	webRouter.PathPrefix("/").Handler(basicAuth.With(
-		negroni.Wrap(teamRouter),
-	))
-
-	app.Use(negroni.NewRecovery())
-	app.Use(negroni.NewStatic(http.Dir("static")))
-	app.Use(negroni.HandlerFunc(CheckSessionID))
-	app.Use(RequestLogger)
-
-	app.UseHandler(webRouter)
+	app := CreateWebRouter(teamScoreUpdater, servicesUpdater)
 
 	sc := &cfg.Server
 

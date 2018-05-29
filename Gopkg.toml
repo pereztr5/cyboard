@@ -65,6 +65,10 @@
   name = "gopkg.in/natefinch/lumberjack.v2"
   version = "2.1.0"
 
+[[constraint]]
+  branch = "master"
+  name = "github.com/justinas/alice"
+
 [prune]
   go-tests = true
   unused-packages = true

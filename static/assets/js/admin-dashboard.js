@@ -105,7 +105,7 @@ $(function() {
             if(yes) {
                 // TODO: Build out server side update route
                 $.ajax({
-                    url: '/admin/team/update/'+teamid,
+                    url: '/api/admin/team/'+teamid,
                     type: 'PUT',
                     contentType: 'application/json; charset=UTF-8',
                     data: JSON.stringify(updateOp),
@@ -129,7 +129,7 @@ $(function() {
         BootstrapDialog.confirm("Delete team '"+teamid+"'?", function(yes) {
             if(yes) {
                 $.ajax({
-                    url: '/admin/team/delete/'+teamid,
+                    url: '/api/admin/team/'+teamid,
                     type: 'DELETE',
                 });
                 populateUsersTable();
@@ -175,7 +175,7 @@ $(function() {
 var submitTeamsTextareaCsv = function() {
     var status_node = $('.user-config-csv-upload').find('.status');
     $.ajax({
-        url: '/admin/teams/add',
+        url: '/api/admin/teams',
         type: 'POST',
         contentType: 'text/csv; charset=UTF-8',
         data: $('.user-config-csv-upload textarea').val(),
@@ -204,7 +204,7 @@ var populateUsersTable = function() {
 
     var user_cfg = $('.user-config-table');
     if (!user_cfg.length) return;
-    $.get( "/admin/teams", function(teams) {
+    $.get( "/api/admin/teams", function(teams) {
         // Wipe the current table, replace with new data
         var tbody = user_cfg.find('tbody');
         tbody.empty();
@@ -275,7 +275,7 @@ $(function() {
             if(!yes) { return }
 
             $.ajax({
-                url: `/ctf/flags/${flagName}`,
+                url: `/api/ctf/flags/${flagName}`,
                 type: 'PUT',
                 contentType: 'application/json; charset=UTF-8',
                 data: JSON.stringify(updateOp),
@@ -293,7 +293,7 @@ $(function() {
             if(!yes) { return }
 
             $.ajax({
-                url: `/ctf/flags/${flagName}`,
+                url: `/api/ctf/flags/${flagName}`,
                 type: 'DELETE',
                 complete: populateChallengesTable,
             });
@@ -347,7 +347,7 @@ var submitFlagTextareaCsv = function() {
     const flagsToAdd = rows.map((row) => createFlagFromStrings(...row));
 
     $.ajax({
-        url: `/ctf/flags`,
+        url: `/api/ctf/flags`,
         type: 'POST',
         contentType: 'application/json; charset=UTF-8',
         data: JSON.stringify(flagsToAdd),
@@ -362,7 +362,7 @@ var submitFlagTextareaCsv = function() {
 var populateChallengesTable = function() {
     var chal_cfg = $('.flag-config-table');
     if (!chal_cfg.length) return;
-    $.get( "/ctf/flags", function(chals) {
+    $.get( "/api/ctf/flags", function(chals) {
         // Wipe the current table, replace with new data
         var tbody = chal_cfg.find('tbody');
         tbody.empty();
@@ -407,7 +407,7 @@ function submitBonusPoints(form) {
 
     const status_node = form.parentsUntil('.bonus-display').parent().find('.status');
     $.ajax({
-        url: '/black/team/bonus',
+        url: '/api/black/grant_bonus',
         type: 'POST',
         contentType: 'application/json; charset=UTF-8',
         data: JSON.stringify(data),
@@ -438,7 +438,7 @@ var refreshBreakdowns = function () {
 };
 
 var getFlagsBySubmissionCount = function() {
-    $.get( "/ctf/breakdown/subs_per_flag", function(res) {
+    $.get( "/api/ctf/stats/subs_per_flag", function(res) {
         var target = $('.most-submitted-flag');
         var tbody = target.find('tbody');
         tbody.empty();
@@ -453,7 +453,7 @@ var getFlagsBySubmissionCount = function() {
 };
 
 var getEachTeamsCapturedFlags = function() {
-    $.get( "/ctf/breakdown/teams_flags", function(res) {
+    $.get( "/api/ctf/stats/teams_flags", function(res) {
         var target = $('.teams-captured-flags');
         var tbody = target.find('tbody');
         tbody.empty();

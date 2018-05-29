@@ -46,18 +46,7 @@
 [[projects]]
   branch = "master"
   name = "github.com/hashicorp/hcl"
-  packages = [
-    ".",
-    "hcl/ast",
-    "hcl/parser",
-    "hcl/printer",
-    "hcl/scanner",
-    "hcl/strconv",
-    "hcl/token",
-    "json/parser",
-    "json/scanner",
-    "json/token"
-  ]
+  packages = [".","hcl/ast","hcl/parser","hcl/printer","hcl/scanner","hcl/strconv","hcl/token","json/parser","json/scanner","json/token"]
   revision = "ef8a98b0bbce4a65b5aa4c368430a80ddc533168"
 
 [[projects]]
@@ -67,17 +56,10 @@
   version = "v1.0"
 
 [[projects]]
-  name = "github.com/jackc/pgx"
-  packages = [
-    ".",
-    "chunkreader",
-    "internal/sanitize",
-    "pgio",
-    "pgproto3",
-    "pgtype"
-  ]
-  revision = "da3231b0b66e2e74cdb779f1d46c5e958ba8be27"
-  version = "v3.1.0"
+  branch = "master"
+  name = "github.com/justinas/alice"
+  packages = ["."]
+  revision = "03f45bd4b7dad4734bc4620e46a35789349abb20"
 
 [[projects]]
   name = "github.com/magiconair/properties"
@@ -104,12 +86,6 @@
   version = "v1.1.0"
 
 [[projects]]
-  name = "github.com/pkg/errors"
-  packages = ["."]
-  revision = "645ef00459ed84a119197bfb8d8205042c6df63d"
-  version = "v0.8.0"
-
-[[projects]]
   name = "github.com/pmezard/go-difflib"
   packages = ["difflib"]
   revision = "792786c7400a136282c1664665ae0a8db921c6c2"
@@ -123,10 +99,7 @@
 
 [[projects]]
   name = "github.com/spf13/afero"
-  packages = [
-    ".",
-    "mem"
-  ]
+  packages = [".","mem"]
   revision = "63644898a8da0bc22138abf860edaf5277b6102e"
   version = "v1.1.0"
 
@@ -175,45 +148,25 @@
 [[projects]]
   branch = "master"
   name = "golang.org/x/crypto"
-  packages = [
-    "bcrypt",
-    "blowfish",
-    "ssh/terminal"
-  ]
+  packages = ["bcrypt","blowfish","ssh/terminal"]
   revision = "1a580b3eff7814fc9b40602fd35256c63b50f491"
 
 [[projects]]
   branch = "master"
   name = "golang.org/x/sys"
-  packages = [
-    "unix",
-    "windows"
-  ]
+  packages = ["unix","windows"]
   revision = "7c87d13f8e835d2fb3a70a2912c811ed0c1d241b"
 
 [[projects]]
   name = "golang.org/x/text"
-  packages = [
-    "internal/gen",
-    "internal/triegen",
-    "internal/ucd",
-    "transform",
-    "unicode/cldr",
-    "unicode/norm"
-  ]
+  packages = ["internal/gen","internal/triegen","internal/ucd","transform","unicode/cldr","unicode/norm"]
   revision = "f21a4dfb5e38f5895301dc265a8def02365cc3d0"
   version = "v0.3.0"
 
 [[projects]]
   branch = "v2"
   name = "gopkg.in/mgo.v2"
-  packages = [
-    ".",
-    "bson",
-    "internal/json",
-    "internal/sasl",
-    "internal/scram"
-  ]
+  packages = [".","bson","internal/json","internal/sasl","internal/scram"]
   revision = "3f83fa5005286a7fe593b055f0d7771a7dce4655"
 
 [[projects]]
@@ -231,6 +184,6 @@
 [solve-meta]
   analyzer-name = "dep"
   analyzer-version = 1
-  inputs-digest = "ac25206259bf6c72ad8d1d55f53d6ab7f7181e4b283b638e29411a0c903acd28"
+  inputs-digest = "c6d2aa5f799b8599c122543b658f3a2f5f2029c3da4d736cb6fdff3caa9953ad"
   solver-name = "gps-cdcl"
   solver-version = 1
