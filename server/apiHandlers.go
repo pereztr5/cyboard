@@ -26,10 +26,10 @@ func GetPublicChallenges(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
-func checkFlag(w http.ResponseWriter, r *http.Request, justOne bool) {
+func SubmitFlag(w http.ResponseWriter, r *http.Request) {
 	t := r.Context().Value("team").(models.Team)
 	flag, challenge := r.FormValue("flag"), r.FormValue("challenge")
-	if flag == "" || (justOne && challenge == "") {
+	if flag == "" && challenge == "" {
 		w.WriteHeader(http.StatusBadRequest)
 		return
 	}
@@ -37,7 +37,7 @@ func checkFlag(w http.ResponseWriter, r *http.Request, justOne bool) {
 	var found FlagState
 	var err error
 	challengeQuery := models.Challenge{Flag: flag}
-	if justOne {
+	if challenge != "" {
 		challengeQuery.Name = challenge
 	}
 	found, err = DataCheckFlag(t, challengeQuery)
@@ -48,14 +48,6 @@ func checkFlag(w http.ResponseWriter, r *http.Request, justOne bool) {
 	}
 	w.WriteHeader(http.StatusOK)
 	fmt.Fprint(w, found)
-}
-
-func CheckFlag(w http.ResponseWriter, r *http.Request) {
-	checkFlag(w, r, true)
-}
-
-func CheckAllFlags(w http.ResponseWriter, r *http.Request) {
-	checkFlag(w, r, false)
 }
 
 func GetAllUsers(w http.ResponseWriter, r *http.Request) {

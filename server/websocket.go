@@ -136,7 +136,7 @@ func prepPayload(payload interface{}) (*websocket.PreparedMessage, error) {
 // ServeWs returns a http.HandlerFunc-ready function, which processes new
 // connections on a WebSocket client, and adds them as subscribers to the
 // broadcastHub.
-func (b *broadcastHub) ServeWs() func(http.ResponseWriter, *http.Request) {
+func (b *broadcastHub) ServeWs() http.Handler {
 	// TODO: check that the write buffer size is a good fit (it's not)
 	upgrader := websocket.Upgrader{
 		ReadBufferSize:    32,   // We don't care about reads
@@ -144,7 +144,7 @@ func (b *broadcastHub) ServeWs() func(http.ResponseWriter, *http.Request) {
 		EnableCompression: true,
 	}
 
-	return func(w http.ResponseWriter, r *http.Request) {
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		ws, err := upgrader.Upgrade(w, r, nil)
 		if err != nil {
 			if _, ok := err.(websocket.HandshakeError); !ok {
@@ -192,7 +192,7 @@ func (b *broadcastHub) ServeWs() func(http.ResponseWriter, *http.Request) {
 				}
 			}
 		}(b, ws)
-	}
+	})
 }
 
 // ServiceStatusWsServer is a hub suitable for updating the Service Monitor.

@@ -8,7 +8,9 @@ import (
 	"strings"
 
 	"github.com/gorilla/mux"
+	"github.com/justinas/alice"
 	"github.com/pereztr5/cyboard/server/models"
+	"github.com/urfave/negroni"
 )
 
 type Page struct {
@@ -52,64 +54,96 @@ func ensureAppTemplates() {
 	}
 }
 
+type methodHandlers map[string]http.HandlerFunc
+
+func handleMethods(router *mux.Router, path string, methodHandlers methodHandlers) *mux.Router {
+	rtr := router.Path(path).Subrouter()
+	for method, fn := range methodHandlers {
+		rtr.Methods(method).HandlerFunc(fn)
+	}
+	return rtr
+}
+
 func CreateWebRouter(teamScoreUpdater, servicesUpdater *broadcastHub) *mux.Router {
 	router := mux.NewRouter()
-	// Public Routes
-	router.HandleFunc("/", ShowHome).Methods("GET")
-	router.HandleFunc("/login", ShowLogin).Methods("GET")
-	router.HandleFunc("/login", SubmitLogin).Methods("POST")
-	router.HandleFunc("/logout", Logout).Methods("GET")
-	router.HandleFunc("/scoreboard", ShowScoreboard).Methods("GET")
-	router.HandleFunc("/team/services", ShowServices).Methods("GET")
+	// Split off static asset handler, so that none of the other standard middleware gets run for static assets.
+	router.PathPrefix("/assets/").Handler(http.FileServer(http.Dir("./static")))
+
+	// Base router for server-side rendered content & API routes, with common middleware stack
+	root := router.PathPrefix("/").Subrouter()
+	root.Use(
+		NegroniResponseWriterMiddleware,
+		UnwrapNegroniMiddleware(negroni.NewRecovery()),
+		UnwrapNegroniMiddleware(RequestLogger),
+		CheckSessionID,
+	)
+
+	// Public Template Pages
+	root.HandleFunc("/", ShowHome).Methods("GET")
+	root.HandleFunc("/login", ShowLogin).Methods("GET")
+	root.HandleFunc("/login", SubmitLogin).Methods("POST")
+	root.HandleFunc("/logout", Logout).Methods("GET")
+	root.HandleFunc("/scoreboard", ShowScoreboard).Methods("GET")
+	root.HandleFunc("/services", ShowServices).Methods("GET")
+
+	// Authenticated Pages for Blue Teams
+	authed := alice.New(RequireLogin)
+	root.Handle("/dashboard", authed.ThenFunc(ShowTeamDashboard)).Methods("GET")
+	root.Handle("/challenges", authed.ThenFunc(ShowChallenges)).Methods("GET")
+
+	api := root.PathPrefix("/api/").Subrouter()
+
 	// Public API
-	// TODO: Make this the name of AIS challenge
-	router.HandleFunc("/team/scores", GetScores).Methods("GET")
-	router.HandleFunc("/team/scores/split", GetScoresSplit).Methods("GET")
-	router.HandleFunc("/team/scores/live", teamScoreUpdater.ServeWs()).Methods("GET")
-	router.HandleFunc("/team/services/live", servicesUpdater.ServeWs()).Methods("GET")
-	router.HandleFunc("/services", GetServices).Methods("GET")
-	return router
-}
+	public := api.PathPrefix("/public/").Subrouter()
+	public.HandleFunc("/scores", GetScores).Methods("GET")
+	public.HandleFunc("/scores/split", GetScoresSplit).Methods("GET")
+	public.HandleFunc("/services", GetServices).Methods("GET")
+	public.Handle("/scores/live", teamScoreUpdater.ServeWs()).Methods("GET")
+	public.Handle("/services/live", servicesUpdater.ServeWs()).Methods("GET")
 
-func CreateTeamRouter() (router *mux.Router, blackTeamRouter *mux.Router, ctfConfigRouter *mux.Router) {
-	router = mux.NewRouter()
-	router.HandleFunc("/team/dashboard", ShowTeamDashboard).Methods("GET")
-	router.HandleFunc("/challenges", ShowChallenges).Methods("GET")
-	router.HandleFunc("/challenges/list", GetPublicChallenges).Methods("GET")
-	router.HandleFunc("/challenges/verify", CheckFlag).Methods("POST")
-	router.HandleFunc("/challenges/verify/all", CheckAllFlags).Methods("POST")
-	router.HandleFunc("/ctf/breakdown/subs_per_flag", GetBreakdownOfSubmissionsPerFlag).Methods("GET")
-	router.HandleFunc("/ctf/breakdown/teams_flags", GetEachTeamsCapturedFlags).Methods("GET")
+	// Blue Team API
+	blue := api.PathPrefix("/blue/").Subrouter()
+	blue.Use(RequireLogin)
+	blue.HandleFunc("/challenges", GetPublicChallenges).Methods("GET")
+	blue.HandleFunc("/challenges", SubmitFlag).Methods("POST")
 
-	blackTeamRouter = router.PathPrefix("/black/").Subrouter()
-	blackTeamRouter.HandleFunc("/team/bonus", GrantBonusPoints).Methods("POST")
+	// Black Team API
+	black := api.PathPrefix("/black/").Subrouter()
+	black.Use(
+		RequireLogin,
+		RequireGroupIsAnyOf{[]string{"admin", "blackteam"}}.Middleware,
+	)
+	black.HandleFunc("/grant_bonus", GrantBonusPoints).Methods("POST")
 
-	ctfConfigRouter = router.PathPrefix("/ctf/").Subrouter()
-	ctfConfigRouter.HandleFunc("/breakdown/subs_per_flag", GetBreakdownOfSubmissionsPerFlag).Methods("GET")
-	ctfConfigRouter.HandleFunc("/breakdown/teams_flags", GetEachTeamsCapturedFlags).Methods("GET")
-	{
-		r := ctfConfigRouter.Path("/flags").Subrouter()
-		r.Methods("GET").HandlerFunc(GetConfigurableFlags)
-		r.Methods("POST").HandlerFunc(AddFlags)
-	}
-	{
-		r := ctfConfigRouter.Path("/flags/{flag}").Subrouter()
-		r.Methods("GET").HandlerFunc(GetFlagByName)
-		r.Methods("POST").HandlerFunc(AddFlag)
-		r.Methods("PUT").HandlerFunc(UpdateFlag)
-		r.Methods("DELETE").HandlerFunc(DeleteFlag)
-	}
+	// Staff API to view & edit the CTF event
+	ctfStaff := api.PathPrefix("/ctf/").Subrouter()
+	ctfStaff.Use(RequireLogin, RequireCtfGroupOwner)
+	ctfStaff.HandleFunc("/stats/subs_per_flag", GetBreakdownOfSubmissionsPerFlag).Methods("GET")
+	ctfStaff.HandleFunc("/stats/teams_flags", GetEachTeamsCapturedFlags).Methods("GET")
 
-	return
-}
+	handleMethods(ctfStaff, "/flags", methodHandlers{
+		"GET":  GetConfigurableFlags,
+		"POST": AddFlags,
+	})
+	handleMethods(ctfStaff, "/flags/{flag}", methodHandlers{
+		"GET":    GetFlagByName,
+		"POST":   AddFlag,
+		"PUT":    UpdateFlag,
+		"DELETE": DeleteFlag,
+	})
 
-func CreateAdminRouter() *mux.Router {
-	router := mux.NewRouter()
-	admin := router.PathPrefix("/admin/").Subrouter()
-	admin.HandleFunc("/teams", GetAllUsers).Methods("GET")
-	admin.HandleFunc("/teams/add", AddTeams).Methods("POST").Headers("Content-Type", "text/csv; charset=UTF-8")
-	admin.HandleFunc("/team/update/{teamName}", UpdateTeam).Methods("PUT").Headers("Content-Type", "application/json; charset=UTF-8")
-	admin.HandleFunc("/team/delete/{teamName}", DeleteTeam).Methods("DELETE")
+	// Admin API
+	admin := api.PathPrefix("/admin/").Subrouter()
+	admin.Use(RequireLogin, RequireAdmin)
+	handleMethods(admin, "/teams", methodHandlers{
+		"GET":  GetAllUsers,
+		"POST": AddTeams,
+	})
+	handleMethods(admin, "/team/{teamName}", methodHandlers{
+		"PUT":    UpdateTeam,
+		"DELETE": DeleteTeam,
+	})
+
 	return router
 }
 
@@ -129,7 +163,7 @@ func ShowLogin(w http.ResponseWriter, r *http.Request) {
 		}
 		renderTemplate(w, p)
 	} else {
-		http.Redirect(w, r, "/team/dashboard", 302)
+		http.Redirect(w, r, "/dashboard", 302)
 	}
 }
 
@@ -146,7 +180,7 @@ func SubmitLogin(w http.ResponseWriter, r *http.Request) {
 			http.Error(w, http.StatusText(500), 500)
 			return
 		}
-		http.Redirect(w, r, "/team/dashboard", 302)
+		http.Redirect(w, r, "/dashboard", 302)
 		return
 	}
 	http.Redirect(w, r, "/login", 302)

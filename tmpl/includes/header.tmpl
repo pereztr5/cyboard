@@ -29,7 +29,7 @@
                     <ul class="nav navbar-nav navbar-left">
                         <li role="presentation"><a href="/">Home </a></li>
                         <li role="presentation"><a href="/scoreboard">Scoreboard</a></li>
-                        <li role="presentation"><a href="/team/services">Services</a></li>
+                        <li role="presentation"><a href="/services">Services</a></li>
                         {{- if and existsSpecialFlags .T.Name }}
                         <li role="presentation"><a href="/challenges">Challenges</a></li>
                         {{- end }}
@@ -41,7 +41,7 @@
                                 {{- .T.Name }}<span class="caret"></span>
                             </a>
                             <ul class="dropdown-menu" aria-labelledy="download">
-                                <li><a href="/team/dashboard">Dashboard</a></li>
+                                <li><a href="/dashboard">Dashboard</a></li>
                                 <li><a href="/logout">Logout</a></li>
                             </ul>
                         </li>

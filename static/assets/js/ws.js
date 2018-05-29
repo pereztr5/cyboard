@@ -1,6 +1,6 @@
 $(function() {
     var data = document.getElementById('result-list');
-    var conn = new WebSocket('wss://' + window.location.host + '/team/scores/live');
+    var conn = new WebSocket('wss://' + window.location.host + '/api/public/scores/live');
     conn.onclose = function(evt) {
         data.textContent = 'Connection closed';
     };

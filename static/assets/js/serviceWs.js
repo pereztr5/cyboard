@@ -1,6 +1,6 @@
 $(function() {
     var stat = document.getElementById('status');
-    var conn = new WebSocket('wss://' + window.location.host + '/team/services/live');
+    var conn = new WebSocket('wss://' + window.location.host + '/api/public/services/live');
     conn.onclose = function(evt) {
         stat.textContent = 'Connection closed';
     };
