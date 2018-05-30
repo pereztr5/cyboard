@@ -73,7 +73,7 @@ func RequireAdmin(next http.Handler) http.Handler {
 func RequireCtfGroupOwner(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		t := r.Context().Value("team").(models.Team)
-		if !AllowedToConfigureChallenges(t) {
+		if !allowedToConfigureChallenges(t) {
 			http.Error(w, http.StatusText(http.StatusForbidden), http.StatusForbidden)
 			return
 		}
@@ -87,17 +87,6 @@ func RequireCtfGroupOwner(next http.Handler) http.Handler {
 		ctx := context.WithValue(r.Context(), ctxOwnedChallenges, chals)
 		next.ServeHTTP(w, r.WithContext(ctx))
 	})
-}
-
-func AllowedToConfigureChallenges(t models.Team) bool {
-	switch t.Group {
-	case "admin", "blackteam":
-		return true
-	case "blueteam":
-		return false
-	default:
-		return t.AdminOf != ""
-	}
 }
 
 func UnwrapNegroniMiddleware(nh negroni.Handler) func(http.Handler) http.Handler {
