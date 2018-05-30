@@ -11,6 +11,30 @@ import (
 	"gopkg.in/mgo.v2"
 )
 
+func GetScores(w http.ResponseWriter, r *http.Request) {
+	scores := DataGetAllScore()
+	w.Header().Set("Content-Type", "application/json; charset=UTF-8")
+	if err := json.NewEncoder(w).Encode(scores); err != nil {
+		Logger.Error("Error encoding json: ", err)
+	}
+}
+
+func GetScoresSplit(w http.ResponseWriter, r *http.Request) {
+	scores := DataGetAllScoreSplitByType()
+	w.Header().Set("Content-Type", "application/json; charset=UTF-8")
+	if err := json.NewEncoder(w).Encode(scores); err != nil {
+		Logger.Error("Error encoding json: ", err)
+	}
+}
+
+func GetServices(w http.ResponseWriter, r *http.Request) {
+	services := DataGetServiceList()
+	w.Header().Set("Content-Type", "application/json; charset=UTF-8")
+	if err := json.NewEncoder(w).Encode(services); err != nil {
+		Logger.Error("Error encoding json: ", err)
+	}
+}
+
 func GetPublicChallenges(w http.ResponseWriter, r *http.Request) {
 	chal, err := DataGetChallenges(specialChallenges)
 	if err != nil {
@@ -208,8 +232,18 @@ func ctfIsAdminOf(t *models.Team, c *models.Challenge) bool {
 	}
 }
 
+func getChallengesOwnerOf(adminof, teamgroup string) []string {
+	switch teamgroup {
+	case "admin", "blackteam":
+		return DataGetChallengeGroupsList()
+	default:
+		return []string{adminof}
+	}
+}
+
 func GetConfigurableFlags(w http.ResponseWriter, r *http.Request) {
 	chals := getCtxOwnedChallenges(r)
+
 	w.Header().Set("Content-Type", "application/json; charset=UTF-8")
 	if err := json.NewEncoder(w).Encode(chals); err != nil {
 		Logger.Error("Error encoding GetConfigurableFlags json: ", err)

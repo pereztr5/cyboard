@@ -34,11 +34,6 @@ func CreateStore() {
 
 func CheckCreds(w http.ResponseWriter, r *http.Request) bool {
 	teamname, password := r.FormValue(FormCredsTeam), r.FormValue(FormCredsPass)
-	session, err := Store.Get(r, "cyboard")
-	if err != nil {
-		Logger.Error("Error getting session: ", err)
-		return false
-	}
 
 	t, err := GetTeamByTeamname(teamname)
 	if err != nil {
@@ -49,6 +44,12 @@ func CheckCreds(w http.ResponseWriter, r *http.Request) bool {
 		if err != bcrypt.ErrMismatchedHashAndPassword {
 			Logger.Error(err)
 		}
+		return false
+	}
+
+	session, err := Store.Get(r, "cyboard")
+	if err != nil {
+		Logger.Error("Error getting session: ", err)
 		return false
 	}
 

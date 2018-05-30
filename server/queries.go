@@ -186,15 +186,10 @@ func DataGetTotalChallenges() ([]ChallengeCount, error) {
 	session, collection := GetSessionAndCollection("challenges")
 	defer session.Close()
 	totals := []ChallengeCount{}
-	err := collection.Pipe([]bson.M{
+	return totals, collection.Pipe([]bson.M{
 		{"$group": bson.M{"_id": "$group", "amount": bson.M{"$sum": 1}}},
 		{"$sort": bson.M{"_id": 1}},
 	}).All(&totals)
-	if err != nil {
-		Logger.Error("Error getting challenges: ", err)
-		return totals, err
-	}
-	return totals, nil
 }
 
 // DataGetTeamChallenges returns the amount of each CTF group that has been
