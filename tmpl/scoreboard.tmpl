@@ -1,4 +1,4 @@
-{{- template "header" . }}
+{{ define "content" }}
 <h3 class="page-header">{{ title .Title }}</h3>
 
 <div id="hc_scoreboard"><!-- Init in assets/js/hc_scoreboard.js --></div>
@@ -25,5 +25,11 @@
     {{- end }}
     </tbody>
 </table>
+{{ end }}
 
-{{- template "footer" . }}
+{{ define "scripts" }}
+    <script src="/assets/js/ws.js"></script>
+    <script src="/assets/highcharts/highcharts.js"></script>
+    <script src="/assets/highcharts/themes/dark-unica.js"></script>
+    <script src="/assets/js/hc_scoreboard.js"></script>
+{{ end }}

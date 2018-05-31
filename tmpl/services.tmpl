@@ -1,17 +1,16 @@
-{{- template "header" . }}
+{{ define "content" -}}
 <h3 class="page-header">{{ title .Title }}</h3>
 <div class="row">
     <div id="status"></div>
     <div class="col-md-10 col-md-offset-1 col-sm-10 col-sm-offset-1 col-xs-10 col-xs-offset-1">
-        <!-- START -->
         <div class="group">
             <div class='square-box'>
                 <div class='square-content labels'>
                     <div></div>
                 </div>
             </div>
-            {{ $teams := allBlueTeams }}
-            {{ $max := len $teams }}
+            {{- $teams := allBlueTeams }}
+            {{- $max := len $teams }}
             {{- range $teams }}
             <div class='square-box'>
                 <div class='square-content labels'>
@@ -47,7 +46,14 @@
             {{- end }}
         </div>
         {{- end }}
-        <!-- End -->
     </div>
 </div>
-{{- template "footer" . }}
+{{ end }}
+
+{{ define "styles" }}
+    <link rel="stylesheet" href="/assets/css/checks.css">
+{{ end }}
+
+{{ define "scripts" }}
+    <script src="/assets/js/serviceWs.js"></script>
+{{ end }}

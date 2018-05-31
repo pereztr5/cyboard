@@ -1,4 +1,4 @@
-{{- define "header" -}}
+{{ define "base" -}}
 <!DOCTYPE html>
 <html>
 <head>
@@ -9,16 +9,17 @@
     <link rel="stylesheet" href="/assets/bootstrap/css/bootstrap.min.css">
     <link rel="stylesheet" href="/assets/css/font-awesome.min.css">
     <link rel="stylesheet" href="/assets/css/custom.css">
-    {{- if eq .Title "services" }}
-    <link rel="stylesheet" href="/assets/css/checks.css">
-    {{- else if eq .Title "dashboard" }}
-        {{- if isChallengeOwner .T }}
-        <link rel="stylesheet" href="/assets/css/config-dashboard.css">
-        <link rel="stylesheet" href="/assets/bootstrap-dialog/bootstrap-dialog.min.css">
-        {{ end }}
-    {{- end }}
+    {{- block "styles" . -}}{{ end }}
 </head>
 <body>
+    {{- template "navbar"  . -}}
+    {{-    block "content" . -}}{{ end }}
+    {{- template "footer"  . -}}
+</body>
+</html>
+{{ end }}
+
+{{ define "navbar" }}
     <div class="container">
         <nav class="navbar navbar-inverse">
             <div class="container-fluid">
@@ -52,4 +53,13 @@
                 </div>
             </div>
         </nav>
+{{/* container div is left dangling for convenience */}}
+{{- end }}
+
+{{ define "footer" }}
+    </div>
+
+    <script src="/assets/js/jquery.min.js"></script>
+    <script src="/assets/bootstrap/js/bootstrap.min.js"></script>
+    {{- block "scripts" . -}}{{ end }}
 {{- end }}

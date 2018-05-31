@@ -17,9 +17,17 @@ type Page struct {
 var templates map[string]*template.Template
 
 func renderTemplate(w http.ResponseWriter, p Page) {
-	err := templates[p.Title].ExecuteTemplate(w, p.Title+".tmpl", &p)
+	tmpl, ok := templates[p.Title]
+	if !ok {
+		Logger.Errorln("Template does not exist:", p.Title)
+		http.Error(w, http.StatusText(500), 500)
+		return
+	}
+
+	w.Header().Set("Content-Type", "text/html; charset=utf-8")
+	err := tmpl.ExecuteTemplate(w, "base", &p)
 	if err != nil {
-		http.Error(w, err.Error(), http.StatusInternalServerError)
+		Logger.WithError(err).WithField("name", p.Title).Error("Failed to execute template")
 	}
 }
 
@@ -30,14 +38,15 @@ func ensureAppTemplates() {
 	}
 
 	templates = make(map[string]*template.Template)
+
 	funcMap := buildHelperMap()
-	includes := mustGlobFiles("tmpl/includes/*.tmpl")
+	includes := template.Must(template.New("base").Funcs(funcMap).ParseGlob("tmpl/includes/*.tmpl"))
 	layouts := mustGlobFiles("tmpl/*.tmpl")
 
 	for _, layout := range layouts {
-		files := append(includes, layout)
 		title := strings.TrimSuffix(filepath.Base(layout), ".tmpl")
-		templates[title] = template.Must(template.New(layout).Funcs(funcMap).ParseFiles(files...))
+		clone := template.Must(includes.Clone())
+		templates[title] = template.Must(clone.ParseFiles(layout))
 	}
 }
 
