@@ -236,7 +236,7 @@ func DataGetChallengesByGroup(flagGroup string) ([]models.Challenge, error) {
 		filter["group"] = flagGroup
 	}
 
-	var chals []models.Challenge
+	chals := []models.Challenge{}
 	return chals, collection.Find(filter).Sort("group", "name").All(&chals)
 }
 
@@ -346,7 +346,7 @@ type ServiceStatus struct {
 func DataGetServiceStatus() []ServiceStatus {
 	session, results := GetSessionAndCollection("results")
 	defer session.Close()
-	var cResults []ServiceStatus
+	cResults := []ServiceStatus{}
 
 	err := results.Pipe([]bson.M{
 		{"$match": bson.M{"type": "Service"}},
@@ -418,7 +418,7 @@ func DataGetResultByService(blueteams []models.Team, service string) []ServiceRe
 func DataGetChallengeGroupsList() []string {
 	session, collection := GetSessionAndCollection("challenges")
 	defer session.Close()
-	var challenges []string
+	challenges := []string{}
 	err := collection.Find(nil).Distinct("group", &challenges)
 	if err != nil {
 		Logger.WithError(err).Error("Failed to query distinct Challenge groups")
@@ -427,9 +427,10 @@ func DataGetChallengeGroupsList() []string {
 }
 
 func DataGetServiceList() []string {
+	// NOTE: This function is only used by the `/api/services` endpoint, which itself is unused.
 	session, collection := GetSessionAndCollection("results")
 	defer session.Close()
-	var list []string
+	list := []string{}
 
 	err := collection.Find(bson.M{"type": "Service"}).Distinct("group", &list)
 	if err != nil {
@@ -518,9 +519,9 @@ func DataAddResults(results []models.Result, test bool) error {
 func DataAddTeams(teams []models.Team) error {
 	session, teamC := GetSessionAndCollection("teams")
 	defer session.Close()
-	var docs []interface{}
-	for _, team := range teams {
-		docs = append(docs, interface{}(team))
+	docs := make([]interface{}, len(teams))
+	for i, team := range teams {
+		docs[i] = team
 	}
 	err := teamC.Insert(docs...)
 	if err != nil {
@@ -601,7 +602,7 @@ func DataGetSubmissionsPerFlag(challengeGroups []string) ([]FlagSubmissions, err
 	session, collection := GetSessionAndCollection("results")
 	defer session.Close()
 
-	var aggrResult []FlagSubmissions
+	aggrResult := []FlagSubmissions{}
 	return aggrResult, collection.Pipe([]bson.M{
 		{"$match": bson.M{"type": "CTF", "group": bson.M{"$in": challengeGroups}}},
 		{"$group": bson.M{"_id": bson.M{"name": "$details", "group": "$group"}, "submissions": bson.M{"$sum": 1}}},
@@ -621,7 +622,7 @@ func DataGetEachTeamsCapturedFlags(challengeGroups []string) ([]CapturedFlagsOfT
 	session, collection := GetSessionAndCollection("results")
 	defer session.Close()
 
-	var aggrResult []CapturedFlagsOfTeam
+	aggrResult := []CapturedFlagsOfTeam{}
 	return aggrResult, collection.Pipe([]bson.M{
 		{"$match": bson.M{"type": "CTF", "group": bson.M{"$in": challengeGroups}}},
 		{"$sort": bson.M{"details": 1}},
