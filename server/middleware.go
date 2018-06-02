@@ -10,24 +10,31 @@ import (
 	"gopkg.in/mgo.v2/bson"
 )
 
-// Code provided by https://github.com/elithrar
 func CheckSessionID(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		session, err := Store.Get(r, "cyboard")
+		var team interface{}
+
+		session := sessionManager.Load(r)
+		hasID, err := session.Exists("id")
 		if err != nil {
-			Logger.Error("Getting session cookie from Store failed: ", err)
-		}
-		ctx := context.WithValue(r.Context(), "session", session)
-		var team interface{} = nil
-		if id, ok := session.Values["id"]; ok {
-			t, err := GetTeamById(id.(*bson.ObjectId))
+			Logger.WithError(err).Error("CheckSessionID: failed to load session data")
+		} else if hasID {
+			teamID := new(bson.ObjectId)
+
+			err := session.GetObject("id", teamID)
 			if err != nil {
-				Logger.Errorf("GetTeamById %v: %v", id, err)
+				Logger.WithError(err).Error("CheckSessionID: failed to load 'id'")
 			} else {
-				team = t
+				t, err := GetTeamById(teamID)
+				if err != nil {
+					Logger.WithError(err).WithField("teamID", teamID).
+						Error("CheckSessionID: GetTeamById failed")
+				} else {
+					team = t
+				}
 			}
 		}
-		ctx = context.WithValue(ctx, "team", team)
+		ctx := context.WithValue(r.Context(), "team", team)
 		next.ServeHTTP(w, r.WithContext(ctx))
 	})
 }

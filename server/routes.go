@@ -29,6 +29,7 @@ func CreateWebRouter(teamScoreUpdater, servicesUpdater *broadcastHub) *mux.Route
 		NegroniResponseWriterMiddleware,
 		UnwrapNegroniMiddleware(negroni.NewRecovery()),
 		UnwrapNegroniMiddleware(RequestLogger),
+		sessionManager.Use,
 		CheckSessionID,
 	)
 
