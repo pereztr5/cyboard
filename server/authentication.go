@@ -1,12 +1,13 @@
 package server
 
 import (
+	"crypto/rand"
 	"encoding/gob"
 	"net/http"
+	"time"
 
-	"github.com/gorilla/securecookie"
-	"github.com/gorilla/sessions"
-	"github.com/pereztr5/cyboard/server/models"
+	"github.com/alexedwards/scs"
+	"github.com/alexedwards/scs/stores/cookiestore"
 	"golang.org/x/crypto/bcrypt"
 	"gopkg.in/mgo.v2/bson"
 )
@@ -17,19 +18,28 @@ const (
 )
 
 func init() {
-	gob.Register(&models.Team{})
 	gob.Register(new(bson.ObjectId))
 }
 
-var Store *sessions.CookieStore
+var sessionManager *scs.Manager
 
 func CreateStore() {
-	Store = sessions.NewCookieStore([]byte(securecookie.GenerateRandomKey(64)), []byte(securecookie.GenerateRandomKey(32)))
-	Store.Options = &sessions.Options{
-		// Cookie will last for 1 hour
-		MaxAge:   3600,
-		HttpOnly: true,
+	key := getSigningKey()
+	sessionManager = scs.NewManager(cookiestore.New(key))
+	sessionManager.Name("cyboard")
+	sessionManager.Lifetime(1 * time.Hour)
+	sessionManager.Persist(true)
+	sessionManager.Secure(true)
+	sessionManager.HttpOnly(true)
+}
+
+func getSigningKey() []byte {
+	var key [32]byte
+	_, err := rand.Read(key[:])
+	if err != nil {
+		panic(err)
 	}
+	return key[:]
 }
 
 func CheckCreds(w http.ResponseWriter, r *http.Request) bool {
@@ -47,18 +57,11 @@ func CheckCreds(w http.ResponseWriter, r *http.Request) bool {
 		return false
 	}
 
-	session, err := Store.Get(r, "cyboard")
-	if err != nil {
-		Logger.Error("Error getting session: ", err)
-		return false
-	}
-
-	session.Values["id"] = t.Id
-	err = session.Save(r, w)
+	session := sessionManager.Load(r)
+	err = session.PutObject(w, "id", &t.Id)
 	if err != nil {
 		http.Error(w, http.StatusText(500), 500)
 		Logger.Error("Error saving session: ", err)
-		return false
 	}
-	return true
+	return err == nil
 }

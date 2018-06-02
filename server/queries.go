@@ -38,12 +38,7 @@ func GetTeamById(id *bson.ObjectId) (models.Team, error) {
 	session, teamCollection := GetSessionAndCollection("teams")
 	defer session.Close()
 
-	err := teamCollection.Find(bson.M{"_id": id}).One(&t)
-	if err != nil {
-		Logger.Printf("Error finding team by ID %v err: %v\n", id, err)
-		return t, err
-	}
-	return t, nil
+	return t, teamCollection.Find(bson.M{"_id": id}).One(&t)
 }
 
 // Get Team name and ip only used for service checking

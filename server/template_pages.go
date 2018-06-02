@@ -71,39 +71,20 @@ func ShowLogin(w http.ResponseWriter, r *http.Request) {
 }
 
 func SubmitLogin(w http.ResponseWriter, r *http.Request) {
-	session, err := Store.Get(r, "cyboard")
-	//if err != nil {
-	//	Logger.Warn("Getting session cookie from Store failed: ", err)
-	//}
-
-	succ := CheckCreds(w, r)
-	if succ {
-		err = session.Save(r, w)
-		if err != nil {
-			http.Error(w, http.StatusText(500), 500)
-			return
-		}
+	loggedIn := CheckCreds(w, r)
+	if loggedIn {
 		http.Redirect(w, r, "/dashboard", 302)
-		return
+	} else {
+		http.Redirect(w, r, "/login", 302)
 	}
-	http.Redirect(w, r, "/login", 302)
 }
 
 func Logout(w http.ResponseWriter, r *http.Request) {
-	session, err := Store.Get(r, "cyboard")
-	if err != nil {
-		http.Error(w, http.StatusText(400), 400)
-		return
-	}
-
-	delete(session.Values, "id")
-	// Make sure we save the session after deleting the ID.
-	err = session.Save(r, w)
+	err := sessionManager.Load(r).Destroy(w)
 	if err != nil {
 		http.Error(w, http.StatusText(500), 500)
-		return
+		Logger.WithError(err).Error("Failed to logout user")
 	}
-
 	http.Redirect(w, r, "/login", 302)
 }
 
