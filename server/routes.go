@@ -66,7 +66,7 @@ func CreateWebRouter(teamScoreUpdater, servicesUpdater *broadcastHub) *mux.Route
 	black := api.PathPrefix("/black/").Subrouter()
 	black.Use(
 		RequireLogin,
-		RequireGroupIsAnyOf{[]string{"admin", "blackteam"}}.Middleware,
+		RequireGroupIsAnyOf([]string{"admin", "blackteam"}),
 	)
 	black.HandleFunc("/grant_bonus", GrantBonusPoints).Methods("POST")
 
