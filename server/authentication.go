@@ -1,7 +1,6 @@
 package server
 
 import (
-	"context"
 	"crypto/rand"
 	"encoding/gob"
 	"net/http"
@@ -11,6 +10,7 @@ import (
 
 	"github.com/alexedwards/scs"
 	"github.com/alexedwards/scs/stores/cookiestore"
+	"github.com/pereztr5/cyboard/server/models"
 	"golang.org/x/crypto/bcrypt"
 	"gopkg.in/mgo.v2/bson"
 )
@@ -78,7 +78,7 @@ func CheckCreds(w http.ResponseWriter, r *http.Request) bool {
 // some internal server error, the "team" key in the context will be nil.
 func CheckSessionID(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		var team interface{}
+		var team *models.Team
 
 		session := sessionManager.Load(r)
 		hasID, err := session.Exists(sessionIDKey)
@@ -100,7 +100,7 @@ func CheckSessionID(next http.Handler) http.Handler {
 				}
 			}
 		}
-		ctx := context.WithValue(r.Context(), "team", team)
+		ctx := saveCtxTeam(r, team)
 		next.ServeHTTP(w, r.WithContext(ctx))
 	})
 }

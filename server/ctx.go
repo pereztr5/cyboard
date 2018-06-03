@@ -1,6 +1,7 @@
 package server
 
 import (
+	"context"
 	"net/http"
 
 	"github.com/pereztr5/cyboard/server/models"
@@ -13,9 +14,15 @@ const (
 	ctxOwnedChallenges
 )
 
-func getCtxTeam(r *http.Request) models.Team {
-	return r.Context().Value("team").(models.Team)
-	// return r.Context().Value(ctxTeam).(*models.Team)
+func getCtxTeam(r *http.Request) *models.Team {
+	if t := r.Context().Value(ctxTeam); t != nil {
+		return t.(*models.Team)
+	}
+	return nil
+}
+
+func saveCtxTeam(r *http.Request, team *models.Team) context.Context {
+	return context.WithValue(r.Context(), ctxTeam, team)
 }
 
 func getCtxOwnedChallenges(r *http.Request) []models.Challenge {

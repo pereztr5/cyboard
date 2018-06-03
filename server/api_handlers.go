@@ -51,7 +51,7 @@ func GetPublicChallenges(w http.ResponseWriter, r *http.Request) {
 }
 
 func SubmitFlag(w http.ResponseWriter, r *http.Request) {
-	t := r.Context().Value("team").(models.Team)
+	t := getCtxTeam(r)
 	flag, challenge := r.FormValue("flag"), r.FormValue("challenge")
 	if flag == "" && challenge == "" {
 		w.WriteHeader(http.StatusBadRequest)
@@ -261,7 +261,7 @@ func AddFlags(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, err.Error(), http.StatusBadRequest)
 		return
 	}
-	if err := DataAddChallenges(&team, insertOp); err != nil {
+	if err := DataAddChallenges(team, insertOp); err != nil {
 		Logger.Error("AddFlags:", err)
 		http.Error(w, err.Error(), http.StatusBadRequest)
 		return
@@ -295,7 +295,7 @@ func AddFlag(w http.ResponseWriter, r *http.Request) {
 	} else if mux.Vars(r)["flag"] != insertOp.Name {
 		http.Error(w, "URL flag name and body's flag name must match", http.StatusBadRequest)
 		return
-	} else if !ctfIsAdminOf(&team, &insertOp) {
+	} else if !ctfIsAdminOf(team, &insertOp) {
 		Logger.WithField("challenge", insertOp.Name).WithField("team", team.Name).Error("AddFlag: unauthorized to add flag")
 		http.Error(w, http.StatusText(http.StatusForbidden), http.StatusForbidden)
 		return
@@ -350,7 +350,7 @@ func DeleteFlag(w http.ResponseWriter, r *http.Request) {
 // todo(tbutts): Consider a middleware or some abstraction on the Json encoding (gorilla may already provide this)
 
 func GetBreakdownOfSubmissionsPerFlag(w http.ResponseWriter, r *http.Request) {
-	t := r.Context().Value("team").(models.Team)
+	t := getCtxTeam(r)
 	chalGroups := getChallengesOwnerOf(t.AdminOf, t.Group)
 
 	flagsWithCapCounts, err := DataGetSubmissionsPerFlag(chalGroups)
@@ -369,7 +369,7 @@ func GetBreakdownOfSubmissionsPerFlag(w http.ResponseWriter, r *http.Request) {
 }
 
 func GetEachTeamsCapturedFlags(w http.ResponseWriter, r *http.Request) {
-	t := r.Context().Value("team").(models.Team)
+	t := getCtxTeam(r)
 	chalGroups := getChallengesOwnerOf(t.AdminOf, t.Group)
 
 	teamsWithCapturedFlags, err := DataGetEachTeamsCapturedFlags(chalGroups)
