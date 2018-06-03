@@ -11,8 +11,8 @@ import (
 
 func init() {
 	SetupScoringLoggers(&LogSettings{Level: "warn", Stdout: true})
-	CreateStore()
 	ensureTestDB()
+	CreateStore()
 }
 
 func loginReq() (http.ResponseWriter, *http.Request) {
