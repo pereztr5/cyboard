@@ -17,21 +17,19 @@ func RequireLogin(next http.Handler) http.Handler {
 	})
 }
 
-type RequireGroupIsAnyOf struct {
-	whitelistedGroups []string
-}
-
-func (mw RequireGroupIsAnyOf) Middleware(next http.Handler) http.Handler {
-	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		team := getCtxTeam(r)
-		for _, group := range mw.whitelistedGroups {
-			if team.Group == group {
-				next.ServeHTTP(w, r)
-				return
+func RequireGroupIsAnyOf(whitelistedGroups []string) func(http.Handler) http.Handler {
+	return func(next http.Handler) http.Handler {
+		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+			team := getCtxTeam(r)
+			for _, group := range whitelistedGroups {
+				if team.Group == group {
+					next.ServeHTTP(w, r)
+					return
+				}
 			}
-		}
-		http.Error(w, http.StatusText(http.StatusForbidden), http.StatusForbidden)
-	})
+			http.Error(w, http.StatusText(http.StatusForbidden), http.StatusForbidden)
+		})
+	}
 }
 
 func RequireAdmin(next http.Handler) http.Handler {
