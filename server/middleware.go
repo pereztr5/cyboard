@@ -6,38 +6,7 @@ import (
 
 	"github.com/pereztr5/cyboard/server/models"
 	"github.com/urfave/negroni"
-
-	"gopkg.in/mgo.v2/bson"
 )
-
-func CheckSessionID(next http.Handler) http.Handler {
-	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		var team interface{}
-
-		session := sessionManager.Load(r)
-		hasID, err := session.Exists("id")
-		if err != nil {
-			Logger.WithError(err).Error("CheckSessionID: failed to load session data")
-		} else if hasID {
-			teamID := new(bson.ObjectId)
-
-			err := session.GetObject("id", teamID)
-			if err != nil {
-				Logger.WithError(err).Error("CheckSessionID: failed to load 'id'")
-			} else {
-				t, err := GetTeamById(teamID)
-				if err != nil {
-					Logger.WithError(err).WithField("teamID", teamID).
-						Error("CheckSessionID: GetTeamById failed")
-				} else {
-					team = t
-				}
-			}
-		}
-		ctx := context.WithValue(r.Context(), "team", team)
-		next.ServeHTTP(w, r.WithContext(ctx))
-	})
-}
 
 func RequireLogin(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {

@@ -19,8 +19,8 @@ func loginReq() (http.ResponseWriter, *http.Request) {
 	w := httptest.NewRecorder()
 	r := httptest.NewRequest("GET", "/login", nil)
 	r.Form = make(url.Values)
-	r.Form.Add(FormCredsTeam, "team1")
-	r.Form.Add(FormCredsPass, "pass1")
+	r.Form.Add(formCredsTeam, "team1")
+	r.Form.Add(formCredsPass, "pass1")
 	return w, r
 }
 
@@ -39,13 +39,13 @@ func TestCheckCreds(t *testing.T) {
 		},
 		"missing password": {
 			formPrep: func(f *url.Values) {
-				f.Del(FormCredsPass)
+				f.Del(formCredsPass)
 			},
 			expect: false,
 		},
 		"missing teamname": {
 			formPrep: func(f *url.Values) {
-				f.Del(FormCredsTeam)
+				f.Del(formCredsTeam)
 			},
 			expect: false,
 		},
