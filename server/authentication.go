@@ -6,6 +6,8 @@ import (
 	"net/http"
 	"time"
 
+	"gopkg.in/mgo.v2"
+
 	"github.com/alexedwards/scs"
 	"github.com/alexedwards/scs/stores/cookiestore"
 	"golang.org/x/crypto/bcrypt"
@@ -15,6 +17,8 @@ import (
 const (
 	FormCredsTeam = "teamname"
 	FormCredsPass = "password"
+
+	sessionConfigCollection = "session.config"
 )
 
 func init() {
@@ -31,15 +35,6 @@ func CreateStore() {
 	sessionManager.Persist(true)
 	sessionManager.Secure(true)
 	sessionManager.HttpOnly(true)
-}
-
-func getSigningKey() []byte {
-	var key [32]byte
-	_, err := rand.Read(key[:])
-	if err != nil {
-		panic(err)
-	}
-	return key[:]
 }
 
 func CheckCreds(w http.ResponseWriter, r *http.Request) bool {
@@ -64,4 +59,38 @@ func CheckCreds(w http.ResponseWriter, r *http.Request) bool {
 		Logger.Error("Error saving session: ", err)
 	}
 	return err == nil
+}
+
+func getSigningKey() []byte {
+	type sessionKeyInMongo struct {
+		ID []byte `bson:"_id"`
+	}
+
+	key := sessionKeyInMongo{}
+
+	dbSession, coll := GetSessionAndCollection(sessionConfigCollection)
+	defer dbSession.Close()
+
+	err := coll.Find(nil).One(&key)
+
+	if err != nil {
+		if err != mgo.ErrNotFound {
+			Logger.WithError(err).Fatal("getSigningKey: failed to fetch from mongo")
+		}
+
+		Logger.Info("Generating new session signing key")
+
+		key.ID = make([]byte, 32)
+		_, err := rand.Read(key.ID)
+		if err != nil {
+			Logger.WithError(err).Fatal("getSigningKey: failed to generate session signing key")
+		}
+
+		err = coll.Insert(key)
+		if err != nil {
+			Logger.WithError(err).Fatal("getSigningKey: failed to insert new key into mongo")
+		}
+	}
+
+	return key.ID
 }
