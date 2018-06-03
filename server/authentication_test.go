@@ -12,7 +12,7 @@ import (
 func init() {
 	SetupScoringLoggers(&LogSettings{Level: "warn", Stdout: true})
 	ensureTestDB()
-	CreateStore()
+	CreateStore(false)
 }
 
 func loginReq() (http.ResponseWriter, *http.Request) {

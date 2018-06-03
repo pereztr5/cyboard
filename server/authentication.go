@@ -30,14 +30,15 @@ func init() {
 var sessionManager *scs.Manager
 
 // CreateStore initializes the global Session Manager, used to authenticate
-// users across requests.
-func CreateStore() {
+// users across requests. If secure is true, the generated browser cookies
+// will only be shared over HTTPS.
+func CreateStore(secure bool) {
 	key := getSigningKey()
 	sessionManager = scs.NewManager(cookiestore.New(key))
 	sessionManager.Name("cyboard")
-	sessionManager.Lifetime(1 * time.Hour)
+	sessionManager.Lifetime(7 * 24 * time.Hour)
 	sessionManager.Persist(true)
-	sessionManager.Secure(true)
+	sessionManager.Secure(secure)
 	sessionManager.HttpOnly(true)
 }
 
