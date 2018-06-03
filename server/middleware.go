@@ -4,13 +4,12 @@ import (
 	"context"
 	"net/http"
 
-	"github.com/pereztr5/cyboard/server/models"
 	"github.com/urfave/negroni"
 )
 
 func RequireLogin(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		if r.Context().Value("team") != nil {
+		if getCtxTeam(r) != nil {
 			next.ServeHTTP(w, r)
 		} else {
 			http.Redirect(w, r, "/login", 302)
@@ -24,7 +23,7 @@ type RequireGroupIsAnyOf struct {
 
 func (mw RequireGroupIsAnyOf) Middleware(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		team := r.Context().Value("team").(models.Team)
+		team := getCtxTeam(r)
 		for _, group := range mw.whitelistedGroups {
 			if team.Group == group {
 				next.ServeHTTP(w, r)
@@ -37,7 +36,7 @@ func (mw RequireGroupIsAnyOf) Middleware(next http.Handler) http.Handler {
 
 func RequireAdmin(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		team := r.Context().Value("team").(models.Team)
+		team := getCtxTeam(r)
 		if team.Group == "admin" {
 			next.ServeHTTP(w, r)
 		} else {
@@ -48,7 +47,7 @@ func RequireAdmin(next http.Handler) http.Handler {
 
 func RequireCtfGroupOwner(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		t := r.Context().Value("team").(models.Team)
+		t := getCtxTeam(r)
 		if !allowedToConfigureChallenges(t) {
 			http.Error(w, http.StatusText(http.StatusForbidden), http.StatusForbidden)
 			return

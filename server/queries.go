@@ -32,13 +32,13 @@ func GetTeamByTeamname(teamname string) (models.Team, error) {
 	return t, nil
 }
 
-func GetTeamById(id *bson.ObjectId) (models.Team, error) {
-	t := models.Team{}
+func GetTeamById(id *bson.ObjectId) (*models.Team, error) {
+	t := &models.Team{}
 
 	session, teamCollection := GetSessionAndCollection("teams")
 	defer session.Close()
 
-	return t, teamCollection.Find(bson.M{"_id": id}).One(&t)
+	return t, teamCollection.Find(bson.M{"_id": id}).One(t)
 }
 
 // Get Team name and ip only used for service checking
@@ -119,7 +119,7 @@ const (
 	AlreadyCaptured = 2
 )
 
-func DataCheckFlag(team models.Team, chal models.Challenge) (FlagState, error) {
+func DataCheckFlag(team *models.Team, chal models.Challenge) (FlagState, error) {
 	session, chalCollection := GetSessionAndCollection("challenges")
 	defer session.Close()
 

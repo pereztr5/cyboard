@@ -51,16 +51,16 @@ func ensureAppTemplates() {
 }
 
 func ShowHome(w http.ResponseWriter, r *http.Request) {
-	t := r.Context().Value("team")
+	t := getCtxTeam(r)
 	p := Page{Title: "homepage"}
 	if t != nil {
-		p.T = t.(models.Team)
+		p.T = *t
 	}
 	renderTemplate(w, p)
 }
 
 func ShowLogin(w http.ResponseWriter, r *http.Request) {
-	if r.Context().Value("team") == nil {
+	if getCtxTeam(r) == nil {
 		p := Page{
 			Title: "login",
 		}
@@ -91,36 +91,36 @@ func Logout(w http.ResponseWriter, r *http.Request) {
 func ShowTeamDashboard(w http.ResponseWriter, r *http.Request) {
 	p := Page{
 		Title: "dashboard",
-		T:     r.Context().Value("team").(models.Team),
+		T:     *getCtxTeam(r),
 	}
 	renderTemplate(w, p)
 }
 
 func ShowChallenges(w http.ResponseWriter, r *http.Request) {
-	t := r.Context().Value("team")
+	t := getCtxTeam(r)
 	if t != nil {
 		p := Page{
 			Title: "challenges",
-			T:     t.(models.Team),
+			T:     *t,
 		}
 		renderTemplate(w, p)
 	}
 }
 
 func ShowScoreboard(w http.ResponseWriter, r *http.Request) {
-	t := r.Context().Value("team")
+	t := getCtxTeam(r)
 	p := Page{Title: "scoreboard"}
 	if t != nil {
-		p.T = t.(models.Team)
+		p.T = *t
 	}
 	renderTemplate(w, p)
 }
 
 func ShowServices(w http.ResponseWriter, r *http.Request) {
-	t := r.Context().Value("team")
+	t := getCtxTeam(r)
 	p := Page{Title: "services"}
 	if t != nil {
-		p.T = t.(models.Team)
+		p.T = *t
 	}
 	renderTemplate(w, p)
 }

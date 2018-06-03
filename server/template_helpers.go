@@ -71,7 +71,7 @@ func getAllTeamScores() []map[string]interface{} {
 	return scores
 }
 
-func allowedToConfigureChallenges(t models.Team) bool {
+func allowedToConfigureChallenges(t *models.Team) bool {
 	switch t.Group {
 	case "admin", "blackteam":
 		return true
