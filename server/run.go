@@ -17,7 +17,8 @@ func Run(cfg *Configuration) {
 	SetupMongo(&cfg.Database, cfg.Server.SpecialChallenges)
 	CreateIndexes()
 	// Web Server Setup
-	CreateStore()
+	isHTTPS := cfg.Server.CertPath != "" && cfg.Server.CertKeyPath != ""
+	CreateStore(isHTTPS)
 	// On first run, prompt to set up an admin user
 	EnsureAdmin()
 
@@ -28,7 +29,7 @@ func Run(cfg *Configuration) {
 
 	sc := &cfg.Server
 
-	if sc.CertPath == "" || sc.CertKeyPath == "" {
+	if !isHTTPS {
 		Logger.Warn("SSL certs is not configured properly. Serving plain HTTP.")
 		Logger.Printf("Server running at: http://%s:%s", sc.IP, sc.HTTPPort)
 		Logger.Fatal(http.ListenAndServe(":"+sc.HTTPPort, app))
