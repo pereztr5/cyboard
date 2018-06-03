@@ -1,6 +1,7 @@
 package server
 
 import (
+	"context"
 	"crypto/rand"
 	"encoding/gob"
 	"net/http"
@@ -15,9 +16,10 @@ import (
 )
 
 const (
-	FormCredsTeam = "teamname"
-	FormCredsPass = "password"
+	formCredsTeam = "teamname"
+	formCredsPass = "password"
 
+	sessionIDKey            = "id"
 	sessionConfigCollection = "session.config"
 )
 
@@ -27,6 +29,8 @@ func init() {
 
 var sessionManager *scs.Manager
 
+// CreateStore initializes the global Session Manager, used to authenticate
+// users across requests.
 func CreateStore() {
 	key := getSigningKey()
 	sessionManager = scs.NewManager(cookiestore.New(key))
@@ -37,8 +41,12 @@ func CreateStore() {
 	sessionManager.HttpOnly(true)
 }
 
+// CheckCreds authenticates users based on username/password form values contained
+// in the request. If the credentials all match, the team's ID will be saved to a
+// cookie in the browser. If there are any errors, they will get logged and this
+// will return false.
 func CheckCreds(w http.ResponseWriter, r *http.Request) bool {
-	teamname, password := r.FormValue(FormCredsTeam), r.FormValue(FormCredsPass)
+	teamname, password := r.FormValue(formCredsTeam), r.FormValue(formCredsPass)
 
 	t, err := GetTeamByTeamname(teamname)
 	if err != nil {
@@ -53,7 +61,7 @@ func CheckCreds(w http.ResponseWriter, r *http.Request) bool {
 	}
 
 	session := sessionManager.Load(r)
-	err = session.PutObject(w, "id", &t.Id)
+	err = session.PutObject(w, sessionIDKey, &t.Id)
 	if err != nil {
 		http.Error(w, http.StatusText(500), 500)
 		Logger.Error("Error saving session: ", err)
@@ -61,6 +69,44 @@ func CheckCreds(w http.ResponseWriter, r *http.Request) bool {
 	return err == nil
 }
 
+// CheckSessionID is a middleware that authenticates users based on a cookie
+// their browser supplies with each request that has their team's ID. This does
+// a query against the database and sticks the matching models.Team values onto
+// the request context, under the "team" key.
+//
+// If the user hasn't logged in, has tampered with their cookie, or there's
+// some internal server error, the "team" key in the context will be nil.
+func CheckSessionID(next http.Handler) http.Handler {
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		var team interface{}
+
+		session := sessionManager.Load(r)
+		hasID, err := session.Exists(sessionIDKey)
+		if err != nil {
+			Logger.WithError(err).Error("CheckSessionID: failed to load session data")
+		} else if hasID {
+			teamID := new(bson.ObjectId)
+
+			err := session.GetObject(sessionIDKey, teamID)
+			if err != nil {
+				Logger.WithError(err).Errorf("CheckSessionID: failed to load %q", sessionIDKey)
+			} else {
+				t, err := GetTeamById(teamID)
+				if err != nil {
+					Logger.WithError(err).WithField("teamID", teamID).
+						Error("CheckSessionID: GetTeamById failed")
+				} else {
+					team = t
+				}
+			}
+		}
+		ctx := context.WithValue(r.Context(), "team", team)
+		next.ServeHTTP(w, r.WithContext(ctx))
+	})
+}
+
+// getSigningKey fetches the session signing secret from the database, or
+// creates a new one if one doesn't exist and saves that to the database.
 func getSigningKey() []byte {
 	type sessionKeyInMongo struct {
 		ID []byte `bson:"_id"`
