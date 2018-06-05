@@ -23,16 +23,10 @@
   version = "v1.4.7"
 
 [[projects]]
-  name = "github.com/gorilla/context"
+  name = "github.com/go-chi/chi"
   packages = ["."]
-  revision = "08b5f424b9271eedf6f9f0ce86cb9396ed337a42"
-  version = "v1.1.1"
-
-[[projects]]
-  name = "github.com/gorilla/mux"
-  packages = ["."]
-  revision = "e3702bed27f0d39777b0b37b664b6280e8ef8fbf"
-  version = "v1.6.2"
+  revision = "e83ac2304db3c50cf03d96a2fcd39009d458bc35"
+  version = "v3.3.2"
 
 [[projects]]
   branch = "master"
@@ -62,12 +56,6 @@
   packages = ["."]
   revision = "76626ae9c91c4f2a10f34cad8ce83ea42c93bb75"
   version = "v1.0"
-
-[[projects]]
-  branch = "master"
-  name = "github.com/justinas/alice"
-  packages = ["."]
-  revision = "03f45bd4b7dad4734bc4620e46a35789349abb20"
 
 [[projects]]
   name = "github.com/magiconair/properties"
@@ -218,6 +206,6 @@
 [solve-meta]
   analyzer-name = "dep"
   analyzer-version = 1
-  inputs-digest = "91acece9c97241f1394e5b910f0434391f21004d20f08cc77d9d52dd49eeb536"
+  inputs-digest = "a116a2bdc129a3889798affeda6b16cb7d9729229cd1ffdbcb9fdea41f113163"
   solver-name = "gps-cdcl"
   solver-version = 1

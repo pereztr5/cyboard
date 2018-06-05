@@ -6,7 +6,7 @@ import (
 	"net/http"
 	"time"
 
-	"github.com/gorilla/mux"
+	"github.com/go-chi/chi"
 	"github.com/pereztr5/cyboard/server/models"
 	"gopkg.in/mgo.v2"
 )
@@ -104,8 +104,8 @@ func AddTeams(w http.ResponseWriter, r *http.Request) {
 }
 
 func UpdateTeam(w http.ResponseWriter, r *http.Request) {
-	teamName, ok := mux.Vars(r)["teamName"]
-	if !ok {
+	teamName := chi.URLParam(r, "teamName")
+	if teamName == "" {
 		Logger.Error("Failed to update team: missing 'teamName' URL Paramater")
 		http.Error(w, http.StatusText(500), 500)
 		return
@@ -127,8 +127,8 @@ func UpdateTeam(w http.ResponseWriter, r *http.Request) {
 }
 
 func DeleteTeam(w http.ResponseWriter, r *http.Request) {
-	teamName, ok := mux.Vars(r)["teamName"]
-	if !ok {
+	teamName := chi.URLParam(r, "teamName")
+	if teamName == "" {
 		Logger.Error("Failed to delete team: missing 'teamName' URL Paramater")
 		http.Error(w, http.StatusText(500), 500)
 		return
@@ -212,7 +212,7 @@ func grantBonusPoints(bonus BonusDescriptor) error {
 // from the list of owned challenges that exist on the request context.
 // (They are added by the RequireCtfGroupOwner middleware)
 func findConfigurableFlagFromReq(r *http.Request) *models.Challenge {
-	chals, flagName := getCtxOwnedChallenges(r), mux.Vars(r)["flag"]
+	chals, flagName := getCtxOwnedChallenges(r), chi.URLParam(r, "flag")
 	for _, c := range chals {
 		if c.Name == flagName {
 			return &c
@@ -292,7 +292,7 @@ func AddFlag(w http.ResponseWriter, r *http.Request) {
 		Logger.Error("AddFlag: decode req body: ", err)
 		http.Error(w, err.Error(), http.StatusBadRequest)
 		return
-	} else if mux.Vars(r)["flag"] != insertOp.Name {
+	} else if chi.URLParam(r, "flag") != insertOp.Name {
 		http.Error(w, "URL flag name and body's flag name must match", http.StatusBadRequest)
 		return
 	} else if !ctfIsAdminOf(team, &insertOp) {
@@ -332,7 +332,7 @@ func UpdateFlag(w http.ResponseWriter, r *http.Request) {
 func DeleteFlag(w http.ResponseWriter, r *http.Request) {
 	team, deleteOp := getCtxTeam(r), findConfigurableFlagFromReq(r)
 	if deleteOp == nil {
-		flagName := mux.Vars(r)["flag"]
+		flagName := chi.URLParam(r, "flag")
 		Logger.WithField("challenge", flagName).WithField("team", team.Name).Error("DeleteFlag: unauthorized")
 		http.Error(w, http.StatusText(http.StatusForbidden), http.StatusForbidden)
 		return
