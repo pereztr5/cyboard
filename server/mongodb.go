@@ -40,6 +40,10 @@ func DBSession() *mgo.Session {
 	return mongodbSession
 }
 
+func PingDB() error {
+	return DBSession().Ping()
+}
+
 func DB() *mgo.Database {
 	return DBSession().DB(dbSettings.DBName)
 }

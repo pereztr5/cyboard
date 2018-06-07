@@ -12,6 +12,9 @@ func CreateWebRouter(teamScoreUpdater, servicesUpdater *broadcastHub) chi.Router
 	// Split off static asset handler, so that none of the other standard middleware gets run for static assets.
 	router.Handle("/assets/*", http.FileServer(http.Dir("./static")))
 
+	// Health check
+	router.HandleFunc("/ping", PingHandler)
+
 	// Base router for server-side rendered content & API routes, with common middleware stack
 	root := chi.NewRouter()
 	root.Use(

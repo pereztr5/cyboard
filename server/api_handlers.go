@@ -11,6 +11,17 @@ import (
 	"gopkg.in/mgo.v2"
 )
 
+func PingHandler(w http.ResponseWriter, r *http.Request) {
+	if err := PingDB(); err != nil {
+		Logger.WithError(err).Errorf("PingHandler: DB is down")
+		w.WriteHeader(http.StatusInternalServerError)
+		w.Write([]byte("Uh oh something's wrong!"))
+	} else {
+		w.WriteHeader(http.StatusOK)
+		w.Write([]byte(`🦆`))
+	}
+}
+
 func GetScores(w http.ResponseWriter, r *http.Request) {
 	scores := DataGetAllScore()
 	w.Header().Set("Content-Type", "application/json; charset=UTF-8")
