@@ -3,10 +3,6 @@ BEGIN;
 -- Comments provided to help remind myself later what I was thinking with this.
 
 
-/*
-    TODO: Indexes (look at foreign keys and other queryable fields.)
-*/
-
 -- SQL script made to work with: https://github.com/golang-migrate/migrate/
 -- Though, `golang-migrate` has some quirks that may not make it the best choice.
 -- See: https://github.com/golang-migrate/migrate/issues/34 (does not play well with postgres schemas)
@@ -17,13 +13,19 @@ BEGIN;
 -- First: Schema, application user w/ priviledges, and extensions
 CREATE SCHEMA IF NOT EXISTS cyboard;
 
-DROP ROLE IF EXISTS cyboard;
-CREATE ROLE cyboard LOGIN;
-ALTER ROLE cyboard SET search_path = cyboard;
+----------------
+-- Must create role separately.
+--
+-- TODO: Add instructions to readme
+-- $ createuser --login -h localhost -U postgres cybot
+----------------
+-- CREATE ROLE cybot LOGIN;
+
+ALTER ROLE cybot SET search_path = cyboard;
 
 ALTER DEFAULT PRIVILEGES IN SCHEMA cyboard
     GRANT SELECT, INSERT, UPDATE, DELETE, TRUNCATE
-    ON TABLES TO cyboard;
+    ON TABLES TO cybot;
 
 SET search_path = cyboard;
 
@@ -36,10 +38,11 @@ CREATE EXTENSION IF NOT EXISTS tablefunc ; -- Provides functions for crosstab (p
 -- User Accounts
 ----------------
 
-/* Roles are to be used in some RBAC suite for authorization. I've been looking at
-   https://github.com/casbin/casbin for this, but it may be overkill */
-CREATE TABLE team_role (
-      name TEXT PRIMARY KEY
+/* team_role */
+CREATE TYPE team_role AS ENUM (
+      'admin'
+    , 'ctf_creator'
+    , 'blueteam' -- contestants, students
 );
 
 /* The 'users' table. It was `team` before, which is fine. It's understandable and short.
@@ -48,11 +51,11 @@ CREATE TABLE team_role (
 and their permission will be controlled by a separate, yet-to-be-designed table.
 */
 CREATE TABLE team (
-      id           INT    PRIMARY KEY GENERATED ALWAYS AS IDENTITY
-    , name         TEXT   NOT NULL UNIQUE
-    , role_name    TEXT   NOT NULL REFERENCES team_role(name) ON DELETE CASCADE ON UPDATE CASCADE
-    , hash         BYTEA  NOT NULL
-    , disabled     BOOL   NOT NULL DEFAULT false
+      id           INT       PRIMARY KEY GENERATED ALWAYS AS IDENTITY
+    , name         TEXT      NOT NULL UNIQUE
+    , role_name    team_role NOT NULL
+    , hash         BYTEA     NOT NULL
+    , disabled     BOOL      NOT NULL DEFAULT false
 
     , blueteam_ip  SMALLINT   NULL
 
@@ -83,23 +86,21 @@ CREATE TABLE challenge_category (name TEXT PRIMARY KEY);
 
 /*
 Challenges are solved by contestants entering the exact magic string, held in `flag`.
-Which I'm thinking will be markdown (or html?)
 
 A description of the challenge is saved in `body`, which can be displayed to contestants.
 I'm thinking this will be markdown or html, in which case it would be best to save it as a file,
 which would mean updating the table schema here.
-
-There's no notion of uploading associated files for each challenge (e.g. crackme binaries),
-because the CTF designers all seem set with hosting the files themselves.
 */
 CREATE TABLE challenge (
       id        INT     PRIMARY KEY GENERATED ALWAYS AS IDENTITY
     , name      TEXT    NOT NULL UNIQUE
-    , category  TEXT    NOT NULL REFERENCES challenge_category(name) ON DELETE CASCADE ON UPDATE CASCADE
+    , category  TEXT    NOT NULL DEFAULT ''
     , flag      TEXT    NOT NULL UNIQUE
     , total     REAL    NOT NULL DEFAULT 0.0
     , body      TEXT    NOT NULL DEFAULT ''
     , hidden    BOOL    NOT NULL DEFAULT FALSE
+
+    , designer_category TEXT NOT NULL REFERENCES challenge_category(name) ON DELETE CASCADE ON UPDATE CASCADE
 
     , created_at  TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP
     , modified_at TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP
@@ -109,6 +110,15 @@ CREATE TRIGGER mdt_challenge
     BEFORE UPDATE ON challenge
     FOR EACH ROW
     EXECUTE PROCEDURE moddatetime (modified_at);
+
+
+/* Files served with a given ctf challenge. E.G. `crackme` binaries, encrypted messages, etc. */
+CREATE TABLE challenge_file (
+      id           INT  PRIMARY KEY GENERATED ALWAYS AS IDENTITY
+    , challenge_id INT  NOT NULL REFERENCES challenge(id) ON DELETE CASCADE
+    , filename     TEXT NOT NULL
+    , description  TEXT NOT NULL DEFAULT ''
+);
 
 --------------------
 -- Monitored Service
