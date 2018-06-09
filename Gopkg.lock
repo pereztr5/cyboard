@@ -58,6 +58,20 @@
   version = "v1.0"
 
 [[projects]]
+  name = "github.com/jackc/pgx"
+  packages = [
+    ".",
+    "chunkreader",
+    "internal/sanitize",
+    "log/logrusadapter",
+    "pgio",
+    "pgproto3",
+    "pgtype"
+  ]
+  revision = "da3231b0b66e2e74cdb779f1d46c5e958ba8be27"
+  version = "v3.1.0"
+
+[[projects]]
   name = "github.com/magiconair/properties"
   packages = ["."]
   revision = "c2353362d570a7bfa228149c62842019201cfb71"
@@ -80,6 +94,12 @@
   packages = ["."]
   revision = "acdc4509485b587f5e675510c4f2c63e90ff68a8"
   version = "v1.1.0"
+
+[[projects]]
+  name = "github.com/pkg/errors"
+  packages = ["."]
+  revision = "645ef00459ed84a119197bfb8d8205042c6df63d"
+  version = "v0.8.0"
 
 [[projects]]
   name = "github.com/pmezard/go-difflib"
@@ -206,6 +226,6 @@
 [solve-meta]
   analyzer-name = "dep"
   analyzer-version = 1
-  inputs-digest = "a116a2bdc129a3889798affeda6b16cb7d9729229cd1ffdbcb9fdea41f113163"
+  inputs-digest = "2fd5616ec417c060fe13e4252d3a5e6ec72940328a01bc7893d5da346940b811"
   solver-name = "gps-cdcl"
   solver-version = 1
