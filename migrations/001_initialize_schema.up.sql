@@ -35,6 +35,14 @@ CREATE EXTENSION IF NOT EXISTS moddatetime ; -- Provides functions for tracking 
 CREATE EXTENSION IF NOT EXISTS tablefunc ; -- Provides functions for crosstab (pivot tables)
 
 ----------------
+-- Configuration
+----------------
+CREATE TABLE config (
+      key   TEXT NOT NULL UNIQUE
+    , value TEXT NOT NULL
+)
+
+----------------
 -- User Accounts
 ----------------
 
