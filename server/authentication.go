@@ -2,30 +2,23 @@ package server
 
 import (
 	"crypto/rand"
-	"encoding/gob"
+	"encoding/base64"
 	"net/http"
 	"time"
-
-	"gopkg.in/mgo.v2"
 
 	"github.com/alexedwards/scs"
 	"github.com/alexedwards/scs/stores/cookiestore"
 	"github.com/pereztr5/cyboard/server/models"
 	"golang.org/x/crypto/bcrypt"
-	"gopkg.in/mgo.v2/bson"
 )
 
 const (
 	formCredsTeam = "teamname"
 	formCredsPass = "password"
 
-	sessionIDKey            = "id"
-	sessionConfigCollection = "session.config"
+	sessionIDKey       = "id"
+	sessionPGConfigKey = "session.config"
 )
-
-func init() {
-	gob.Register(new(bson.ObjectId))
-}
 
 var sessionManager *scs.Manager
 
@@ -49,7 +42,7 @@ func CreateStore(secure bool) {
 func CheckCreds(w http.ResponseWriter, r *http.Request) bool {
 	teamname, password := r.FormValue(formCredsTeam), r.FormValue(formCredsPass)
 
-	t, err := GetTeamByTeamname(teamname)
+	t, err := models.TeamByName(db, teamname)
 	if err != nil {
 		return false
 	}
@@ -62,7 +55,7 @@ func CheckCreds(w http.ResponseWriter, r *http.Request) bool {
 	}
 
 	session := sessionManager.Load(r)
-	err = session.PutObject(w, sessionIDKey, &t.Id)
+	err = session.PutInt(w, sessionIDKey, &t.ID)
 	if err != nil {
 		http.Error(w, http.StatusText(500), 500)
 		Logger.Error("Error saving session: ", err)
@@ -86,13 +79,11 @@ func CheckSessionID(next http.Handler) http.Handler {
 		if err != nil {
 			Logger.WithError(err).Error("CheckSessionID: failed to load session data")
 		} else if hasID {
-			teamID := new(bson.ObjectId)
-
-			err := session.GetObject(sessionIDKey, teamID)
+			teamID, err := session.GetInt(sessionIDKey, teamID)
 			if err != nil {
 				Logger.WithError(err).Errorf("CheckSessionID: failed to load %q", sessionIDKey)
 			} else {
-				t, err := GetTeamById(teamID)
+				t, err := models.TeamByID(db, teamID)
 				if err != nil {
 					Logger.WithError(err).WithField("teamID", teamID).
 						Error("CheckSessionID: GetTeamById failed")
@@ -109,35 +100,37 @@ func CheckSessionID(next http.Handler) http.Handler {
 // getSigningKey fetches the session signing secret from the database, or
 // creates a new one if one doesn't exist and saves that to the database.
 func getSigningKey() []byte {
-	type sessionKeyInMongo struct {
-		ID []byte `bson:"_id"`
-	}
+	// The signing key is stored in the db config table as a base64 string, and then decoded to its bytes
+	var (
+		s string
+		b []byte
+	)
 
-	key := sessionKeyInMongo{}
-
-	dbSession, coll := GetSessionAndCollection(sessionConfigCollection)
-	defer dbSession.Close()
-
-	err := coll.Find(nil).One(&key)
-
+	err := db.QueryRow(`SELECT value FROM cyboard.config WHERE key = $1`, sessionPGConfigKey).Scan(&s)
 	if err != nil {
-		if err != mgo.ErrNotFound {
-			Logger.WithError(err).Fatal("getSigningKey: failed to fetch from mongo")
+		if err != pgx.ErrNotFound {
+			Logger.WithError(err).Fatal("getSigningKey: failed to fetch from postgres")
 		}
 
 		Logger.Info("Generating new session signing key")
 
-		key.ID = make([]byte, 32)
-		_, err := rand.Read(key.ID)
+		b = make([]byte, 32)
+		_, err := rand.Read(b)
 		if err != nil {
 			Logger.WithError(err).Fatal("getSigningKey: failed to generate session signing key")
 		}
 
-		err = coll.Insert(key)
+		s = base64.StdEncoding.EncodeToString(b)
+
+		err = db.Exec(`INSERT INTO cyboard.config (key, value) VALUES ($1,$2)`, sessionPGConfigKey, s)
 		if err != nil {
-			Logger.WithError(err).Fatal("getSigningKey: failed to insert new key into mongo")
+			Logger.WithError(err).Fatal("getSigningKey: failed to insert new key into postgres")
 		}
 	}
+	b, err = base64.StdEncoding.DecodeString(s)
+	if err != nil {
+		Logger.WithError(err).Fatal("getSigningKey: failed to decode key from postgres")
+	}
 
-	return key.ID
+	return b
 }
