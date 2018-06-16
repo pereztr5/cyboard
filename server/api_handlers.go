@@ -22,6 +22,7 @@ func PingHandler(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
+// GetScores _unused_
 func GetScores(w http.ResponseWriter, r *http.Request) {
 	scores := DataGetAllScore()
 	w.Header().Set("Content-Type", "application/json; charset=UTF-8")

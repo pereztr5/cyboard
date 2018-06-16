@@ -49,7 +49,7 @@ func ChallengeCategories(db DB) ([]ChallengeCategory, error) {
 	ccs := []ChallengeCategory{}
 	for rows.Next() {
 		cc := ChallengeCategory{}
-		if err = rows.Scan(&cc); err != nil {
+		if err = rows.Scan(&cc.Name); err != nil {
 			return nil, err
 		}
 		ccs = append(ccs, cc)

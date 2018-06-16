@@ -18,75 +18,6 @@ const (
 var ScoreCategories = []string{CTF, Service}
 
 // Authentication Queries
-func GetTeamByTeamname(teamname string) (models.Team, error) {
-	t := models.Team{}
-
-	session, teamCollection := GetSessionAndCollection("teams")
-	defer session.Close()
-
-	err := teamCollection.Find(bson.M{"name": teamname}).One(&t)
-	if err != nil {
-		Logger.Printf("Error finding team by Teamname %s err: %v\n", teamname, err)
-		return t, err
-	}
-	return t, nil
-}
-
-func GetTeamById(id *bson.ObjectId) (*models.Team, error) {
-	t := &models.Team{}
-
-	session, teamCollection := GetSessionAndCollection("teams")
-	defer session.Close()
-
-	return t, teamCollection.Find(bson.M{"_id": id}).One(t)
-}
-
-// Get Team name and ip only used for service checking
-func DataGetTeamIps() ([]models.Team, error) {
-	t := []models.Team{}
-
-	session, teamCollection := GetSessionAndCollection("teams")
-	defer session.Close()
-
-	err := teamCollection.Find(bson.M{"group": "blueteam"}).Select(bson.M{"_id": false, "name": true, "number": true, "ip": true}).All(&t)
-	if err != nil {
-		//Logger.Printf("Error finding teams: %v\n", err)
-		return t, err
-	}
-	return t, nil
-}
-
-func DataGetTeams() []models.Team {
-	t := []models.Team{}
-
-	session, chalCollection := GetSessionAndCollection("teams")
-	defer session.Close()
-
-	err := chalCollection.Find(bson.M{"group": "blueteam"}).Sort("number").Select(bson.M{"_id": 0, "number": 1, "name": 1}).All(&t)
-	if err != nil {
-		Logger.Error("Could not get team info: ", err)
-		return t
-	}
-	return t
-}
-
-// Gets everything about all users. Utilized by Admin dashboard
-func DataGetAllUsers() []models.Team {
-	var t []models.Team
-
-	session, chalCollection := GetSessionAndCollection("teams")
-	defer session.Close()
-
-	err := chalCollection.Find(nil).
-		Sort("group", "number").
-		Select(bson.M{"_id": 0}).
-		All(&t)
-	if err != nil {
-		Logger.Error("Failed to retrieve all users: ", err)
-		return t
-	}
-	return t
-}
 
 // Query statements
 func DataGetChallenges(groups []string) ([]models.Challenge, error) {
@@ -105,68 +36,6 @@ func DataGetChallenges(groups []string) ([]models.Challenge, error) {
 		return challenges, err
 	}
 	return challenges, nil
-}
-
-// FlagState represents the possibilities when user submits a flag guess
-type FlagState int
-
-const (
-	// ValidFlag is for successful guesses of flags which were not previously submitted
-	ValidFlag FlagState = 0
-	// InvalidFlag is for bad guesses
-	InvalidFlag = 1
-	// AlreadyCaptured is for flags that were claimed by the team already
-	AlreadyCaptured = 2
-)
-
-func DataCheckFlag(team *models.Team, chal models.Challenge) (FlagState, error) {
-	session, chalCollection := GetSessionAndCollection("challenges")
-	defer session.Close()
-
-	query := bson.M{"flag": chal.Flag}
-	if len(chal.Name) > 0 {
-		query["name"] = chal.Name
-	}
-	err := chalCollection.Find(query).One(&chal)
-	if err != nil {
-		if err == mgo.ErrNotFound {
-			CaptFlagsLogger.WithField("team", team.Name).WithField("guess", chal.Flag).WithField("challenge", chal.Name).Println("Bad guess")
-			return InvalidFlag, nil
-		}
-		return InvalidFlag, err
-	}
-	if HasFlag(team.Number, chal.Group, chal.Name) {
-		// Got challenge already
-		return AlreadyCaptured, nil
-	}
-
-	result := models.Result{
-		Type:       "CTF",
-		Timestamp:  time.Now(),
-		Group:      chal.Group,
-		Teamname:   team.Name,
-		Teamnumber: team.Number,
-		Details:    chal.Name,
-		Points:     chal.Points,
-	}
-	CaptFlagsLogger.WithField("team", result.Teamname).WithField("challenge", result.Details).WithField("chalGroup", result.Group).
-		WithField("points", result.Points).Println("Score!!")
-	test := false
-	return ValidFlag, DataAddResult(result, test)
-}
-
-func HasFlag(teamnumber int, challengeGroup, challengeName string) bool {
-	session, resultCollection := GetSessionAndCollection("results")
-	defer session.Close()
-
-	cnt, err := resultCollection.
-		Find(bson.M{"type": CTF, "group": challengeGroup, "teamnumber": teamnumber, "details": challengeName}).
-		Count()
-	if err != nil {
-		Logger.WithError(err).Errorf("HasFlag failed for team '%d' for challenge '%s'", teamnumber, challengeName)
-		return true
-	}
-	return cnt > 0
 }
 
 type ChallengeCount struct {
@@ -264,6 +133,7 @@ type ScoreResult struct {
 	Points     int    `json:"points"`
 }
 
+// DataGetAllScore _unused_
 func DataGetAllScore() []ScoreResult {
 	session, collection := GetSessionAndCollection("results")
 	defer session.Close()
@@ -536,36 +406,6 @@ func DataUpdateTeam(teamName string, updateOp map[string]interface{}) error {
 	defer session.Close()
 	return teamC.Update(bson.M{"name": teamName}, bson.M{"$set": sanitizedOp})
 
-}
-
-func DataDeleteTeam(teamName string) error {
-	session, teamC := GetSessionAndCollection("teams")
-	defer session.Close()
-	return teamC.Remove(bson.M{"name": teamName})
-}
-
-func DataGetChallengeByName(name string) (chal models.Challenge, err error) {
-	session, collection := GetChallengesCollection()
-	defer session.Close()
-	return chal, collection.Find(bson.M{"name": name}).One(&chal)
-}
-
-func DataAddChallenge(chal *models.Challenge) error {
-	session, collection := GetChallengesCollection()
-	defer session.Close()
-	return collection.Insert(&chal)
-}
-
-func DataDeleteChallenge(id *bson.ObjectId) error {
-	session, collection := GetChallengesCollection()
-	defer session.Close()
-	return collection.RemoveId(&id)
-}
-
-func DataUpdateChallenge(id *bson.ObjectId, updateOp *models.Challenge) error {
-	session, collection := GetChallengesCollection()
-	defer session.Close()
-	return collection.UpdateId(id, &updateOp)
 }
 
 func DataAddChallenges(team *models.Team, challenges []models.Challenge) error {

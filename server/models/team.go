@@ -69,3 +69,66 @@ func TeamByID(db DB, id int) (*Team, error) {
 
 	return &t, nil
 }
+
+// AllTeams fetches all teams (users) from the database.
+// Used by the admin dashboard.
+func AllTeams(db DB) ([]Team, error) {
+	const sqlstr = `SELECT id, name, role_name, disabled, blueteam_ip FROM cyboard.team`
+
+	rows, err := db.Query(sqlstr)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+
+	ts := []Team{}
+	for rows.Next() {
+		t := Team{}
+		if err = rows.Scan(&t.ID, &t.Name, &t.RoleName, &t.Disabled, &t.BlueteamIP); err != nil {
+			return nil, err
+		}
+		ts = append(ts, t)
+	}
+	if err = rows.Err(); err != nil {
+		return nil, err
+	}
+
+	return ts, nil
+}
+
+// BlueteamView has the Team fields needed by the service monitor.
+type BlueteamView struct {
+	ID         int    `json:"id"`          // id
+	Name       string `json:"name"`        // name
+	BlueteamIP int16  `json:"blueteam_ip"` // blueteam_ip
+}
+
+// Blueteams fetches all the contestants from the database, along with their
+// significant IP octet (the one octet that changes between teams, all the
+// other octets are assumed to be the same).
+func AllBlueteams(db DB) ([]BlueteamView, error) {
+	const sqlstr = `SELECT ` +
+		`id, name, blueteam_ip` +
+		`FROM cyboard.team ` +
+		`WHERE role_name = 'blueteam' AND disabled = false`
+
+	rows, err := db.Query(sqlstr)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+
+	bmvs := []BlueteamView{}
+	for rows.Next() {
+		b := BlueteamView{}
+		if err = rows.Scan(&b.ID, &b.Name, &b.BlueteamIP); err != nil {
+			return nil, err
+		}
+		bmvs = append(bmvs, b)
+	}
+	if err = rows.Err(); err != nil {
+		return nil, err
+	}
+
+	return bmvs, nil
+}

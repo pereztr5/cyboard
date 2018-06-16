@@ -115,10 +115,10 @@ func (m *LoggerManager) newRequestMiddleware(logger *logrus.Logger) *negronilogr
 	// Override the fields added to log entries.
 	// The removed defaults set by the library are left as comments.
 	mw.Before = func(entry *logrus.Entry, req *http.Request, remoteAddr string) *logrus.Entry {
-		team, teamName := "<none>", "<none>"
+		role, teamName := "<none>", "<none>"
 		t := getCtxTeam(req)
 		if t != nil {
-			team = t.Group
+			role = t.RoleName
 			teamName = t.Name
 		}
 
@@ -126,7 +126,7 @@ func (m *LoggerManager) newRequestMiddleware(logger *logrus.Logger) *negronilogr
 			"request":  req.RequestURI,
 			"method":   req.Method,
 			"remote":   remoteAddr,
-			"team":     team,
+			"teamRole": role,
 			"teamName": teamName,
 		})
 	}
