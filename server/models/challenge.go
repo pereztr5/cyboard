@@ -98,3 +98,5 @@ func ChallengeByID(db DB, id int) (*Challenge, error) {
 
 	return &c, nil
 }
+
+// func ChallengesInGroups(db DB, groups []string) ([]Challenge, error) {}

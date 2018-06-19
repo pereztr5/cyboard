@@ -39,9 +39,9 @@ func CheckFlagSubmission(db DB, team *Team, chal *ChallengeGuess) (FlagState, er
 	)
 
 	if len(chal.Name) > 0 {
-		sqlwhere = `c.flag = $2 AND c.Name = $3`
+		sqlwhere = `c.hidden = false AND c.flag = $2 AND c.Name = $3`
 	} else {
-		sqlwhere = `c.flag = $2`
+		sqlwhere = `c.hidden = false AND c.flag = $2`
 	}
 
 	// Use left outer joins to get the challenge and possible releated team if
@@ -50,11 +50,11 @@ func CheckFlagSubmission(db DB, team *Team, chal *ChallengeGuess) (FlagState, er
 	// incorrect, no row gets returned. If the team scored before, a full row
 	// with the team's id is returned. If the flag is correct and not scored
 	// by the team, the row returned won't have the team's id.
-	sqlstr = `select c.id, c.name, c.category, c.Total, t.id ` +
-		`from cyboard.challenge AS c ` +
-		`LEFT JOIN cyboard.ctf_solve as solve ` +
+	sqlstr = `SELECT c.id, c.name, c.category, c.total, t.id ` +
+		`FROM cyboard.challenge AS c ` +
+		`LEFT JOIN cyboard.ctf_solve AS solve ` +
 		`ON c.id = solve.challenge_id AND ` + sqlwhere + ` ` +
-		`LEFT JOIN cyboard.team as t ` +
+		`LEFT JOIN cyboard.team AS t ` +
 		`ON solve.team_id = t.id AND t.id = $1 ` +
 		`WHERE ` + sqlwhere
 
@@ -83,4 +83,42 @@ func CheckFlagSubmission(db DB, team *Team, chal *ChallengeGuess) (FlagState, er
 
 	CaptFlagsLogger.WithFields(logrus.Fields{"team": team.Name, "challenge": chal.Name, "category": chal.Category, "points": points}).Println("Score!!")
 	return ValidFlag, nil
+}
+
+// CTFProgress holds a team's status for a ctf category.
+// Represents e.g. `completed 4 out of 5 challenges in the reversing category`
+type CTFProgress struct {
+	Category string `json:"category"`
+	Amount   int    `json:"count"`
+	Max      int    `json:"max"`
+}
+
+// GetTeamCTFProgress retrieves the given team's status in each ctf category,
+// by counting the number of solved challenges out of the total amount of them.
+func GetTeamCTFProgress(db DB, teamID int) ([]CTFProgress, error) {
+	const sqlstr = `SELECT category, COUNT(solve.team_id) AS amount, COUNT(*) AS max ` +
+		`FROM challenge ` +
+		`LEFT JOIN ctf_solve AS solve ON solve.challenge_id = id AND solve.team_id = $1` +
+		`WHERE hidden = false ` +
+		`GROUP BY category`
+
+	rows, err := db.Query(sqlstr, teamID)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+
+	ccs := []CTFProgress{}
+	for rows.Next() {
+		cc := CTFProgress{}
+		if err = rows.Scan(&cc.Category, &cc.Amount, &cc.Max); err != nil {
+			return nil, err
+		}
+		ccs = append(ccs, cc)
+	}
+	if err = rows.Err(); err != nil {
+		return nil, err
+	}
+
+	return ccs, nil
 }
