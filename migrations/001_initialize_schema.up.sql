@@ -23,6 +23,7 @@ CREATE SCHEMA IF NOT EXISTS cyboard;
 
 ALTER ROLE cybot SET search_path = cyboard;
 
+GRANT USAGE ON SCHEMA cyboard TO cybot;
 ALTER DEFAULT PRIVILEGES IN SCHEMA cyboard
     GRANT SELECT, INSERT, UPDATE, DELETE, TRUNCATE
     ON TABLES TO cybot;
@@ -40,7 +41,7 @@ CREATE EXTENSION IF NOT EXISTS tablefunc ; -- Provides functions for crosstab (p
 CREATE TABLE config (
       key   TEXT NOT NULL UNIQUE
     , value TEXT NOT NULL
-)
+);
 
 ----------------
 -- User Accounts
@@ -215,6 +216,10 @@ CREATE TABLE service_check (
     , exit_code   SMALLINT     NOT NULL -- actual exit code, for debugging
 );
 
+-- CREATE INDEX service_check_fkey_idx_team    ON service_check (team_id);
+-- CREATE INDEX service_check_fkey_idx_service ON service_check (service_id);
+-- CREATE INDEX service_check_idx_status ON service_check (status);
+
 -- ctf_solve is a timestamp of when a team solved a challenge
 CREATE TABLE ctf_solve  (
       created_at   TIMESTAMPTZ  NOT NULL DEFAULT CURRENT_TIMESTAMP
@@ -230,6 +235,9 @@ CREATE TABLE ctf_solve  (
     See: https://github.com/timescale/timescaledb/issues/488
     */
 );
+
+-- CREATE INDEX ctf_solve_fkey_idx_team      ON ctf_solve (team_id);
+-- CREATE INDEX ctf_solve_fkey_idx_challenge ON ctf_solve (challenge_id);
 
 -- other_score is for bonus points, deductions for misbehavior, etc.
 CREATE TABLE other_score (

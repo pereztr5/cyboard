@@ -1,6 +1,9 @@
 package models
 
-import "github.com/sirupsen/logrus"
+import (
+	"github.com/jackc/pgx"
+	"github.com/sirupsen/logrus"
+)
 
 // FlagState represents the possibilities when user submits a flag guess
 type FlagState int
@@ -65,7 +68,7 @@ func CheckFlagSubmission(db DB, team *Team, chal *ChallengeGuess) (FlagState, er
 	}
 
 	if err != nil {
-		if err == pgx.ErrNotFound {
+		if err == pgx.ErrNoRows {
 			CaptFlagsLogger.WithField("team", team.Name).WithField("guess", chal.Flag).WithField("challenge", chal.Name).Println("Bad guess")
 			return InvalidFlag, nil
 		}
@@ -77,7 +80,7 @@ func CheckFlagSubmission(db DB, team *Team, chal *ChallengeGuess) (FlagState, er
 	}
 
 	const sqlinsert = `INSERT INTO cyboard.ctf_solve (team_id, challenge_id) VALUES ($1, $2)`
-	if err = db.Exec(sqlinsert, team.ID, chal.ID); err != nil {
+	if _, err = db.Exec(sqlinsert, team.ID, challengeID); err != nil {
 		return InvalidFlag, err
 	}
 

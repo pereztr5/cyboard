@@ -20,6 +20,7 @@ var ScoreCategories = []string{CTF, Service}
 // Authentication Queries
 
 // Query statements
+// DataGetTeamScore used on blueteam dash to display just their score
 func DataGetTeamScore(teamname string) int {
 	session, collection := GetSessionAndCollection("results")
 	defer session.Close()
