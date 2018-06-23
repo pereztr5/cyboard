@@ -239,8 +239,8 @@ CREATE TABLE ctf_solve  (
 -- CREATE INDEX ctf_solve_fkey_idx_team      ON ctf_solve (team_id);
 -- CREATE INDEX ctf_solve_fkey_idx_challenge ON ctf_solve (challenge_id);
 
--- other_score is for bonus points, deductions for misbehavior, etc.
-CREATE TABLE other_score (
+-- other_points is for bonus points, deductions for misbehavior, etc.
+CREATE TABLE other_points (
       created_at  TIMESTAMPTZ  NOT NULL DEFAULT CURRENT_TIMESTAMP
     , team_id     INT          NOT NULL REFERENCES team(id)
     , points      REAL         NOT NULL
@@ -250,6 +250,35 @@ CREATE TABLE other_score (
 -- Activate timescaledb extension on the scoring tables
 SELECT create_hypertable('service_check', 'created_at');
 SELECT create_hypertable('ctf_solve',     'created_at');
-SELECT create_hypertable('other_score',   'created_at');
+SELECT create_hypertable('other_points',  'created_at');
+
+
+-- Create views for scoring
+
+CREATE VIEW blueteam (id, name, blueteam_ip)
+    AS SELECT team.id, team.name, blueteam_ip
+    FROM cyboard.team
+    WHERE team.role_name = 'blueteam'
+      AND team.disabled = false;
+
+CREATE VIEW cyboard.service_score (team_id, points)
+    AS SELECT team.id, COALESCE(sum(service.points), 0)
+    FROM cyboard.blueteam AS team
+        LEFT JOIN service_check AS sc ON team.id = sc.team_id AND sc.status = 'pass'
+        LEFT JOIN service ON sc.service_id = service.id
+    GROUP BY team.id;
+
+CREATE VIEW cyboard.ctf_score (team_id, points)
+    AS SELECT team.id, COALESCE(sum(ch.total), 0)
+    FROM cyboard.blueteam AS team
+        LEFT JOIN ctf_solve ON team.id = ctf_solve.team_id
+        LEFT JOIN challenge AS ch ON ctf_solve.challenge_id = ch.id
+    GROUP BY team.id;
+
+CREATE VIEW cyboard.other_score (team_id, points)
+    AS SELECT team.id, COALESCE(sum(o.points), 0)
+    FROM cyboard.blueteam AS team
+        LEFT JOIN other_points AS o ON team.id = o.team_id
+    GROUP BY team.id;
 
 COMMIT;

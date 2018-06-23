@@ -17,104 +17,7 @@ const (
 
 var ScoreCategories = []string{CTF, Service}
 
-// Authentication Queries
-
 // Query statements
-// DataGetTeamScore used on blueteam dash to display just their score
-func DataGetTeamScore(teamname string) int {
-	session, collection := GetSessionAndCollection("results")
-	defer session.Close()
-	points := bson.M{}
-	var p int
-	pipe := collection.Pipe([]bson.M{
-		{"$match": bson.M{"teamname": teamname}},
-		{"$group": bson.M{"_id": nil, "points": bson.M{"$sum": "$points"}}},
-		{"$project": bson.M{"_id": 0, "points": 1}},
-	})
-	err := pipe.One(&points)
-	if err != nil {
-		Logger.Errorf("Error getting `%s` points: %v", teamname, err)
-	} else {
-		p = points["points"].(int)
-	}
-	return p
-}
-
-// ScoreResult represents the data returned from a query for a team's score.
-// This is slimmed down from the `models.Result` model type, to reduce processing & bandwidth,
-// and improve ease-of-use.
-type ScoreResult struct {
-	Teamnumber int    `json:"teamnumber"`
-	Teamname   string `json:"teamname"`
-	Type       string `json:"type,omitempty"`
-	Points     int    `json:"points"`
-}
-
-// DataGetAllScore _unused_
-func DataGetAllScore() []ScoreResult {
-	session, collection := GetSessionAndCollection("results")
-	defer session.Close()
-	tmScore := []ScoreResult{}
-
-	teams := DataGetTeams()
-	err := collection.Pipe([]bson.M{
-		{"$match": bson.M{"points": bson.M{"$ne": 0}}},
-		{"$group": bson.M{"_id": bson.M{"tname": "$teamname", "tnum": "$teamnumber"}, "points": bson.M{"$sum": "$points"}}},
-		{"$project": bson.M{"_id": 0, "teamnumber": "$_id.tnum", "teamname": "$_id.tname", "points": 1}},
-		{"$sort": bson.M{"teamnumber": 1}},
-	}).All(&tmScore)
-	if err != nil {
-		Logger.Error("Error getting all team scores: ", err)
-	}
-	// Get defaults for teams that do not have a score
-	if l := len(tmScore); l < len(teams) {
-		if l == 0 {
-			for _, t := range teams {
-				tmScore = append(tmScore, ScoreResult{Teamname: t.Name, Teamnumber: t.Number, Points: 0})
-			}
-		} else {
-			for i := 0; i < len(teams); i++ {
-				tmScore = append(tmScore, ScoreResult{Teamname: teams[i].Name, Teamnumber: teams[i].Number, Points: 0})
-			}
-		}
-	}
-	return tmScore
-}
-
-func DataGetAllScoreSplitByType() []ScoreResult {
-	session, collection := GetSessionAndCollection("results")
-	defer session.Close()
-	teams := DataGetTeams()
-	tmScore := make([]ScoreResult, 0, len(teams)*2)
-
-	err := collection.Pipe([]bson.M{
-		{"$match": bson.M{"points": bson.M{"$ne": 0}}},
-		{"$group": bson.M{"_id": bson.M{"tname": "$teamname", "tnum": "$teamnumber", "type": "$type"}, "points": bson.M{"$sum": "$points"}}},
-		{"$project": bson.M{"_id": 0, "teamnumber": "$_id.tnum", "teamname": "$_id.tname", "type": "$_id.type", "points": 1}},
-		{"$sort": bson.M{"teamnumber": 1, "type": 1}},
-	}).All(&tmScore)
-	if err != nil {
-		Logger.Error("Error getting all team scores: ", err)
-	}
-
-	// Fill in default score for each category for every team
-	if len(tmScore) != len(teams)*2 {
-		var team *models.Team
-		var cat *string
-		for i := 0; i < len(teams)*2; i++ {
-			team, cat = &teams[i/2], &ScoreCategories[i%2]
-			if i >= len(tmScore) {
-				tmScore = append(tmScore, ScoreResult{Teamname: team.Name, Teamnumber: team.Number, Type: *cat})
-			} else if tmScore[i].Teamnumber != team.Number || (tmScore[i].Teamnumber == team.Number && tmScore[i].Type != *cat) {
-				tmScore = append(tmScore, ScoreResult{})
-				copy(tmScore[i+1:], tmScore[i:])
-				tmScore[i] = ScoreResult{Teamname: team.Name, Teamnumber: team.Number, Type: *cat}
-			}
-		}
-	}
-
-	return tmScore
-}
 
 type ServiceStatus struct {
 	Service      string `json:"service" bson:"_id"`
@@ -125,6 +28,8 @@ type ServiceStatus struct {
 	} `json:"teams" bson:"teams"`
 }
 
+// DataGetServiceStatus retrieves data for the Service Status page,
+// which displays big pass/fail boxes for each teams' services
 func DataGetServiceStatus() []ServiceStatus {
 	session, results := GetSessionAndCollection("results")
 	defer session.Close()
@@ -139,86 +44,6 @@ func DataGetServiceStatus() []ServiceStatus {
 		Logger.Error("Error getting all team scores: ", err)
 	}
 	return cResults
-}
-
-func DataGetServiceResult() []models.Result {
-	session, collection := GetSessionAndCollection("results")
-	defer session.Close()
-	sList := []models.Result{}
-
-	err := collection.Pipe([]bson.M{
-		{"$match": bson.M{"type": "Service"}},
-		{"$group": bson.M{"_id": bson.M{"service": "$group", "tnum": "$teamnumber", "tname": "$teamname"}, "status": bson.M{"$last": "$details"}}},
-		{"$group": bson.M{"_id": "$_id.service", "teams": bson.M{"$addToSet": bson.M{"number": "$_id.tnum", "name": "$_id.tname", "status": "$status"}}}},
-		{"$unwind": "$teams"},
-		{"$project": bson.M{"_id": 0, "group": "$_id", "teamnumber": "$teams.number", "teamname": "$teams.name", "details": "$teams.status"}},
-		{"$sort": bson.M{"group": 1, "teamnumber": 1}},
-	}).All(&sList)
-	if err != nil {
-		Logger.Error("Error getting all team scores: ", err)
-	}
-	return sList
-}
-
-// ServiceResult represents the data returned from a query regarding a team's latest service check.
-type ServiceResult struct {
-	Teamnumber int    `json:"teamnumber"`
-	Details    string `json:"details"`
-}
-
-func DataGetResultByService(blueteams []models.Team, service string) []ServiceResult {
-	session, collection := GetSessionAndCollection("results")
-	defer session.Close()
-	teamStatus := make([]ServiceResult, 0, len(blueteams))
-
-	err := collection.Pipe([]bson.M{
-		{"$match": bson.M{"type": "Service", "group": service}},
-		{"$group": bson.M{"_id": bson.M{"service": "$group", "tnum": "$teamnumber"}, "status": bson.M{"$last": "$details"}}},
-		{"$project": bson.M{"_id": 0, "teamnumber": "$_id.tnum", "details": "$status"}},
-		{"$sort": bson.M{"teamnumber": 1}},
-	}).All(&teamStatus)
-	if err != nil {
-		Logger.Error("Error getting team status by service: ", err)
-	}
-
-	// Fill in an empty result for any teams without a status for any service
-	if len(blueteams) != len(teamStatus) {
-		for idx, team := range blueteams {
-			// Search for teamStatuses being too short, or holes (team1, team2, ___, team4)
-			if idx >= len(teamStatus) {
-				teamStatus = append(teamStatus, ServiceResult{Teamnumber: team.Number, Details: "N/A"})
-			} else if teamStatus[idx].Teamnumber != team.Number {
-				teamStatus = append(teamStatus, ServiceResult{})
-				copy(teamStatus[idx+1:], teamStatus[idx:])
-				teamStatus[idx] = ServiceResult{Teamnumber: team.Number, Details: "N/A"}
-			}
-		}
-	}
-	return teamStatus
-}
-
-func DataGetChallengeGroupsList() []string {
-	session, collection := GetSessionAndCollection("challenges")
-	defer session.Close()
-	challenges := []string{}
-	err := collection.Find(nil).Distinct("group", &challenges)
-	if err != nil {
-		Logger.WithError(err).Error("Failed to query distinct Challenge groups")
-	}
-	return challenges
-}
-
-func DataGetServiceList() []string {
-	// NOTE: This function is only used by the `/api/services` endpoint, which itself is unused.
-	session, collection := GetSessionAndCollection("results")
-	defer session.Close()
-	list := []string{}
-
-	err := collection.Find(bson.M{"type": "Service"}).Distinct("group", &list)
-	if err != nil {
-		Logger.Error("Error getting service list: ", err)
-	}
-	return list
 }
 
 // TODO: Combine queries since this has repeating code

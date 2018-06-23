@@ -81,3 +81,31 @@ func ServiceByID(db DB, id int) (*Service, error) {
 
 	return &s, nil
 }
+
+// AllServices retrieves all monitored services from 'cyboard.service'.
+func AllServices(db DB) ([]Service, error) {
+	const sqlstr = `
+	SELECT id, name, category, description, total_points, points, script, args, disabled, starts_at, created_at, modified_at
+	FROM cyboard.service`
+
+	rows, err := db.Query(sqlstr)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+
+	ss := []Service{}
+	for rows.Next() {
+		s := Service{}
+		if err = rows.Scan(&s.ID, &s.Name, &s.Category, &s.Description, &s.TotalPoints, &s.Points, &s.Script, &s.Args, &s.Disabled, &s.StartsAt, &s.CreatedAt, &s.ModifiedAt); err != nil {
+			return nil, err
+		}
+		ss = append(ss, s)
+	}
+	if err = rows.Err(); err != nil {
+		return nil, err
+	}
+
+	return ss, nil
+
+}

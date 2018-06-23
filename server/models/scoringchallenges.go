@@ -41,30 +41,21 @@ func CheckFlagSubmission(db DB, team *Team, chal *ChallengeGuess) (FlagState, er
 		sqlstr   string
 	)
 
+	// Examines the ctf_solve table to look for whether the submitted flag was scored before.
+	// If the flag guess is entirely incorrect, no row gets returned.
+	// If the team scored before, a full row with the team's id is returned.
+	// If the flag is correct and not scored by the team, the row returned will have a null team id.
+	sqlstr = `SELECT c.id, c.name, c.category, c.total, solve.team_id
+	FROM challenge AS c
+	LEFT JOIN ctf_solve solve ON c.id = solve.challenge_id AND solve.team_id = $1
+	WHERE`
+
 	if len(chal.Name) > 0 {
 		sqlwhere = `c.hidden = false AND c.flag = $2 AND c.Name = $3`
+		err = db.QueryRow(sqlstr+sqlwhere, team.ID, chal.Flag, chal.Name).Scan(challengeID, &chal.Name, &chal.Category, &points, solverID)
 	} else {
 		sqlwhere = `c.hidden = false AND c.flag = $2`
-	}
-
-	// Use left outer joins to get the challenge and possible releated team if
-	// the flag has been scored before. Examines the ctf_solve table to look for
-	// whether the submitted flag was scored before. If the flag guess is entirely
-	// incorrect, no row gets returned. If the team scored before, a full row
-	// with the team's id is returned. If the flag is correct and not scored
-	// by the team, the row returned won't have the team's id.
-	sqlstr = `SELECT c.id, c.name, c.category, c.total, t.id ` +
-		`FROM cyboard.challenge AS c ` +
-		`LEFT JOIN cyboard.ctf_solve AS solve ` +
-		`ON c.id = solve.challenge_id AND ` + sqlwhere + ` ` +
-		`LEFT JOIN cyboard.team AS t ` +
-		`ON solve.team_id = t.id AND t.id = $1 ` +
-		`WHERE ` + sqlwhere
-
-	if len(chal.Name) > 0 {
-		err = db.QueryRow(sqlstr, team.ID, chal.Flag, chal.Name).Scan(challengeID, &chal.Name, &chal.Category, &points, solverID)
-	} else {
-		err = db.QueryRow(sqlstr, team.ID, chal.Flag).Scan(challengeID, &chal.Name, &chal.Category, &points, solverID)
+		err = db.QueryRow(sqlstr+sqlwhere, team.ID, chal.Flag).Scan(challengeID, &chal.Name, &chal.Category, &points, solverID)
 	}
 
 	if err != nil {

@@ -21,7 +21,7 @@ var (
 		"challenge_file",
 		"ctf_solve",
 		"exit_status",
-		"other_score",
+		"other_points",
 		"service",
 		"service_check",
 		"team",
