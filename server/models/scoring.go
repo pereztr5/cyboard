@@ -1,5 +1,7 @@
 package models
 
+import "time"
+
 type TeamsScoresResponse struct {
 	TeamID  int     `json:"team_id"`
 	Name    string  `json:"name"`
@@ -24,4 +26,20 @@ func TeamsScores(db DB) {
 		JOIN other_score ON team.id = other_score.team_id
 	ORDER BY team.id`
 
+}
+
+// LatestScoreChange retrieves the timestamp of the last event that changed any team's score.
+// This is a lightweight way of checking if other pieces of info need updating.
+// If the timestamp changes between calls, then that means other score or status related
+// data should be queried for again.
+func LatestScoreChange(db DB) (time.Time, error) {
+	const sqlstr = `SELECT '-infinity' AS created_at
+	UNION ALL SELECT created_at FROM service_check
+	UNION ALL SELECT created_at FROM ctf_solve
+	UNION ALL SELECT created_at FROM other_points
+	ORDER BY created_at DESC
+	LIMIT 1`
+	var timestamp time.Time
+	err := db.QueryRow(sqlstr).Scan(&timestamp)
+	return timestamp, err
 }

@@ -1,5 +1,18 @@
 package models
 
+import (
+	"time"
+)
+
+// LatestServiceCheckRun retrieves the timestamp of the last run of the service monitor.
+// See: `LatestScoreChange` in `scoring.go`. This delta check is specific to services.
+func LatestServiceCheckRun(db DB) (time.Time, error) {
+	const sqlstr = `SELECT created_at FROM service_check UNION ALL '-infinity' ORDER BY created_at DESC LIMIT 1`
+	var timestamp time.Time
+	err := db.QueryRow(sqlstr).Scan(&timestamp)
+	return timestamp, err
+}
+
 // TeamServiceStatusesResponse represents a service's status (pass, fail, timeout)
 // for one team.
 type TeamServiceStatusesResponse struct {
