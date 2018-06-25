@@ -1,9 +1,25 @@
 package models
 
 import (
+	"time"
+
 	"github.com/jackc/pgx"
 	"github.com/sirupsen/logrus"
 )
+
+// CtfSolve represents a row from 'cyboard.ctf_solve'.
+type CtfSolve struct {
+	CreatedAt   time.Time `json:"created_at"`   // created_at
+	TeamID      int       `json:"team_id"`      // team_id
+	ChallengeID int       `json:"challenge_id"` // challenge_id
+}
+
+// Insert a scored flag into the database. Congrats!
+func (cs *CtfSolve) Insert(db DB) error {
+	const sqlstr = `INSERT INTO ctf_solve (team_id, challenge_id) VALUES ($1, $2)`
+	_, err := db.Exec(sqlstr, cs.TeamID, cs.ChallengeID)
+	return err
+}
 
 // FlagState represents the possibilities when user submits a flag guess
 type FlagState int
@@ -33,7 +49,7 @@ type ChallengeGuess struct {
 func CheckFlagSubmission(db DB, team *Team, chal *ChallengeGuess) (FlagState, error) {
 	var (
 		err         error
-		challengeID *int
+		challengeID int
 		solverID    *int
 		points      float32
 
@@ -52,7 +68,7 @@ func CheckFlagSubmission(db DB, team *Team, chal *ChallengeGuess) (FlagState, er
 
 	if len(chal.Name) > 0 {
 		sqlwhere = `c.hidden = false AND c.flag = $2 AND c.Name = $3`
-		err = db.QueryRow(sqlstr+sqlwhere, team.ID, chal.Flag, chal.Name).Scan(challengeID, &chal.Name, &chal.Category, &points, solverID)
+		err = db.QueryRow(sqlstr+sqlwhere, team.ID, chal.Flag, chal.Name).Scan(&challengeID, &chal.Name, &chal.Category, &points, solverID)
 	} else {
 		sqlwhere = `c.hidden = false AND c.flag = $2`
 		err = db.QueryRow(sqlstr+sqlwhere, team.ID, chal.Flag).Scan(challengeID, &chal.Name, &chal.Category, &points, solverID)
@@ -70,8 +86,8 @@ func CheckFlagSubmission(db DB, team *Team, chal *ChallengeGuess) (FlagState, er
 		return AlreadyCaptured, nil
 	}
 
-	const sqlinsert = `INSERT INTO cyboard.ctf_solve (team_id, challenge_id) VALUES ($1, $2)`
-	if _, err = db.Exec(sqlinsert, team.ID, challengeID); err != nil {
+	award := CtfSolve{ChallengeID: challengeID, TeamID: team.ID}
+	if err = award.Insert(db); err != nil {
 		return InvalidFlag, err
 	}
 

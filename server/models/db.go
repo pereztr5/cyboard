@@ -5,13 +5,10 @@ import (
 	"github.com/jackc/pgx"
 )
 
-// DB is the common interface for database operations that can be used with
-// types from schema 'cyboard'.
-type DB interface {
-	Exec(string, ...interface{}) (pgx.CommandTag, error)
-	Query(string, ...interface{}) (*pgx.Rows, error)
-	QueryRow(string, ...interface{}) *pgx.Row
-}
+// DB is a type alias to `*pgx.ConnPool`, or some SQL database abstraction.
+// Should the database connector change to something like libpq, sqlx, or dbr,
+// the migration can be made easier.
+type DB = *pgx.ConnPool
 
 var (
 	// DatabaseTables is a list of every table for the schema 'cyboard'

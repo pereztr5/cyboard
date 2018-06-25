@@ -2,9 +2,6 @@ package server
 
 import (
 	"fmt"
-	"time"
-
-	"gopkg.in/mgo.v2"
 
 	"github.com/pereztr5/cyboard/server/models"
 	"gopkg.in/mgo.v2/bson"
@@ -44,110 +41,6 @@ func DataGetServiceStatus() []ServiceStatus {
 		Logger.Error("Error getting all team scores: ", err)
 	}
 	return cResults
-}
-
-// TODO: Combine queries since this has repeating code
-func DataGetLastServiceResult() time.Time {
-	session, results := GetSessionAndCollection("results")
-	defer session.Close()
-	id := bson.M{}
-	err := results.Pipe([]bson.M{
-		{"$match": bson.M{"type": "Service"}},
-		{"$sort": bson.M{"_id": 1}},
-		{"$group": bson.M{"_id": nil, "last": bson.M{"$last": "$_id"}}},
-		{"$project": bson.M{"_id": 0, "last": 1}},
-	}).One(&id)
-	var latest time.Time
-	if err != nil {
-		if err != mgo.ErrNotFound {
-			Logger.Error("Error getting last Service result: ", err)
-		}
-	} else {
-		latest = id["last"].(bson.ObjectId).Time()
-	}
-	return latest
-}
-
-func DataGetLastResult() time.Time {
-	session, results := GetSessionAndCollection("results")
-	defer session.Close()
-	id := bson.M{}
-
-	// TODO: Update to use the "timestamp" field, instead of bson native _id
-	err := results.Pipe([]bson.M{
-		{"$sort": bson.M{"_id": 1}},
-		{"$group": bson.M{"_id": nil, "last": bson.M{"$last": "$_id"}}},
-		{"$project": bson.M{"_id": 0, "last": 1}},
-	}).One(&id)
-	var latest time.Time
-	if err != nil {
-		if err != mgo.ErrNotFound {
-			Logger.Error("Error getting last document: ", err)
-		}
-	} else {
-		latest = id["last"].(bson.ObjectId).Time()
-	}
-	return latest
-}
-
-// Insert statements
-func DataAddResult(result models.Result, test bool) error {
-	var col string
-	if !test {
-		col = "results"
-	} else {
-		col = "testResults"
-	}
-	session, collection := GetSessionAndCollection(col)
-	defer session.Close()
-	err := collection.Insert(result)
-	if err != nil {
-		//Logger.Printf("Error inserting %s to team %s: %v", result.Details, result.Teamname, err)
-		return err
-	}
-	return nil
-}
-
-func DataAddResults(results []models.Result, test bool) error {
-	docs := make([]interface{}, len(results))
-	for i, result := range results {
-		docs[i] = result
-	}
-
-	collName := "results"
-	if test {
-		collName = "testResults"
-	}
-	session, collection := GetSessionAndCollection(collName)
-	defer session.Close()
-	return collection.Insert(docs...)
-}
-
-func DataAddTeams(teams []models.Team) error {
-	session, teamC := GetSessionAndCollection("teams")
-	defer session.Close()
-	docs := make([]interface{}, len(teams))
-	for i, team := range teams {
-		docs[i] = team
-	}
-	err := teamC.Insert(docs...)
-	if err != nil {
-		return fmt.Errorf("failed to add new teams: mongo DB error: %v", err)
-	}
-	return nil
-}
-
-func DataUpdateTeam(teamName string, updateOp map[string]interface{}) error {
-	// sanitization may panic if someone is sending crafted, bad JSON to the api,
-	// but this is a gated, admin only operation.
-	sanitizedOp, err := sanitizeUpdateOp(updateOp)
-	if err != nil {
-		return fmt.Errorf("validation failed: %v", err)
-	}
-	session, teamC := GetSessionAndCollection("teams")
-	defer session.Close()
-	return teamC.Update(bson.M{"name": teamName}, bson.M{"$set": sanitizedOp})
-
 }
 
 func DataAddChallenges(team *models.Team, challenges []models.Challenge) error {

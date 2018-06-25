@@ -2,7 +2,62 @@ package models
 
 import (
 	"time"
+
+	"github.com/jackc/pgx"
 )
+
+// ServiceCheck represents a row from 'cyboard.service_check'.
+type ServiceCheck struct {
+	CreatedAt time.Time  `json:"created_at"` // created_at
+	TeamID    int        `json:"team_id"`    // team_id
+	ServiceID int        `json:"service_id"` // service_id
+	Status    ExitStatus `json:"status"`     // status
+	ExitCode  int16      `json:"exit_code"`  // exit_code
+}
+
+var (
+	serviceCheckTableIdent   = pgx.Identifier{"cyboard", "service_check"}
+	serviceCheckTableColumns = []string{
+		"created_at", "team_id", "service_id", "status", "exit_code",
+	}
+)
+
+// ServiceCheckSlice is an array of ServiceChecks, suitable to insert many of at once.
+type ServiceCheckSlice []ServiceCheck
+
+// serviceCheckCopyFromRows implements the pgx.CopyFromSource interface, allowing
+// a ServiceCheckSlice to be inserted into the database.
+type serviceCheckCopyFromRows struct {
+	rows ServiceCheckSlice
+	idx  int
+}
+
+func (ctr *serviceCheckCopyFromRows) Next() bool {
+	ctr.idx++
+	return ctr.idx < len(ctr.rows)
+}
+
+func (ctr *serviceCheckCopyFromRows) Values() ([]interface{}, error) {
+	sc := ctr.rows[ctr.idx]
+	val := []interface{}{
+		sc.CreatedAt, sc.TeamID, sc.ServiceID, sc.Status, sc.ExitCode,
+	}
+	return val, nil
+}
+
+func (ctr *serviceCheckCopyFromRows) Err() error {
+	return nil
+}
+
+// Insert a batch of service monitor results efficiently into the database.
+func (sc ServiceCheckSlice) Insert(db DB) error {
+	_, err := db.CopyFrom(
+		serviceCheckTableIdent,
+		serviceCheckTableColumns,
+		&serviceCheckCopyFromRows{rows: sc},
+	)
+	return err
+}
 
 // LatestServiceCheckRun retrieves the timestamp of the last run of the service monitor.
 // See: `LatestScoreChange` in `scoring.go`. This delta check is specific to services.

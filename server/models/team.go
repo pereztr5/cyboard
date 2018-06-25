@@ -1,6 +1,11 @@
 // Package models contains the types for schema 'cyboard'.
 package models
 
+import (
+	"github.com/pkg/errors"
+	"golang.org/x/crypto/bcrypt"
+)
+
 // Team represents a row from 'cyboard.team'.
 type Team struct {
 	ID         int      `json:"id"`          // id
@@ -10,6 +15,8 @@ type Team struct {
 	Disabled   bool     `json:"disabled"`    // disabled
 	BlueteamIP *int16   `json:"blueteam_ip"` // blueteam_ip
 }
+
+// TODO: bcrypt Team.Hash before inserts/updates. (Maybe do it in UnmarshalJSON call?)
 
 // Insert inserts the Team to the database.
 func (t *Team) Insert(db DB) error {
@@ -68,6 +75,46 @@ func TeamByID(db DB, id int) (*Team, error) {
 	}
 
 	return &t, nil
+}
+
+// BlueTeamStore contains the fields used to insert new blue teams into the database.
+type BlueTeamStore struct {
+	Name       string `json:"name"`        // name
+	Password   string `json:"password"`    // - (converted to `hash` on insert)
+	BlueteamIP int16  `json:"blueteam_ip"` // blueteam_ip
+}
+
+// BlueTeamStoreSlice is a list of blue teams, ready to be batch inserted.
+type BlueTeamStoreSlice []BlueTeamStore
+
+// Insert a batch of new blue teams into the database.
+// Blue teams must have a unique name and ip from all other blueteams.
+// The Password field will be hashed & salted before ultimately being saved.
+func (teams BlueTeamStoreSlice) Insert(db DB) error {
+	tx, err := db.Begin()
+	if err != nil {
+		return err
+	}
+	defer tx.Rollback()
+
+	const sqlstr = `INSERT INTO team (role_name, name, blueteam_ip, hash) VALUES ('blueteam', $1, $2, $3)`
+	for _, t := range teams {
+		if t.Password == "" {
+			return errors.New("passwords must not be empty")
+		}
+
+		hash, err := bcrypt.GenerateFromPassword([]byte(t.Password), bcrypt.DefaultCost)
+		if err != nil {
+			return errors.Wrap(err, "BlueTeamStoreSlice.Insert")
+		}
+		t.Password = ""
+
+		_, err = tx.Exec(sqlstr, t.Name, t.BlueteamIP, hash)
+		if err != nil {
+			return err
+		}
+	}
+	return tx.Commit()
 }
 
 // AllTeams fetches all teams (users) from the database.
