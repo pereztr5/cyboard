@@ -3,6 +3,8 @@ package models
 
 import (
 	"time"
+
+	"github.com/pkg/errors"
 )
 
 // Challenge represents a row from 'cyboard.challenge'.
@@ -97,6 +99,26 @@ func ChallengeByID(db DB, id int) (*Challenge, error) {
 	}
 
 	return &c, nil
+}
+
+// ChallengeSlice is an array of challenges, suitable to insert many of at once.
+type ChallengeSlice []Challenge
+
+// Insert many ctf challenges into the database at once.
+func (cs ChallengeSlice) Insert(db TXer) error {
+	tx, err := db.Begin()
+	if err != nil {
+		return err
+	}
+	defer tx.Rollback()
+
+	for _, c := range cs {
+		err := c.Insert(tx)
+		if err != nil {
+			return errors.Wrapf(err, "insert challenges (challenge=%q)", c.Name)
+		}
+	}
+	return tx.Commit()
 }
 
 // func ChallengesInGroups(db DB, groups []string) ([]Challenge, error) {}

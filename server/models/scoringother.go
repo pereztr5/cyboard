@@ -24,7 +24,7 @@ func (op *OtherPoints) Insert(db DB) error {
 type OtherPointsSlice []OtherPoints
 
 // Insert many bonus point scores into the database at once.
-func (ops OtherPointsSlice) Insert(db DB) error {
+func (ops OtherPointsSlice) Insert(db TXer) error {
 	tx, err := db.Begin()
 	if err != nil {
 		return err

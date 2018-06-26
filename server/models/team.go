@@ -16,8 +16,6 @@ type Team struct {
 	BlueteamIP *int16   `json:"blueteam_ip"` // blueteam_ip
 }
 
-// TODO: bcrypt Team.Hash before inserts/updates. (Maybe do it in UnmarshalJSON call?)
-
 // Insert inserts the Team to the database.
 func (t *Team) Insert(db DB) error {
 	const sqlstr = `INSERT INTO cyboard.team (` +
@@ -30,13 +28,17 @@ func (t *Team) Insert(db DB) error {
 }
 
 // Update updates the Team in the database.
+// If the `Hash` field is not set, then Update will not attempt to change
+// the team's password.
 func (t *Team) Update(db DB) error {
-	const sqlstr = `UPDATE cyboard.team SET (` +
-		`name, role_name, hash, disabled, blueteam_ip` +
-		`) = ( ` +
-		`$2, $3, $4, $5, $6` +
-		`) WHERE id = $1`
-	_, err := db.Exec(sqlstr, t.ID, t.Name, t.RoleName, t.Hash, t.Disabled, t.BlueteamIP)
+	var err error
+	if t.Hash == nil {
+		const sqlstr = `UPDATE cyboard.team SET (name, role_name, disabled, blueteam_ip) = ($2, $3, $4, $5) WHERE id = $1`
+		_, err = db.Exec(sqlstr, t.ID, t.Name, t.RoleName, t.Disabled, t.BlueteamIP)
+	} else {
+		const sqlstr = `UPDATE cyboard.team SET (name, role_name, disabled, blueteam_ip, hash) = ($2, $3, $4, $5, $6) WHERE id = $1`
+		_, err = db.Exec(sqlstr, t.ID, t.Name, t.RoleName, t.Disabled, t.BlueteamIP, t.Hash)
+	}
 	return err
 }
 
@@ -77,48 +79,8 @@ func TeamByID(db DB, id int) (*Team, error) {
 	return &t, nil
 }
 
-// BlueTeamStore contains the fields used to insert new blue teams into the database.
-type BlueTeamStore struct {
-	Name       string `json:"name"`        // name
-	Password   string `json:"password"`    // - (converted to `hash` on insert)
-	BlueteamIP int16  `json:"blueteam_ip"` // blueteam_ip
-}
-
-// BlueTeamStoreSlice is a list of blue teams, ready to be batch inserted.
-type BlueTeamStoreSlice []BlueTeamStore
-
-// Insert a batch of new blue teams into the database.
-// Blue teams must have a unique name and ip from all other blueteams.
-// The Password field will be hashed & salted before ultimately being saved.
-func (teams BlueTeamStoreSlice) Insert(db DB) error {
-	tx, err := db.Begin()
-	if err != nil {
-		return err
-	}
-	defer tx.Rollback()
-
-	const sqlstr = `INSERT INTO team (role_name, name, blueteam_ip, hash) VALUES ('blueteam', $1, $2, $3)`
-	for _, t := range teams {
-		if t.Password == "" {
-			return errors.New("passwords must not be empty")
-		}
-
-		hash, err := bcrypt.GenerateFromPassword([]byte(t.Password), bcrypt.DefaultCost)
-		if err != nil {
-			return errors.Wrap(err, "BlueTeamStoreSlice.Insert")
-		}
-		t.Password = ""
-
-		_, err = tx.Exec(sqlstr, t.Name, t.BlueteamIP, hash)
-		if err != nil {
-			return err
-		}
-	}
-	return tx.Commit()
-}
-
 // AllTeams fetches all teams (users) from the database.
-// Used by the admin dashboard.
+// Used by the admin dashboard to view & modify all added users.
 func AllTeams(db DB) ([]Team, error) {
 	const sqlstr = `SELECT id, name, role_name, disabled, blueteam_ip FROM cyboard.team`
 
@@ -132,7 +94,7 @@ func AllTeams(db DB) ([]Team, error) {
 	for rows.Next() {
 		t := Team{}
 		if err = rows.Scan(&t.ID, &t.Name, &t.RoleName, &t.Disabled, &t.BlueteamIP); err != nil {
-			return nil, err
+			return nil, errors.Wrapf(err, "AllTeams (team=%q)", t.Name)
 		}
 		ts = append(ts, t)
 	}
@@ -143,6 +105,46 @@ func AllTeams(db DB) ([]Team, error) {
 	return ts, nil
 }
 
+// BlueTeamStore contains the fields used to insert new blue teams into the database.
+type BlueTeamStore struct {
+	Name       string `json:"name"`        // name
+	Password   string `json:"password"`    // --- (becomes the `hash` column)
+	BlueteamIP int16  `json:"blueteam_ip"` // blueteam_ip
+}
+
+// BlueTeamStoreSlice is a list of blue teams, ready to be batch inserted.
+type BlueTeamStoreSlice []BlueTeamStore
+
+// Insert a batch of new blue teams into the database.
+// Blue teams must have a unique name and ip from all other blueteams.
+// The Password field will be hashed & salted before ultimately being saved.
+func (teams BlueTeamStoreSlice) Insert(db TXer) error {
+	tx, err := db.Begin()
+	if err != nil {
+		return err
+	}
+	defer tx.Rollback()
+
+	const sqlstr = `INSERT INTO team (role_name, name, blueteam_ip, hash) VALUES ('blueteam', $1, $2, $3)`
+	for _, t := range teams {
+		if t.Password == "" {
+			return errors.Errorf("insert bluteams (team=%q): passwords must not be empty", t.Name)
+		}
+
+		hash, err := bcrypt.GenerateFromPassword([]byte(t.Password), bcrypt.DefaultCost)
+		if err != nil {
+			return errors.Wrapf(err, "insert bluteams (team=%q)", t.Name)
+		}
+		t.Password = ""
+
+		_, err = tx.Exec(sqlstr, t.Name, t.BlueteamIP, hash)
+		if err != nil {
+			return errors.Wrapf(err, "insert bluteams (team=%q)", t.Name)
+		}
+	}
+	return tx.Commit()
+}
+
 // BlueteamView has the Team fields needed by the service monitor.
 type BlueteamView struct {
 	ID         int    `json:"id"`          // id
@@ -150,7 +152,7 @@ type BlueteamView struct {
 	BlueteamIP int16  `json:"blueteam_ip"` // blueteam_ip
 }
 
-// Blueteams fetches all the contestants from the database, along with their
+// AllBlueteams fetches all the contestants from the database, along with their
 // significant IP octet (the one octet that changes between teams, all the
 // other octets are assumed to be the same).
 func AllBlueteams(db DB) ([]BlueteamView, error) {

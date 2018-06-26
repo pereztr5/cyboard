@@ -50,7 +50,9 @@ func (ctr *serviceCheckCopyFromRows) Err() error {
 }
 
 // Insert a batch of service monitor results efficiently into the database.
-func (sc ServiceCheckSlice) Insert(db DB) error {
+// This explicitly requires a `pgx.ConnPool`, as it's batch insert method is
+// completely different from any other SQL abstraction's methods.
+func (sc ServiceCheckSlice) Insert(db *pgx.ConnPool) error {
 	_, err := db.CopyFrom(
 		serviceCheckTableIdent,
 		serviceCheckTableColumns,
@@ -68,9 +70,9 @@ func LatestServiceCheckRun(db DB) (time.Time, error) {
 	return timestamp, err
 }
 
-// TeamServiceStatusesResponse represents a service's status (pass, fail, timeout)
-// for one team.
-type TeamServiceStatusesResponse struct {
+// TeamServiceStatusesView represents the current, calculated
+// service's status (pass, fail, timeout), for one team.
+type TeamServiceStatusesView struct {
 	TeamID      int        `json:"team_id"`
 	Name        string     `json:"name"`
 	ServiceID   int        `json:"service_id"`
@@ -78,9 +80,9 @@ type TeamServiceStatusesResponse struct {
 	Status      ExitStatus `json:"status"`
 }
 
-// TeamServiceStatuses gets the service uptime status (pass, fail, timeout)
+// TeamServiceStatuses gets the current service status (pass, fail, timeout)
 // for each team, for each service.
-func TeamServiceStatuses(db DB) []TeamServiceStatusesResponse {
+func TeamServiceStatuses(db DB) ([]TeamServiceStatusesView, error) {
 	const sqlstr = `
 	SELECT id, name, ss.service, ss.service_name, ss.status
 	FROM blueteam AS team,
@@ -89,4 +91,23 @@ func TeamServiceStatuses(db DB) []TeamServiceStatusesResponse {
 			LEFT JOIN service_check AS sc ON id = sc.service_id AND team.id = sc.team_id
 		GROUP BY id, name
 		ORDER BY id) AS ss`
+	rows, err := db.Query(sqlstr)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+
+	xs := []TeamServiceStatusesView{}
+	for rows.Next() {
+		x := TeamServiceStatusesView{}
+		if err = rows.Scan(&x.TeamID, &x.Name, &x.ServiceID, &x.ServiceName, &x.Status); err != nil {
+			return nil, err
+		}
+		xs = append(xs, x)
+	}
+	if err = rows.Err(); err != nil {
+		return nil, err
+	}
+
+	return xs, nil
 }
