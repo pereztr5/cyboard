@@ -4,6 +4,7 @@ import (
 	"time"
 
 	"github.com/jackc/pgx"
+	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
 )
 
@@ -46,7 +47,7 @@ type ChallengeGuess struct {
 // CheckFlagSubmission will award the team with a captured flag if their flag string
 // guess is correct. No points will be given on a repeat flag, or obviously if the
 // flag submitted is simply wrong.
-func CheckFlagSubmission(db DB, team *Team, chal *ChallengeGuess) (FlagState, error) {
+func CheckFlagSubmission(db TXer, team *Team, chal *ChallengeGuess) (FlagState, error) {
 	var (
 		err         error
 		challengeID int
@@ -56,6 +57,11 @@ func CheckFlagSubmission(db DB, team *Team, chal *ChallengeGuess) (FlagState, er
 		sqlwhere string
 		sqlstr   string
 	)
+	tx, err := db.Begin()
+	if err != nil {
+		return InvalidFlag, err
+	}
+	defer tx.Rollback()
 
 	// Examines the ctf_solve table to look for whether the submitted flag was scored before.
 	// If the flag guess is entirely incorrect, no row gets returned.
@@ -68,10 +74,10 @@ func CheckFlagSubmission(db DB, team *Team, chal *ChallengeGuess) (FlagState, er
 
 	if len(chal.Name) > 0 {
 		sqlwhere = `c.hidden = false AND c.flag = $2 AND c.Name = $3`
-		err = db.QueryRow(sqlstr+sqlwhere, team.ID, chal.Flag, chal.Name).Scan(&challengeID, &chal.Name, &chal.Category, &points, solverID)
+		err = tx.QueryRow(sqlstr+sqlwhere, team.ID, chal.Flag, chal.Name).Scan(&challengeID, &chal.Name, &chal.Category, &points, solverID)
 	} else {
 		sqlwhere = `c.hidden = false AND c.flag = $2`
-		err = db.QueryRow(sqlstr+sqlwhere, team.ID, chal.Flag).Scan(challengeID, &chal.Name, &chal.Category, &points, solverID)
+		err = tx.QueryRow(sqlstr+sqlwhere, team.ID, chal.Flag).Scan(challengeID, &chal.Name, &chal.Category, &points, solverID)
 	}
 
 	if err != nil {
@@ -87,10 +93,13 @@ func CheckFlagSubmission(db DB, team *Team, chal *ChallengeGuess) (FlagState, er
 	}
 
 	award := CtfSolve{ChallengeID: challengeID, TeamID: team.ID}
-	if err = award.Insert(db); err != nil {
+	if err = award.Insert(tx); err != nil {
 		return InvalidFlag, err
 	}
 
+	if err = tx.Commit(); err != nil {
+		return InvalidFlag, errors.WithMessage(err, "CheckFlagSubmission: failed to commit transaction")
+	}
 	CaptFlagsLogger.WithFields(logrus.Fields{"team": team.Name, "challenge": chal.Name, "category": chal.Category, "points": points}).Println("Score!!")
 	return ValidFlag, nil
 }
