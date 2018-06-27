@@ -1,6 +1,8 @@
 package server
 
 import (
+	"fmt"
+
 	"github.com/jackc/pgx"
 )
 
@@ -9,6 +11,10 @@ var (
 )
 
 func SetupPostgres(uri string) {
+	if db != nil {
+		// Database connection is already set up
+		return
+	}
 	if ur == "" {
 		Logger.Fatal("No postgres-uri specified.")
 	}
@@ -29,4 +35,19 @@ func SetupPostgres(uri string) {
 	}
 
 	Logger.Info("Connected to postgres: ", PgConfigAsString(&baseCfg))
+}
+
+func PgConfigAsString(c *pgx.ConnConfig) string {
+	var pw string
+	if c.Password != "" {
+		pw = "*****"
+	}
+
+	port := c.Port
+	if port == 0 {
+		port = 5432
+	}
+
+	return fmt.Sprintf("pgx.ConnConfig{host=%q, port=%v, db=%q, user=%q, password=%q}",
+		c.Host, port, c.Database, c.User, pw)
 }
