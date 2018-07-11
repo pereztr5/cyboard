@@ -12,7 +12,7 @@ import (
 )
 
 func PingHandler(w http.ResponseWriter, r *http.Request) {
-	if err := PingDB(); err != nil {
+	if err := PingDB(r.Context()); err != nil {
 		Logger.WithError(err).Errorf("PingHandler: DB is down")
 		w.WriteHeader(http.StatusInternalServerError)
 		w.Write([]byte("Uh oh something's wrong!"))

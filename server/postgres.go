@@ -1,14 +1,21 @@
 package server
 
 import (
+	"context"
+	"errors"
 	"fmt"
 
 	"github.com/jackc/pgx"
 )
 
 var (
-	db *pgx.ConnPool
+	rawDB *pgx.ConnPool
+	db    DBClient
 )
+
+func SetGlobalPostgresDBs(pool *pgx.ConnPool) {
+	rawDB, db = pool, pool
+}
 
 func SetupPostgres(uri string) {
 	if db != nil {
@@ -25,16 +32,27 @@ func SetupPostgres(uri string) {
 		Logger.Fatal("Did you check the docs? https://www.postgresql.org/docs/current/static/libpq-connect.html#LIBPQ-CONNSTRING")
 	}
 
-	// db is a globally available Postgres session generator
-	db, err = pgx.NewConnPool(pgx.ConnPoolConfig{ConnConfig: baseCfg})
+	pool, err = pgx.NewConnPool(pgx.ConnPoolConfig{ConnConfig: baseCfg})
 	if err != nil {
 		cfgStr := PgConfigAsString(&baseCfg)
 		Logger.WithError(err).
 			WithField("uhoh", "pool's closed, fool").WithField("config", cfgStr).
 			Fatal("SetupPostgres: failed to create connection pool")
 	}
+	SetGlobalPostgresDBs(pool)
 
 	Logger.Info("Connected to postgres: ", PgConfigAsString(&baseCfg))
+}
+
+func PingDB(ctx context.Context) error {
+	if rawDB == nil {
+		return errors.New("db is nil (no connection)")
+	}
+	conn, err := rawDB.Acquire()
+	if err != nil {
+		return err
+	}
+	conn.Ping(ctx)
 }
 
 func PgConfigAsString(c *pgx.ConnConfig) string {
