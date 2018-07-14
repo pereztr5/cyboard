@@ -1,6 +1,7 @@
 package models
 
 import (
+	"context"
 	"time"
 
 	"github.com/jackc/pgx"
@@ -47,7 +48,7 @@ type ChallengeGuess struct {
 // CheckFlagSubmission will award the team with a captured flag if their flag string
 // guess is correct. No points will be given on a repeat flag, or obviously if the
 // flag submitted is simply wrong.
-func CheckFlagSubmission(db TXer, team *Team, chal *ChallengeGuess) (FlagState, error) {
+func CheckFlagSubmission(db TXer, ctx context.Context, team *Team, chal *ChallengeGuess) (FlagState, error) {
 	var (
 		err         error
 		challengeID int
@@ -57,7 +58,7 @@ func CheckFlagSubmission(db TXer, team *Team, chal *ChallengeGuess) (FlagState, 
 		sqlwhere string
 		sqlstr   string
 	)
-	tx, err := db.Begin()
+	tx, err := db.BeginEx(ctx, &pgx.TxOptions{IsoLevel: pgx.Serializable})
 	if err != nil {
 		return InvalidFlag, err
 	}
@@ -72,6 +73,8 @@ func CheckFlagSubmission(db TXer, team *Team, chal *ChallengeGuess) (FlagState, 
 	LEFT JOIN ctf_solve solve ON c.id = solve.challenge_id AND solve.team_id = $1
 	WHERE`
 
+	// If the flag guess is for a specific flag, only check if that one is correct.
+	// Otherwise, check if any flag has the guessed string value.
 	if len(chal.Name) > 0 {
 		sqlwhere = `c.hidden = false AND c.flag = $2 AND c.Name = $3`
 		err = tx.QueryRow(sqlstr+sqlwhere, team.ID, chal.Flag, chal.Name).Scan(&challengeID, &chal.Name, &chal.Category, &points, solverID)
