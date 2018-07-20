@@ -11,7 +11,14 @@ import (
 	testfixtures "gopkg.in/testfixtures.v2"
 )
 
-const connString = "host=localhost port=5432 dbname=cyboard_test user=supercybot connect_timeout=10 sslmode=disable"
+// connString enables connecting to Postgres as a regular user. Used to init `db`, which
+// is just like the connection would be in production, no mocks or anything like that.
+const connString = "host=localhost port=5432 dbname=cyboard_test user=cybot connect_timeout=10 sslmode=disable"
+
+// connStringSU enables connecting to Postgres as a super user. This is required for `stdlibDB`,
+// which is used by the testfixtures library to reset the DB inbetween tests, and to do
+// that it requires super user privs.
+const connStringSU = "host=localhost port=5432 dbname=cyboard_test user=supercybot connect_timeout=10 sslmode=disable"
 
 var (
 	logger *logrus.Logger
@@ -48,7 +55,7 @@ func setupDB() {
 	checkErr(err, "create PG conn pool")
 	db = rawDB
 
-	stdlibDB, err = sql.Open("pgx", connString)
+	stdlibDB, err = sql.Open("pgx", connStringSU)
 	checkErr(err, "create PG conn compatible with stdlib sql type")
 }
 
