@@ -3,7 +3,7 @@ package models
 
 import (
 	"database/sql/driver"
-	"errors"
+	"fmt"
 )
 
 // TeamRole is the 'team_role' enum type from schema 'cyboard'.
@@ -56,7 +56,7 @@ func (tr *TeamRole) UnmarshalText(text []byte) error {
 		*tr = TeamRoleBlueteam
 
 	default:
-		return errors.New("invalid TeamRole")
+		return fmt.Errorf("invalid TeamRole %q", text)
 	}
 
 	return nil
@@ -69,10 +69,10 @@ func (tr TeamRole) Value() (driver.Value, error) {
 
 // Scan satisfies the database/sql.Scanner interface for TeamRole.
 func (tr *TeamRole) Scan(src interface{}) error {
-	buf, ok := src.([]byte)
+	str, ok := src.(string)
 	if !ok {
-		return errors.New("invalid TeamRole")
+		return fmt.Errorf("invalid TeamRole '%v'", src)
 	}
 
-	return tr.UnmarshalText(buf)
+	return tr.UnmarshalText([]byte(str))
 }

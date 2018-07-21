@@ -32,11 +32,7 @@ type TXer interface {
 // Tx is a database connection that is in the middle of a transaction.
 // Transactions can rollback all operations done during their lifetime,
 // which helps maintain the database state.
-type Tx interface {
-	DB
-	Rollback() error
-	Commit() error
-}
+type Tx = *pgx.Tx
 
 var (
 	// DatabaseTables is a list of every table for the schema 'cyboard'

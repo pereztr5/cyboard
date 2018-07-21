@@ -1,0 +1,36 @@
+# team.yml
+- id: 1
+  name: team1
+  role_name: blueteam
+  hash: test
+  disabled: false
+  blueteam_ip: 1
+
+- id: 2
+  name: team2
+  role_name: blueteam
+  hash: test
+  disabled: false
+  blueteam_ip: 2
+
+- id: 3
+  name: team3
+  role_name: blueteam
+  hash: test
+  disabled: true
+  blueteam_ip: 3
+
+- id: 100
+  name: bigpoppa
+  role_name: admin
+  hash: test
+  disabled: false
+  blueteam_ip: null
+
+- id: 101
+  name: secondfiddle
+  role_name: ctf_creator
+  hash: test
+  disabled: false
+  blueteam_ip: null
+

@@ -152,12 +152,12 @@ type BlueteamView struct {
 	BlueteamIP int16  `json:"blueteam_ip"` // blueteam_ip
 }
 
-// AllBlueteams fetches all the contestants from the database, along with their
-// significant IP octet (the one octet that changes between teams, all the
-// other octets are assumed to be the same).
+// AllBlueteams fetches all non-disabled contestants from the database, along
+// with their significant IP octet (the one octet that changes between teams,
+// all the other octets are assumed to be the same).
 func AllBlueteams(db DB) ([]BlueteamView, error) {
 	const sqlstr = `SELECT ` +
-		`id, name, blueteam_ip` +
+		`id, name, blueteam_ip ` +
 		`FROM cyboard.team ` +
 		`WHERE role_name = 'blueteam' AND disabled = false`
 
