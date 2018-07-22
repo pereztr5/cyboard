@@ -11,7 +11,7 @@ import (
 	testfixtures "gopkg.in/testfixtures.v2"
 )
 
-const connString = "host=localhost port=5432 dbname=cyboard_test user=cybot connect_timeout=10 sslmode=disable"
+const connString = "host=localhost port=5432 dbname=cyboard_test user=supercybot connect_timeout=10 sslmode=disable"
 
 var (
 	logger *logrus.Logger
@@ -34,7 +34,7 @@ func TestMain(m *testing.M) {
 
 	setupDB()
 	var err error
-	fixtures, err = testfixtures.NewFolder(stdlibDB, &testfixtures.PostgreSQL{}, "testdata/fixtures")
+	fixtures, err = testfixtures.NewFolder(stdlibDB, &testfixtures.PostgreSQL{UseAlterConstraint: true}, "testdata/fixtures")
 	checkErr(err, "generating fixtures")
 	m.Run()
 }

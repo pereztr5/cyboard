@@ -18,6 +18,10 @@ CREATE SCHEMA IF NOT EXISTS cyboard;
 --
 -- TODO: Add instructions to readme
 -- $ createuser --login -h localhost -U postgres cybot
+--
+-- TODO: And for testing, add instructions to run:
+-- $ createuser --superuser --login --echo supercybot
+-- $ psql -c 'ALTER ROLE supercybot SET search_path = cyboard'
 ----------------
 -- CREATE ROLE cybot LOGIN;
 
