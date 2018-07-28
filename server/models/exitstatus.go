@@ -3,7 +3,7 @@ package models
 
 import (
 	"database/sql/driver"
-	"errors"
+	"fmt"
 )
 
 // ExitStatus is the 'exit_status' enum type from schema 'cyboard'.
@@ -65,7 +65,7 @@ func (es *ExitStatus) UnmarshalText(text []byte) error {
 		*es = ExitStatusTimeout
 
 	default:
-		return errors.New("invalid ExitStatus")
+		return fmt.Errorf("invalid ExitStatus %q", text)
 	}
 
 	return nil
@@ -78,10 +78,10 @@ func (es ExitStatus) Value() (driver.Value, error) {
 
 // Scan satisfies the database/sql.Scanner interface for ExitStatus.
 func (es *ExitStatus) Scan(src interface{}) error {
-	buf, ok := src.([]byte)
+	str, ok := src.(string)
 	if !ok {
-		return errors.New("invalid ExitStatus")
+		return fmt.Errorf("invalid ExitStatus '%v'", src)
 	}
 
-	return es.UnmarshalText(buf)
+	return es.UnmarshalText([]byte(str))
 }
