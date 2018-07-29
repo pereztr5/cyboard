@@ -1,0 +1,20 @@
+# service.yml
+- id: 1
+  name: ping
+  category: test
+  description: a boring old check
+  total_points: 50
+  points: 2.2
+  script: pro_ping_v17.04
+  # Hack alert! This string -just so happens- to get converted into the right format to be inserted as a Postgres Text Array.
+  # This may break one day if the testfixtures lib adds real support for array-like objects.
+  args: '{ --no-license-check, --fail-fast, --XX:JavaGCRuntimeDebug=off, --kube-meshnet-resiliency, eventual }'
+  disabled: false
+  starts_at: -infinity
+
+- id: 2
+  disabled: true
+  name: disabled_check
+  category: test
+  description: not even started
+

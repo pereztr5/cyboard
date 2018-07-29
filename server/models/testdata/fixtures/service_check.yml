@@ -1,0 +1,37 @@
+# service_check.yml
+- team_id: 1
+  service_id: 1
+  status: pass
+  exit_code: 0
+  created_at: 2018-07-29 09:00:00.000-04
+
+- team_id: 2
+  service_id: 1
+  status: fail
+  exit_code: 2
+  created_at: 2018-07-29 09:00:00.000-04
+
+- team_id: 3
+  service_id: 1
+  status: fail
+  exit_code: 2
+  created_at: 2018-07-29 09:00:00.000-04
+
+- team_id: 1
+  service_id: 1
+  status: pass
+  exit_code: 0
+  created_at: 2018-07-29 09:15:00.000-04
+
+- team_id: 2
+  service_id: 1
+  status: pass
+  exit_code: 0
+  created_at: 2018-07-29 09:15:00.000-04
+
+- team_id: 3
+  service_id: 1
+  status: partial
+  exit_code: 1
+  created_at: 2018-07-29 09:15:00.000-04
+

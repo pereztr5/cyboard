@@ -1,0 +1,18 @@
+# challenge.yml
+- id: 1
+  name: Totally Rad Challenge
+  category: RAD
+  flag: flag{its_ok_tobe_rad_sometimes}
+  total: 5
+  body: I suppose this should be __markdown__,\n but like I haven't thought *everything* through yet
+  hidden: false
+  designer_category: test_master
+  created_at: 2018-06-23 10:09:26.000-04
+  modified_at: 2018-06-23 10:09:26.000-04
+
+- id: 2
+  name: Crouching Hidden Challenge
+  hidden: true
+  flag: Cant be scored
+  designer_category: test_master
+

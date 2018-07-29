@@ -20,6 +20,19 @@ const connString = "host=localhost port=5432 dbname=cyboard_test user=cybot conn
 // that it requires super user privs.
 const connStringSU = "host=localhost port=5432 dbname=cyboard_test user=supercybot connect_timeout=10 sslmode=disable"
 
+// testFixtureFiles retrieves the paths to test data files.
+// When adding more test data, this function will need to be updated.
+func testFixtureFiles() []string {
+	// The order of the files in the array is the order they will be loaded into
+	// the database before each test.
+	// Be careful changing this! The testfixtures library may swallow INSERT stmt errors.
+	files := []string{"team", "challenge_category", "challenge", "challenge_file", "ctf_solve", "service", "service_check", "other_points"}
+	for i, filename := range files {
+		files[i] = "testdata/fixtures/" + filename + ".yml"
+	}
+	return files
+}
+
 var (
 	logger *logrus.Logger
 
@@ -41,7 +54,8 @@ func TestMain(m *testing.M) {
 
 	setupDB()
 	var err error
-	fixtures, err = testfixtures.NewFolder(stdlibDB, &testfixtures.PostgreSQL{UseAlterConstraint: true}, "testdata/fixtures")
+	files := testFixtureFiles()
+	fixtures, err = testfixtures.NewFiles(stdlibDB, &testfixtures.PostgreSQL{UseAlterConstraint: true}, files...)
 	checkErr(err, "generating fixtures")
 	m.Run()
 }
