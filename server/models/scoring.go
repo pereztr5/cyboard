@@ -11,7 +11,8 @@ type TeamsScoresResponse struct {
 	Other   float32 `json:"other"`
 }
 
-func TeamsScores(db DB) {
+// TeamsScores TODO
+func TeamsScores(db DB) ([]TeamsScoresResponse, error) {
 	const sqlstr = `
 	SELECT
 		team.id AS team_id,
@@ -26,6 +27,25 @@ func TeamsScores(db DB) {
 		JOIN other_score ON team.id = other_score.team_id
 	ORDER BY team.id`
 
+	rows, err := db.Query(sqlstr)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+
+	scores := []TeamsScoresResponse{}
+	for rows.Next() {
+		s := TeamsScoresResponse{}
+		if err = rows.Scan(&s.TeamID, &s.Name, &s.Score, &s.Service, &s.Ctf, &s.Other); err != nil {
+			return nil, err
+		}
+		scores = append(scores, s)
+	}
+	if err = rows.Err(); err != nil {
+		return nil, err
+	}
+
+	return scores, nil
 }
 
 // LatestScoreChange retrieves the timestamp of the last event that changed any team's score.
