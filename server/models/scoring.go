@@ -3,12 +3,12 @@ package models
 import "time"
 
 type TeamsScoresResponse struct {
-	TeamID  int     `json:"team_id"`
-	Name    string  `json:"name"`
-	Score   float32 `json:"score"`
-	Service float32 `json:"service"`
-	Ctf     float32 `json:"ctf"`
-	Other   float32 `json:"other"`
+	TeamID  int    `json:"team_id"`
+	Name    string `json:"name"`
+	Score   int    `json:"score"`
+	Service int    `json:"service"`
+	Ctf     int    `json:"ctf"`
+	Other   int    `json:"other"`
 }
 
 // TeamsScores TODO
@@ -17,10 +17,10 @@ func TeamsScores(db DB) ([]TeamsScoresResponse, error) {
 	SELECT
 		team.id AS team_id,
 		team.name AS team_name,
-		service_score.points + ctf_score.points + other_score.points AS score,
-		service_score.points AS service,
-		ctf_score.points AS ctf,
-		other_score.points AS other
+		round(service_score.points + ctf_score.points + other_score.points) AS score,
+		round(service_score.points) AS service,
+		round(ctf_score.points) AS ctf,
+		round(other_score.points) AS other
 	FROM team
 		JOIN service_score ON team.id = service_score.team_id
 		JOIN ctf_score ON team.id = ctf_score.team_id

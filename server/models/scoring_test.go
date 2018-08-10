@@ -10,8 +10,8 @@ import (
 func Test_TeamsScores(t *testing.T) {
 	prepareTestDatabase(t)
 	expected_scores := []TeamsScoresResponse{
-		{TeamID: 1, Name: "team1", Score: 14.6, Service: 4.4, Ctf: 5, Other: 5.2},
-		{TeamID: 2, Name: "team2", Score: 2.2, Service: 2.2, Ctf: 0, Other: 0},
+		{TeamID: 1, Name: "team1", Score: 15, Service: 4, Ctf: 5, Other: 5},
+		{TeamID: 2, Name: "team2", Score: 2, Service: 2, Ctf: 0, Other: 0},
 	}
 
 	scores, err := TeamsScores(db)
