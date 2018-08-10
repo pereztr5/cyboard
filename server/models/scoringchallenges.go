@@ -71,16 +71,16 @@ func CheckFlagSubmission(db TXer, ctx context.Context, team *Team, chal *Challen
 	sqlstr = `SELECT c.id, c.name, c.category, c.total, solve.team_id
 	FROM challenge AS c
 	LEFT JOIN ctf_solve solve ON c.id = solve.challenge_id AND solve.team_id = $1
-	WHERE`
+	WHERE `
 
 	// If the flag guess is for a specific flag, only check if that one is correct.
 	// Otherwise, check if any flag has the guessed string value.
 	if len(chal.Name) > 0 {
 		sqlwhere = `c.hidden = false AND c.flag = $2 AND c.Name = $3`
-		err = tx.QueryRow(sqlstr+sqlwhere, team.ID, chal.Flag, chal.Name).Scan(&challengeID, &chal.Name, &chal.Category, &points, solverID)
+		err = tx.QueryRow(sqlstr+sqlwhere, team.ID, chal.Flag, chal.Name).Scan(&challengeID, &chal.Name, &chal.Category, &points, &solverID)
 	} else {
 		sqlwhere = `c.hidden = false AND c.flag = $2`
-		err = tx.QueryRow(sqlstr+sqlwhere, team.ID, chal.Flag).Scan(challengeID, &chal.Name, &chal.Category, &points, solverID)
+		err = tx.QueryRow(sqlstr+sqlwhere, team.ID, chal.Flag).Scan(&challengeID, &chal.Name, &chal.Category, &points, &solverID)
 	}
 
 	if err != nil {

@@ -51,6 +51,7 @@ func checkErr(err error, context string) {
 func TestMain(m *testing.M) {
 	logger = logrus.New()
 	logger.SetLevel(logrus.DebugLevel)
+	CaptFlagsLogger = logger
 
 	setupDB()
 	var err error
