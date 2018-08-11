@@ -120,7 +120,7 @@ type CTFProgress struct {
 func GetTeamCTFProgress(db DB, teamID int) ([]CTFProgress, error) {
 	const sqlstr = `SELECT category, COUNT(solve.team_id) AS amount, COUNT(*) AS max ` +
 		`FROM challenge ` +
-		`LEFT JOIN ctf_solve AS solve ON solve.challenge_id = id AND solve.team_id = $1` +
+		`LEFT JOIN ctf_solve AS solve ON solve.challenge_id = id AND solve.team_id = $1 ` +
 		`WHERE hidden = false ` +
 		`GROUP BY category`
 

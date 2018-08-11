@@ -24,6 +24,8 @@ func (op *OtherPoints) Insert(db DB) error {
 type OtherPointsSlice []OtherPoints
 
 // Insert many bonus point scores into the database at once.
+// The incoming slice should have the CreatedAt field set to the same value on each
+// struct, allowing a batch of bonus points to 'come in' at exactly the same time.
 func (ops OtherPointsSlice) Insert(db TXer) error {
 	tx, err := db.Begin()
 	if err != nil {

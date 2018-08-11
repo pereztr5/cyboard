@@ -21,6 +21,7 @@ type DB interface {
 	Exec(string, ...interface{}) (pgx.CommandTag, error)
 	Query(string, ...interface{}) (*pgx.Rows, error)
 	QueryRow(string, ...interface{}) *pgx.Row
+	CopyFrom(tableName pgx.Identifier, columnNames []string, rowSrc pgx.CopyFromSource) (int, error)
 }
 
 // TXer can start an isolated transaction in the database.

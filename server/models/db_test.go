@@ -76,7 +76,7 @@ func setupDB() {
 
 func prepareTestDatabase(t *testing.T) {
 	if err := fixtures.Load(); err != nil {
-		t.Log(err)
-		t.Fail()
+		t.Log("error preparing database: ", err)
+		t.FailNow()
 	}
 }

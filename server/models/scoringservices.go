@@ -50,13 +50,11 @@ func (ctr *serviceCheckCopyFromRows) Err() error {
 }
 
 // Insert a batch of service monitor results efficiently into the database.
-// This explicitly requires a `pgx.ConnPool`, as it's batch insert method is
-// completely different from any other SQL abstraction's methods.
-func (sc ServiceCheckSlice) Insert(db *pgx.ConnPool) error {
+func (sc ServiceCheckSlice) Insert(db DB) error {
 	_, err := db.CopyFrom(
 		serviceCheckTableIdent,
 		serviceCheckTableColumns,
-		&serviceCheckCopyFromRows{rows: sc},
+		&serviceCheckCopyFromRows{rows: sc, idx: -1},
 	)
 	return err
 }
@@ -64,7 +62,7 @@ func (sc ServiceCheckSlice) Insert(db *pgx.ConnPool) error {
 // LatestServiceCheckRun retrieves the timestamp of the last run of the service monitor.
 // See: `LatestScoreChange` in `scoring.go`. This delta check is specific to services.
 func LatestServiceCheckRun(db DB) (time.Time, error) {
-	const sqlstr = `SELECT created_at FROM service_check UNION ALL '-infinity' ORDER BY created_at DESC LIMIT 1`
+	const sqlstr = `SELECT created_at FROM service_check UNION ALL SELECT 'epoch' ORDER BY created_at DESC LIMIT 1`
 	var timestamp time.Time
 	err := db.QueryRow(sqlstr).Scan(&timestamp)
 	return timestamp, err
@@ -81,7 +79,7 @@ type TeamServiceStatusesView struct {
 }
 
 // TeamServiceStatuses gets the current service status (pass, fail, timeout)
-// for each team, for each service.
+// for each team, for each non-disabled service.
 func TeamServiceStatuses(db DB) ([]TeamServiceStatusesView, error) {
 	const sqlstr = `
 	SELECT id, name, ss.service, ss.service_name, ss.status
@@ -89,6 +87,7 @@ func TeamServiceStatuses(db DB) ([]TeamServiceStatusesView, error) {
 	LATERAL (SELECT id AS service, name AS service_name, COALESCE(last(sc.status, sc.created_at), 'timeout') AS status
 		FROM service
 			LEFT JOIN service_check AS sc ON id = sc.service_id AND team.id = sc.team_id
+		WHERE service.disabled = false
 		GROUP BY id, name
 		ORDER BY id) AS ss`
 	rows, err := db.Query(sqlstr)

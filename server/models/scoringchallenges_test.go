@@ -7,6 +7,12 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
+/* For these tests, the DB will be loaded with 3 teams and 1 challenge.
+Only one team (team1, id=1) has 'solved' the one challenge.
+Team2 (id=2) has made no progress in the CTF.
+Team3 (id=3) is a disabled team.
+*/
+
 func Test_CheckFlagSubmission(t *testing.T) {
 	teams_already_capped := func() *Team { return &Team{ID: 1, Name: "team1"} }
 	teams_not_capped := func() *Team { return &Team{ID: 2, Name: "team2"} }
@@ -39,7 +45,6 @@ func Test_CheckFlagSubmission(t *testing.T) {
 		"Anon new capture":    {team: teams_not_capped(), cg: guess_anon_valid(), fs: ValidFlag, err: nil},
 		"Anon fail capture":   {team: teams_not_capped(), cg: guess_anon_bad(), fs: InvalidFlag, err: nil},
 		"Anon already capped": {team: teams_already_capped(), cg: guess_anon_valid(), fs: AlreadyCaptured, err: nil},
-		"Anon failed+already": {team: teams_already_capped(), cg: guess_anon_bad(), fs: InvalidFlag, err: nil},
 	}
 
 	for name, tt := range cases {
@@ -53,5 +58,44 @@ func Test_CheckFlagSubmission(t *testing.T) {
 				t.Logf("%v", err)
 			}
 		})
+	}
+}
+
+func Test_GetTeamCTFProgress(t *testing.T) {
+	prepareTestDatabase(t)
+
+	var ctf_prog []CTFProgress
+	var err error
+
+	ctf_prog, err = GetTeamCTFProgress(db, 1)
+	if assert.Nil(t, err) {
+		expected := []CTFProgress{{Category: "RAD", Amount: 1, Max: 1}}
+		assert.Equal(t, expected, ctf_prog, "Team 1 did not have the right ctf progress")
+	}
+
+	ctf_prog, err = GetTeamCTFProgress(db, 2)
+	if assert.Nil(t, err) {
+		expected := []CTFProgress{{Category: "RAD", Amount: 0, Max: 1}}
+		assert.Equal(t, expected, ctf_prog, "Team 2 did not have the right ctf progress")
+	}
+}
+
+func Test_ChallengeCapturesPerFlag(t *testing.T) {
+	prepareTestDatabase(t)
+	expected := []ChallengeCaptureCount{{DesignerCategory: "test_master", Category: "RAD", Name: "Totally Rad Challenge", Count: 1}}
+
+	challenge_captures, err := ChallengeCapturesPerFlag(db)
+	if assert.Nil(t, err) {
+		assert.Equal(t, expected, challenge_captures, "RAD Challenge should be captued by one team (team1)")
+	}
+}
+
+func Test_ChallengeCapturesPerTeam(t *testing.T) {
+	prepareTestDatabase(t)
+	expected := []TeamChallengeCaptures{{Team: "team1", DesignerCategory: "test_master", Category: "RAD", Challenge: "Totally Rad Challenge"}}
+
+	per_team_captures, err := ChallengeCapturesPerTeam(db)
+	if assert.Nil(t, err) {
+		assert.Equal(t, expected, per_team_captures, "team1 should have the Totally Rad Challenge. No other ctf captures should exist.")
 	}
 }
