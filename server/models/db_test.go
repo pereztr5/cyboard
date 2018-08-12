@@ -2,6 +2,8 @@ package models
 
 import (
 	"database/sql"
+	"io/ioutil"
+	"os"
 	"testing"
 
 	"github.com/jackc/pgx"
@@ -19,6 +21,11 @@ const connString = "host=localhost port=5432 dbname=cyboard_test user=cybot conn
 // which is used by the testfixtures library to reset the DB inbetween tests, and to do
 // that it requires super user privs.
 const connStringSU = "host=localhost port=5432 dbname=cyboard_test user=supercybot connect_timeout=10 sslmode=disable"
+
+// If the CYTEST_LOG_SQL variable is set, all SQL queries will be logged. Can be useful in debugging.
+// Another, more thorough option is to go into your postgresql.conf in your pg data dir,
+// and set `log_statement = 'mod'`, which causes db/data altering statements to get logged.
+const cytestLogSQL = "CYTEST_LOG_SQL"
 
 // testFixtureFiles retrieves the paths to test data files.
 // When adding more test data, this function will need to be updated.
@@ -51,7 +58,8 @@ func checkErr(err error, context string) {
 func TestMain(m *testing.M) {
 	logger = logrus.New()
 	logger.SetLevel(logrus.DebugLevel)
-	CaptFlagsLogger = logger
+	CaptFlagsLogger = logrus.New()
+	CaptFlagsLogger.Out = ioutil.Discard
 
 	setupDB()
 	var err error
@@ -64,7 +72,9 @@ func TestMain(m *testing.M) {
 func setupDB() {
 	cfg, err := pgx.ParseDSN(connString)
 	checkErr(err, "ParseDSN")
-	cfg.Logger = logrusadapter.NewLogger(logger)
+	if os.Getenv(cytestLogSQL) != "" {
+		cfg.Logger = logrusadapter.NewLogger(logger)
+	}
 
 	rawDB, err = pgx.NewConnPool(pgx.ConnPoolConfig{ConnConfig: cfg})
 	checkErr(err, "create PG conn pool")
@@ -76,7 +86,7 @@ func setupDB() {
 
 func prepareTestDatabase(t *testing.T) {
 	if err := fixtures.Load(); err != nil {
-		t.Log("error preparing database: ", err)
+		t.Logf("error preparing database: %+v", err)
 		t.FailNow()
 	}
 }

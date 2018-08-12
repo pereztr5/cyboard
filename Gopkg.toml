@@ -65,6 +65,10 @@
   name = "github.com/sirupsen/logrus"
   version = "v1.0.5"
 
+[[constraint]]
+  name = "github.com/tbutts/testfixtures"
+  branch = "master"
+
 [prune]
   go-tests = true
   unused-packages = true
