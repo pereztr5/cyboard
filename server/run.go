@@ -17,6 +17,9 @@ func Run(cfg *Configuration) {
 	// Setup logs
 	SetupScoringLoggers(&cfg.Log)
 	Logger.Infof("%+v", cfg)
+
+	setupResponder(Logger)
+
 	// MongoDB setup
 	//SetupMongo(&cfg.Database, cfg.Server.SpecialChallenges)
 	//CreateIndexes()

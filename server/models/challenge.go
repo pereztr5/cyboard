@@ -122,3 +122,37 @@ func (cs ChallengeSlice) Insert(db TXer) error {
 }
 
 // func ChallengesInGroups(db DB, groups []string) ([]Challenge, error) {}
+
+// ChallengeView is a safe-for-public-display subset of fields over a CTF challenge.
+type ChallengeView struct {
+	ID       int    `json:"id"`       // id
+	Name     string `json:"name"`     // name
+	Category string `json:"category"` // category
+	Body     string `json:"body"`     // body
+}
+
+// AllPublicChallenges fetches all non-hidden ctf challenges from the database,
+// to be displayed to constestants.
+func AllPublicChallenges(db DB) ([]ChallengeView, error) {
+	const sqlstr = `SELECT id, name, category, body FROM challenge WHERE hidden = false`
+
+	rows, err := db.Query(sqlstr)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+
+	xs := []ChallengeView{}
+	for rows.Next() {
+		x := ChallengeView{}
+		if err = rows.Scan(&x.ID, &x.Name, &x.Category, &x.Body); err != nil {
+			return nil, err
+		}
+		xs = append(xs, x)
+	}
+	if err = rows.Err(); err != nil {
+		return nil, err
+	}
+
+	return xs, nil
+}

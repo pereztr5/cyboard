@@ -7,7 +7,9 @@ import (
 	"time"
 
 	"github.com/go-chi/chi"
+	"github.com/go-chi/render"
 	"github.com/pereztr5/cyboard/server/models"
+	"github.com/pkg/errors"
 	"gopkg.in/mgo.v2"
 )
 
@@ -22,44 +24,31 @@ func PingHandler(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
-// GetScores _unused_
-func GetScores(w http.ResponseWriter, r *http.Request) {
-	scores := DataGetAllScore()
-	w.Header().Set("Content-Type", "application/json; charset=UTF-8")
-	if err := json.NewEncoder(w).Encode(scores); err != nil {
-		Logger.Error("Error encoding json: ", err)
-	}
-}
-
 func GetScoresSplit(w http.ResponseWriter, r *http.Request) {
-	scores := DataGetAllScoreSplitByType()
-	w.Header().Set("Content-Type", "application/json; charset=UTF-8")
-	if err := json.NewEncoder(w).Encode(scores); err != nil {
-		Logger.Error("Error encoding json: ", err)
+	scores, err := models.TeamsScores(db)
+	if err != nil {
+		RenderQueryErr(w, r, errors.Wrap(err))
+		return
 	}
+	render.JSON(w, r, scores)
 }
 
 func GetServices(w http.ResponseWriter, r *http.Request) {
-	services := DataGetServiceList()
-	w.Header().Set("Content-Type", "application/json; charset=UTF-8")
-	if err := json.NewEncoder(w).Encode(services); err != nil {
-		Logger.Error("Error encoding json: ", err)
+	services, err := models.AllServices(db)
+	if err != nil {
+		RenderQueryErr(w, r, errors.Wrap(err))
+		return
 	}
+	render.JSON(w, r, services)
 }
 
 func GetPublicChallenges(w http.ResponseWriter, r *http.Request) {
-	chal, err := DataGetChallenges(specialChallenges)
+	chals, err := models.AllPublicChallenges(db)
 	if err != nil {
-		Logger.Error("Error with DataGetChallenges: ", err)
-		http.Error(w, http.StatusText(500), 500)
+		RenderQueryErr(w, r, errors.Wrap(err))
 		return
 	}
-	w.Header().Set("Content-Type", "application/json; charset=UTF-8")
-	if err := json.NewEncoder(w).Encode(chal); err != nil {
-		Logger.Error("Error encoding challenges: ", err)
-		http.Error(w, http.StatusText(500), 500)
-		return
-	}
+	render.JSON(w, r, chals)
 }
 
 func SubmitFlag(w http.ResponseWriter, r *http.Request) {

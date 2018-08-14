@@ -52,7 +52,7 @@ func PingDB(ctx context.Context) error {
 	if err != nil {
 		return err
 	}
-	conn.Ping(ctx)
+	return conn.Ping(ctx)
 }
 
 func PgConfigAsString(c *pgx.ConnConfig) string {
