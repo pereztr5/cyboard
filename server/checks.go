@@ -18,6 +18,16 @@ import (
 	"github.com/spf13/viper"
 )
 
+type Check struct {
+	*models.Service
+	Script *exec.Cmd
+}
+
+func (c *Check) String() string {
+	return fmt.Sprintf(`Check{name=%q, fullcmd="%s %s", pts=%v}`,
+		c.Name, filepath.Base(c.Script.Path), c.Args, c.Points)
+}
+
 var (
 	rawCheckCfg    *viper.Viper
 	cfgNeedsReload bool
@@ -45,31 +55,29 @@ func SetupChecksCfg(v *viper.Viper) {
 	rawCheckCfg.WatchConfig()
 }
 
-func prepareChecks(checks []models.Check, scriptsDir string) []models.Check {
-	finalChecks := []models.Check{}
+func prepareChecks(services []models.Service, scriptsDir string) []Check {
+	checks := []Check{}
 
-	for idx, check := range checks {
-		if check.Disable {
+	for idx, service := range services {
+		if service.Disable {
 			Logger.Warnf("check.%d: DISABLED.", idx)
 			continue
 		}
 
-		var err error
-		check.Script, err = getScript(filepath.Join(scriptsDir, check.Filename))
+		script, err := getScript(filepath.Join(scriptsDir, check.Filename))
 		if err != nil {
 			Logger.Warnf("check.%d: SKIPPING! Failed to locate script: %v", idx, err)
 			continue
 		}
-
-		finalChecks = append(finalChecks, check)
+		checks = append(checks, Check{Service: &service, Script: script})
 	}
 
-	Logger.Print("All checks:")
-	for i, check := range finalChecks {
+	Logger.Print("All services:")
+	for i, check := range checks {
 		Logger.Printf("  [%d] %v", i, &check)
 	}
 
-	return finalChecks
+	return checks
 }
 
 func prepareEvent(checkCfg *CheckConfiguration) {
@@ -97,15 +105,10 @@ func getScript(path string) (*exec.Cmd, error) {
 	return exec.Command(dir), nil
 }
 
-func score(result models.Result) {
-	if !dryRun {
-		err := DataAddResult(result, dryRun)
-		if err != nil {
-			Logger.Error("Could not insert service result:", err)
-		}
-	} else {
-		result.Timestamp = result.Timestamp.Round(time.Millisecond)
-		scoreTmplStr := "Timestamp: {{ .Timestamp }} | Group: {{ .Group }} | Team: {{ .Teamname }} | Points: {{ .Points }} | Details: {{ .Details }}\n"
+func score(result *models.ServiceCheck) {
+	if dryRun {
+		result.CreatedAt = result.Timestamp.Round(time.Millisecond)
+		scoreTmplStr := "Timestamp: {{ .CreatedAt }} | Team: {{ .TeamID }} | ExitCode: {{ .ExitCode }} | Status: {{ .Status }}\n"
 		scoreTmpl := template.Must(template.New("result").Parse(scoreTmplStr))
 		err := scoreTmpl.Execute(Logger.Out, result)
 		if err != nil {
@@ -114,15 +117,14 @@ func score(result models.Result) {
 	}
 }
 
-func scoreAll(results []models.Result) {
+func scoreAll(results []models.ServiceCheck) {
 	if !dryRun {
-		err := DataAddResults(results, dryRun)
-		if err != nil {
-			Logger.Error("Could not insert service result:", err)
+		if err := ServiceCheckSlice(results).Insert(db); err != nil {
+			Logger.Error("Could not insert service results:", err)
 		}
 	} else {
 		for _, result := range results {
-			score(result)
+			score(&result)
 		}
 	}
 }
@@ -130,8 +132,8 @@ func scoreAll(results []models.Result) {
 func startCheckService(checkCfg *CheckConfiguration, teams []models.Team) {
 	event := &checkCfg.Event
 	checks := checkCfg.Checks
-	status := make(chan models.Result)
-	resultsBuf := make([]models.Result, len(teams)*len(checks))
+	status := make(chan models.ServiceCheck)
+	resultsBuf := make([]models.ServiceCheck, len(teams)*len(checks))
 
 	// Run command every x seconds until scheduled end time
 	Logger.Println("Starting Checks")
@@ -174,7 +176,7 @@ func startCheckService(checkCfg *CheckConfiguration, teams []models.Team) {
 				now.Format(time.RFC3339), jitter.Truncate(time.Millisecond))
 			for _, team := range teams {
 				for _, check := range checks {
-					go runCmd(team, check, now, event.Timeout, status)
+					go runCmd(&team, &check, now, event.Timeout, status)
 				}
 			}
 			for idx := range resultsBuf {
@@ -192,7 +194,7 @@ func startCheckService(checkCfg *CheckConfiguration, teams []models.Team) {
 	}
 }
 
-func runCmd(team models.Team, check models.Check, timestamp time.Time, timeout time.Duration, status chan models.Result) {
+func runCmd(team *models.Team, check *Check, timestamp time.Time, timeout time.Duration, status chan models.ServiceCheck) {
 	// TODO: Currently only one IP per team is supported
 	cmd := *check.Script
 	cmd.Args = parseArgs(cmd.Path, check.Args, team.Ip)
@@ -204,17 +206,16 @@ func runCmd(team models.Team, check models.Check, timestamp time.Time, timeout t
 
 	err := cmd.Start()
 
-	result := models.Result{
-		Type:       "Service",
-		Timestamp:  timestamp,
-		Group:      check.Name,
-		Teamname:   team.Name,
-		Teamnumber: team.Number,
+	result := models.ServiceCheck{
+		CreatedAt: timestamp,
+		TeamID:    team.ID,
+		ServiceID: check.ID,
 	}
 
 	if err != nil {
 		Logger.Error("Could not run script:", err)
-		result.Details = "Status: 127" // 127=command not found: http://www.tldp.org/LDP/abs/html/exitcodes.html
+		result.ExitCode = 127 // 127=command not found: http://www.tldp.org/LDP/abs/html/exitcodes.html
+		result.Status = models.ExitStatusTimeout
 		status <- result
 		return
 	}
@@ -229,21 +230,24 @@ func runCmd(team models.Team, check models.Check, timestamp time.Time, timeout t
 			//TODO: If it cannot kill it what to do we do?
 			Logger.Error("Failed to Kill:", err)
 		}
-		result.Details = "Status: timed out"
+		result.ExitCode = 129
+		result.Status = models.ExitStatusTimeout
 	case <-done:
 		// As long as it is done the error doesn't matter
-		exitCode := cmd.ProcessState.Sys().(syscall.WaitStatus).ExitStatus()
+		result.ExitCode = cmd.ProcessState.Sys().(syscall.WaitStatus).ExitStatus()
+		// if !dryRun {
+		//     result.Details = fmt.Sprintf("Status: %d", exitCode)
+		// } else {
+		//     result.Details = fmt.Sprintf("%s\n%s", strings.Join(cmd.Args, " "), out.Bytes())
+		// }
 
-		if !dryRun {
-			result.Details = fmt.Sprintf("Status: %d", exitCode)
-		} else {
-			result.Details = fmt.Sprintf("%s\n%s", strings.Join(cmd.Args, " "), out.Bytes())
-		}
-
-		if exitCode >= len(check.Points) {
-			Logger.Warnf("Unexpected exit code (will be awarded '0' points): exitCode=%d, checkName=%s", exitCode, check.Name)
-		} else {
-			result.Points = check.Points[exitCode]
+		switch result.ExitCode {
+		case 0:
+			result.Status = models.ExitStatusPass
+		case 1:
+			result.Status = models.ExitStatusPartial
+		default:
+			result.Status = models.ExitStatusFail
 		}
 	}
 	status <- result

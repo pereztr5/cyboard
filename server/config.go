@@ -3,8 +3,6 @@ package server
 import (
 	"fmt"
 	"time"
-
-	"github.com/pereztr5/cyboard/server/models"
 )
 
 type LogSettings struct {
@@ -24,6 +22,8 @@ type ServerSettings struct {
 	CertPath          string   `mapstructure:"cert"`
 	CertKeyPath       string   `mapstructure:"key"`
 	SpecialChallenges []string `mapstructure:"special_challenges"`
+
+	EventSettings
 }
 
 type Configuration struct {
@@ -50,5 +50,5 @@ type CheckConfiguration struct {
 	Event    EventSettings
 	Log      LogSettings
 	Database DBSettings
-	Checks   []models.Check
+	// Checks   []models.Service
 }

@@ -43,7 +43,7 @@ func setupResponder(logger *logrus.Logger) {
 // RenderQueryErr logs a SQL related error and displays an appropriate message
 // to the user. Additional logging context may be added by setting fields in
 // the request context, see `getCtxErrMsgFields()`
-func RenderQueryErr(w, r, err) {
+func RenderQueryErr(w http.ResponseWriter, r *http.Request, err error) {
 	if err == pgx.ErrNoRows {
 		render.Render(w, r, ErrNotFound)
 	} else {

@@ -6,11 +6,12 @@ import (
 	"fmt"
 
 	"github.com/jackc/pgx"
+	"github.com/pereztr5/cyboard/server/models"
 )
 
 var (
 	rawDB *pgx.ConnPool
-	db    DBClient
+	db    models.DBClient
 )
 
 func SetGlobalPostgresDBs(pool *pgx.ConnPool) {

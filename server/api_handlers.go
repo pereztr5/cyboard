@@ -27,7 +27,7 @@ func PingHandler(w http.ResponseWriter, r *http.Request) {
 func GetScoresSplit(w http.ResponseWriter, r *http.Request) {
 	scores, err := models.TeamsScores(db)
 	if err != nil {
-		RenderQueryErr(w, r, errors.Wrap(err))
+		RenderQueryErr(w, r, errors.Wrapf(err, "GetScoresSplit (%s)", r.URL.Path))
 		return
 	}
 	render.JSON(w, r, scores)
@@ -36,7 +36,7 @@ func GetScoresSplit(w http.ResponseWriter, r *http.Request) {
 func GetServices(w http.ResponseWriter, r *http.Request) {
 	services, err := models.AllServices(db)
 	if err != nil {
-		RenderQueryErr(w, r, errors.Wrap(err))
+		RenderQueryErr(w, r, errors.Wrapf(err, "GetServices (%s)", r.URL.Path))
 		return
 	}
 	render.JSON(w, r, services)
@@ -45,7 +45,7 @@ func GetServices(w http.ResponseWriter, r *http.Request) {
 func GetPublicChallenges(w http.ResponseWriter, r *http.Request) {
 	chals, err := models.AllPublicChallenges(db)
 	if err != nil {
-		RenderQueryErr(w, r, errors.Wrap(err))
+		RenderQueryErr(w, r, errors.Wrapf(err, "GetPublicChallenges (%s)", r.URL.Path))
 		return
 	}
 	render.JSON(w, r, chals)
