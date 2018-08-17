@@ -69,27 +69,26 @@ func LatestServiceCheckRun(db DB) (time.Time, error) {
 }
 
 // TeamServiceStatusesView represents the current, calculated
-// service's status (pass, fail, timeout), for one team.
+// service's status (pass, fail, timeout), for all teams.
 type TeamServiceStatusesView struct {
-	TeamID      int        `json:"team_id"`
-	Name        string     `json:"name"`
-	ServiceID   int        `json:"service_id"`
-	ServiceName string     `json:"service_name"`
-	Status      ExitStatus `json:"status"`
+	ServiceID   int          `json:"service_id"`
+	ServiceName string       `json:"service_name"`
+	Statuses    []ExitStatus `json:"statuses"`
 }
 
 // TeamServiceStatuses gets the current service status (pass, fail, timeout)
 // for each team, for each non-disabled service.
 func TeamServiceStatuses(db DB) ([]TeamServiceStatusesView, error) {
 	const sqlstr = `
-	SELECT id, name, ss.service, ss.service_name, ss.status
+	SELECT ss.service, ss.service_name, jsonb_agg(ss.status) AS statuses
 	FROM blueteam AS team,
 	LATERAL (SELECT id AS service, name AS service_name, COALESCE(last(sc.status, sc.created_at), 'timeout') AS status
 		FROM service
 			LEFT JOIN service_check AS sc ON id = sc.service_id AND team.id = sc.team_id
 		WHERE service.disabled = false
-		GROUP BY id, name
-		ORDER BY id) AS ss`
+		GROUP BY service.id, team.name
+		ORDER BY service.id, team.id) AS ss
+	GROUP BY ss.service, ss.service_name`
 	rows, err := db.Query(sqlstr)
 	if err != nil {
 		return nil, err
@@ -99,7 +98,7 @@ func TeamServiceStatuses(db DB) ([]TeamServiceStatusesView, error) {
 	xs := []TeamServiceStatusesView{}
 	for rows.Next() {
 		x := TeamServiceStatusesView{}
-		if err = rows.Scan(&x.TeamID, &x.Name, &x.ServiceID, &x.ServiceName, &x.Status); err != nil {
+		if err = rows.Scan(&x.ServiceID, &x.ServiceName, &x.Statuses); err != nil {
 			return nil, err
 		}
 		xs = append(xs, x)

@@ -35,8 +35,7 @@ func Test_TeamServiceStatuses(t *testing.T) {
 	prepareTestDatabase(t)
 
 	expected := []TeamServiceStatusesView{
-		{TeamID: 1, Name: "team1", ServiceID: 1, ServiceName: "ping", Status: ExitStatusPass},
-		{TeamID: 2, Name: "team2", ServiceID: 1, ServiceName: "ping", Status: ExitStatusPartial},
+		{ServiceID: 1, ServiceName: "ping", Statuses: []ExitStatus{ExitStatusPass, ExitStatusPartial}},
 	}
 	// 'status' is pluralized like moose or something, right?
 	statooses, err := TeamServiceStatuses(db)
@@ -56,8 +55,7 @@ func Test_TeamServiceStatuses(t *testing.T) {
 			require.Nil(t, err)
 
 			expect_failures := []TeamServiceStatusesView{
-				{TeamID: 1, Name: "team1", ServiceID: 1, ServiceName: "ping", Status: ExitStatusFail},
-				{TeamID: 2, Name: "team2", ServiceID: 1, ServiceName: "ping", Status: ExitStatusFail},
+				{ServiceID: 1, ServiceName: "ping", Statuses: []ExitStatus{ExitStatusFail, ExitStatusFail}},
 			}
 			service_statuses, err := TeamServiceStatuses(db)
 			if assert.Nil(t, err) {

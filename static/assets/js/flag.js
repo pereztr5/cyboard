@@ -1,7 +1,3 @@
-$(document).ready(function() {
-    getList();
-});
-
 $('#hiddenModal').on('click', '#flag-submit', submitFlag);
 $('#hiddenModal').on('keypress', '#flag-value', function(e) {
     if (e.which === 13) {
@@ -47,33 +43,6 @@ $('input#flag-value').keypress(function(e) {
         return false;
     }
 });
-
-var challenges;
-
-function getList() {
-    var url = '/api/blue/challenges';
-    $.getJSON(url, function(json) {
-        challenges = json;
-        var challengeListText = uniqueBy(challenges, function(c){return c.group}).join(", ");
-        $('.page-header').append($('<small/>').text(" - " + challengeListText));
-        makeList(json);
-    });
-}
-
-function makeList(chal) {
-    for (var i = 0; i < chal.length; i++) {
-        var list = $('<button/>').attr({
-            type: 'button',
-            class: 'btn btn-default btn-block',
-            'data-toggle': 'modal',
-            'data-target': '#currentChallenge',
-            onclick: 'makeModal(challenges[' + i + '])'
-        });
-        list.append(chal[i].name);
-        //list.append('<span class="badge">' + chal[i].points + '</span>');
-        $('#challenge-list').append(list);
-    }
-}
 
 function makeModal(chal) {
     var titleName = escapeHtml(chal.name);

@@ -1,7 +1,7 @@
 {{ define "content" }}
 <h3 class="page-header">{{ title .Title }}</h3>
 
-<div id="hc_scoreboard"><!-- Init in assets/js/hc_scoreboard.js --></div>
+<div id="hc_scoreboard">{{/* Init in assets/js/hc_scoreboard.js */}}</div>
 
 <table class="table table-striped table-hover scores-table">
     <thead>
@@ -14,13 +14,14 @@
         </tr>
     </thead>
     <tbody id="result-list">
-    {{- range allTeamScores }}
-        <tr id="{{ .Teamname }}">
-            <td class="teamnumber">{{ .Teamnumber }}</td>
-            <td class="teamname">{{ .Teamname }}</td>
-            <td class="points">{{ .Points }}</td>
-            <td class="ctf">{{ .CTF }}</td>
-            <td class="service">{{ .Service }}</td>
+    {{- range $team := .Data.TeamsScores }}
+        <tr id="{{ $team.Name }}">
+            {{/* <td class="teamnumber">{{ $team.ID }}</td> */}}
+            <td class="teamname">{{ $team.Name }}</td>
+            <td class="points">{{ $team.Score }}</td>
+            <td class="ctf">{{ $team.CTF }}</td>
+            <td class="service">{{ $team.Service }}</td>
+            {{/* <td class="other">{{ $team.Other }}</td> */}}
         </tr>
     {{- end }}
     </tbody>

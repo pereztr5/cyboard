@@ -34,13 +34,11 @@
 <div class="row">
     <div class="col-md-6">
         <h5>Team #{{ .T.Number }}</h5>
-        <h5>Points: {{ teamScore .T.Name }}</h5>
+        {{/* <h5>Points: {{ teamScore .T.Name }}</h5> */}}
     </div>
     <div class="col-md-6">
         <div class="row">
-            {{- $allTotals := totalChallenges }}
-            {{- $aquired := teamChallenges .T.Name }}
-            {{- range $idx, $total := $allTotals }}
+            {{- range $progress := .Data.ctfProgress }}
             <div class="col-lg-5 col-md-6">
                 <div class="panel panel-default">
                     <div id="flag-panel" class="panel-heading">
@@ -49,8 +47,8 @@
                                 <i class="fa fa-flag fa-4x"></i>
                             </div>
                             <div class="col-xs-9 text-right">
-                                <div class="huge">{{ if $aquired }}{{ (index $aquired $idx).Amount }}{{ else }}0{{ end }}/{{ $total.Amount }}</div>
-                                <div>{{ $total.Group }}</div>
+                                <div class="huge">{{ $progress.Amount }}/{{ $progress.Max }}</div>
+                                <div>{{ $progress.Category }}</div>
                             </div>
                         </div>
                     </div>
@@ -130,8 +128,10 @@
 {{ define "user-configuration-panel" }}
 <div class="user-configuration-panel config-panel col-md-12">
     <div class="guidelines">
+        {{/* Cleared up every caveat and confusing quirk, by switching to PG
         <h4>User Editing Guidelines:</h4>
         <ul>
+
             <li>Users are updated by matching their <em>Name</em>.</li>
             <li><b><em>Changing a blueteam's name after scoring has begun will break
                 the competition display!</em></b></li>
@@ -144,16 +144,16 @@
                 <ul>
                     <li>Users in the "blackteam" and "admin" groups can configure
                         all challenges, unless explicitly given an "AdminOf" ctf group.</li>
-                    <li>Current challenge groups are:
-                        <b>[{{ StringsJoin challengesList ", " }}]</b></li>
                 </ul>
             </li>
             <li>You can add one or hundreds of users by pasting a CSV file, below.</li>
             <!-- TODO: When deleting a user, archive their "results" in the db, to clean the scoreboard -->
             <!--<li>Deleting the user will effectively "disable" them.</li>-->
         </ul>
+        */}}
     </div>
 
+    {{/* TODO: Finish updating admin dashboard */}}
     <div class="edit-user-controls">
         <h5>All Users</h5>
         <div class="status-region">

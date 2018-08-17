@@ -31,12 +31,10 @@
                         <li role="presentation"><a href="/">Home </a></li>
                         <li role="presentation"><a href="/scoreboard">Scoreboard</a></li>
                         <li role="presentation"><a href="/services">Services</a></li>
-                        {{- if and existsSpecialFlags .T.Name }}
                         <li role="presentation"><a href="/challenges">Challenges</a></li>
-                        {{- end }}
                     </ul>
                     <ul class="nav navbar-nav navbar-right">
-                        {{- if .T.Name }}
+                        {{- if .T }}
                         <li role="presentation" class="dropdown">
                             <a class="dropdown-toggle" data-toggle="dropdown" href="#" aria-expanded="flase">
                                 {{- .T.Name }}<span class="caret"></span>

@@ -11,7 +11,29 @@ import (
 
 type Page struct {
 	Title string
-	T     models.Team
+	T     *models.Team
+	Error error
+	Data  map[string]interface{}
+}
+
+func getPage(r *http.Request, title string) *Page {
+	team := getCtxTeam(r)
+	page := &Page{Title: "services"}
+	if team != nil {
+		page.T = team
+	}
+	return page
+}
+
+func (p *Page) checkErr(err error, target string) {
+	if err != nil {
+		Logger.WithError(err).WithFields(M{
+			team:   page.T.Name,
+			title:  page.Title,
+			target: target,
+		}).Error("unable to get data to render page")
+		page.Error = err
+	}
 }
 
 var templates map[string]*template.Template
@@ -51,12 +73,8 @@ func ensureAppTemplates() {
 }
 
 func ShowHome(w http.ResponseWriter, r *http.Request) {
-	t := getCtxTeam(r)
-	p := Page{Title: "homepage"}
-	if t != nil {
-		p.T = *t
-	}
-	renderTemplate(w, p)
+	page := getPage(r, "homepage")
+	renderTemplate(w, page)
 }
 
 func ShowLogin(w http.ResponseWriter, r *http.Request) {
@@ -70,57 +88,51 @@ func ShowLogin(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
-func SubmitLogin(w http.ResponseWriter, r *http.Request) {
-	loggedIn := CheckCreds(w, r)
-	if loggedIn {
-		http.Redirect(w, r, "/dashboard", 302)
-	} else {
-		http.Redirect(w, r, "/login", 302)
-	}
-}
-
-func Logout(w http.ResponseWriter, r *http.Request) {
-	err := sessionManager.Load(r).Destroy(w)
-	if err != nil {
-		http.Error(w, http.StatusText(500), 500)
-		Logger.WithError(err).Error("Failed to logout user")
-	}
-	http.Redirect(w, r, "/login", 302)
-}
-
 func ShowTeamDashboard(w http.ResponseWriter, r *http.Request) {
-	p := Page{
-		Title: "dashboard",
-		T:     *getCtxTeam(r),
+	page := getPage(r, "dashboard")
+	team := page.T
+	page.Data = make(map[string]interface{})
+
+	var err error
+	if team.RoleName == models.TeamRoleBlueteam {
+		page.Data["ctfProgress"], err = models.GetTeamCTFProgress(db, team.ID)
+		page.checkErr(err, "ctf progress")
+	} else {
+		// TODO: Admin panel.
+		// build up admin dashboard model data
 	}
+
 	renderTemplate(w, p)
 }
 
 func ShowChallenges(w http.ResponseWriter, r *http.Request) {
-	t := getCtxTeam(r)
-	if t != nil {
-		p := Page{
-			Title: "challenges",
-			T:     *t,
-		}
-		renderTemplate(w, p)
-	}
+	page := getPage(r, "challenges")
+
+	chals, err := models.AllPublicChallenges(db)
+	page.checkErr(err, "public challenges")
+	renderTemplate(w, p)
 }
 
 func ShowScoreboard(w http.ResponseWriter, r *http.Request) {
-	t := getCtxTeam(r)
-	p := Page{Title: "scoreboard"}
-	if t != nil {
-		p.T = *t
-	}
-	renderTemplate(w, p)
+	page := getPage(r, "scoreboard")
+
+	teamScores, err := models.TeamsScores(db)
+	page.checkErr(err, "team scores")
+	page.Data = M{TeamScores: teamScores}
+
+	renderTemplate(w, page)
 }
 
 func ShowServices(w http.ResponseWriter, r *http.Request) {
-	t := getCtxTeam(r)
-	p := Page{Title: "services"}
-	if t != nil {
-		p.T = *t
-	}
-	renderTemplate(w, p)
+	var err error
+	page := getPage(r, "services")
+	page.Data = make(map[string]interface{})
+
+	page.Data["Teams"], err = models.AllBlueteams(db)
+	page.checkErr(err, "all blue teams")
+
+	page.Data["Statuses"], err = models.TeamServiceStatuses(db)
+	page.checkErr(err, "all teams' service statuses")
+
+	renderTemplate(w, page)
 }

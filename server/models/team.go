@@ -159,7 +159,8 @@ func AllBlueteams(db DB) ([]BlueteamView, error) {
 	const sqlstr = `SELECT ` +
 		`id, name, blueteam_ip ` +
 		`FROM cyboard.team ` +
-		`WHERE role_name = 'blueteam' AND disabled = false`
+		`WHERE role_name = 'blueteam' AND disabled = false ` +
+		`ORDER BY id`
 
 	rows, err := db.Query(sqlstr)
 	if err != nil {

@@ -24,6 +24,24 @@ func PingHandler(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
+func SubmitLogin(w http.ResponseWriter, r *http.Request) {
+	loggedIn := CheckCreds(w, r)
+	if loggedIn {
+		http.Redirect(w, r, "/dashboard", 302)
+	} else {
+		http.Redirect(w, r, "/login", 302)
+	}
+}
+
+func Logout(w http.ResponseWriter, r *http.Request) {
+	err := sessionManager.Load(r).Destroy(w)
+	if err != nil {
+		http.Error(w, http.StatusText(500), 500)
+		Logger.WithError(err).Error("Failed to logout user")
+	}
+	http.Redirect(w, r, "/login", 302)
+}
+
 func GetScoresSplit(w http.ResponseWriter, r *http.Request) {
 	scores, err := models.TeamsScores(db)
 	if err != nil {
