@@ -34,7 +34,11 @@ func getCtxOwnedChallenges(r *http.Request) []models.Challenge {
 type M map[string]interface{}
 
 func saveCtxErrMsgFields(r *http.Request, fields M) context.Context {
-	return context.WithValue(r.Context(), ctxErrorMsgFields, logrus.Fields(fields))
+	errMsgFields := getCtxErrMsgFields(r)
+	for k, v := range fields {
+		errMsgFields[k] = v
+	}
+	return context.WithValue(r.Context(), ctxErrorMsgFields, logrus.Fields(errMsgFields))
 }
 
 func getCtxErrMsgFields(r *http.Request) logrus.Fields {

@@ -2,15 +2,15 @@ package server
 
 import (
 	"encoding/json"
-	"fmt"
 	"net/http"
-	"time"
+	"strconv"
 
 	"github.com/go-chi/chi"
 	"github.com/go-chi/render"
 	"github.com/pereztr5/cyboard/server/models"
 	"github.com/pkg/errors"
-	"gopkg.in/mgo.v2"
+	"github.com/sirupsen/logrus"
+	"golang.org/x/crypto/bcrypt"
 )
 
 func PingHandler(w http.ResponseWriter, r *http.Request) {
@@ -36,16 +36,15 @@ func SubmitLogin(w http.ResponseWriter, r *http.Request) {
 func Logout(w http.ResponseWriter, r *http.Request) {
 	err := sessionManager.Load(r).Destroy(w)
 	if err != nil {
-		http.Error(w, http.StatusText(500), 500)
-		Logger.WithError(err).Error("Failed to logout user")
+		ErrInternal(err)
 	}
 	http.Redirect(w, r, "/login", 302)
 }
 
-func GetScoresSplit(w http.ResponseWriter, r *http.Request) {
+func GetScores(w http.ResponseWriter, r *http.Request) {
 	scores, err := models.TeamsScores(db)
 	if err != nil {
-		RenderQueryErr(w, r, errors.Wrapf(err, "GetScoresSplit (%s)", r.URL.Path))
+		RenderQueryErr(w, r, errors.Wrap(err, "GetScores"))
 		return
 	}
 	render.JSON(w, r, scores)
@@ -54,7 +53,7 @@ func GetScoresSplit(w http.ResponseWriter, r *http.Request) {
 func GetServices(w http.ResponseWriter, r *http.Request) {
 	services, err := models.AllServices(db)
 	if err != nil {
-		RenderQueryErr(w, r, errors.Wrapf(err, "GetServices (%s)", r.URL.Path))
+		RenderQueryErr(w, r, errors.Wrap(err, "GetServices"))
 		return
 	}
 	render.JSON(w, r, services)
@@ -63,166 +62,179 @@ func GetServices(w http.ResponseWriter, r *http.Request) {
 func GetPublicChallenges(w http.ResponseWriter, r *http.Request) {
 	chals, err := models.AllPublicChallenges(db)
 	if err != nil {
-		RenderQueryErr(w, r, errors.Wrapf(err, "GetPublicChallenges (%s)", r.URL.Path))
+		RenderQueryErr(w, r, errors.Wrap(err, "GetPublicChallenges"))
 		return
 	}
 	render.JSON(w, r, chals)
 }
 
 func SubmitFlag(w http.ResponseWriter, r *http.Request) {
-	t := getCtxTeam(r)
-	flag, challenge := r.FormValue("flag"), r.FormValue("challenge")
-	if flag == "" && challenge == "" {
+	guess := &models.ChallengeGuess{Flag: r.FormValue("flag"), Name: r.FormValue("challenge")}
+	if guess.Flag == "" && guess.Name == "" {
 		w.WriteHeader(http.StatusBadRequest)
 		return
 	}
 
-	var found FlagState
-	var err error
-	challengeQuery := models.Challenge{Flag: flag}
-	if challenge != "" {
-		challengeQuery.Name = challenge
-	}
-	found, err = DataCheckFlag(t, challengeQuery)
+	team := getCtxTeam(r)
+	flagState, err := models.CheckFlagSubmission(db, r.Context(), team, guess)
 	if err != nil {
-		Logger.Errorf("Error checking flag: %s for team: %s: %v", flag, t.Name, err)
-		w.WriteHeader(http.StatusBadRequest)
+		saveCtxErrMsgFields(r, M{"challenge_name": guess.Name, "team": team.Name})
+		ErrInternal(err)
 		return
 	}
-	w.WriteHeader(http.StatusOK)
-	fmt.Fprint(w, found)
+	render.JSON(w, r, flagState)
 }
 
-func GetAllUsers(w http.ResponseWriter, r *http.Request) {
-	w.Header().Set("Content-Type", "application/json; charset=UTF-8")
-	users := DataGetAllUsers()
-	err := json.NewEncoder(w).Encode(users)
+func GetAllTeams(w http.ResponseWriter, r *http.Request) {
+	teams, err := models.AllTeams(db)
 	if err != nil {
-		Logger.Error("Error with GetAllUsers: ", err)
-		http.Error(w, http.StatusText(500), 500)
+		ErrInternal(err)
 		return
 	}
+	render.JSON(w, r, teams)
+}
+
+type BlueTeamInsertRequest struct {
+	*models.BlueTeamStore
+	Password string `json:"password"` // Becomes the `Hash` column
+}
+
+func (btr BlueTeamInsertRequest) Bind(r *http.Request) error {
+	if btr.BlueTeamStore == nil {
+		return errors.New("missing both team `name` and `blueteam_ip` fields")
+	} else if btr.Password == "" {
+		return errors.Errorf("insert bluteams (team=%q): passwords must not be empty",
+			btr.BlueTeamStore.Name)
+	}
+
+	btr.BlueTeamStore.Hash = nil
+	hash, err := bcrypt.GenerateFromPassword([]byte(btr.Password), bcrypt.DefaultCost)
+	if err != nil {
+		return errors.Wrapf(err, "insert blueteams (team=%q)", btr.BlueTeamStore.Name)
+	}
+	btr.BlueTeamStore.Hash = hash
+	btr.Password = ""
+	return nil
+}
+
+type BlueTeamInsertRequestSlice []BlueTeamInsertRequest
+
+func (batch BlueTeamInsertRequestSlice) Bind(r *http.Request) error {
+	return nil
 }
 
 func AddTeams(w http.ResponseWriter, r *http.Request) {
-	teams, err := ParseTeamCsv(r.Body)
-	if err != nil {
-		http.Error(w, err.Error(), http.StatusNotAcceptable)
+	batch := BlueTeamInsertRequestSlice{}
+	if err := render.Bind(r, batch); err != nil {
+		ErrInvalidRequest(err)
 		return
 	}
 
-	// The unique indexes on the teams collection
-	// will prevent bad duplicates.
-	err = DataAddTeams(teams)
-	if err != nil {
-		// MongoDB errors should be safe to give back to admins.
-		http.Error(w, err.Error(), http.StatusExpectationFailed)
+	newteams := make(models.BlueTeamStoreSlice, len(batch), len(batch))
+	for idx, t := range batch {
+		newteams[idx] = *t.BlueTeamStore
+	}
+	if err := newteams.Insert(db); err != nil {
+		ErrInternal(err)
 		return
 	}
 	w.WriteHeader(http.StatusOK)
 }
 
+type TeamUpdateRequest struct {
+	*models.Team
+	Password *string `json:"password"` // Becomes the `Hash` column
+}
+
+func (tr *TeamUpdateRequest) Bind(r *http.Request) error {
+	if tr.Team == nil {
+		return errors.New("missing required team fields")
+	}
+
+	tr.Team.Hash = nil
+	if tr.Password != nil {
+		if *tr.Password == "" {
+			return errors.Errorf("update team (team=%q): passwords must not be empty",
+				tr.Team.Name)
+		}
+
+		hash, err := bcrypt.GenerateFromPassword([]byte(*tr.Password), bcrypt.DefaultCost)
+		if err != nil {
+			return errors.Wrapf(err, "update team (team=%q)", tr.Team.Name)
+		}
+		tr.Team.Hash = hash
+		tr.Password = nil
+	}
+	return nil
+}
+
 func UpdateTeam(w http.ResponseWriter, r *http.Request) {
-	teamName := chi.URLParam(r, "teamName")
-	if teamName == "" {
-		Logger.Error("Failed to update team: missing 'teamName' URL Paramater")
-		http.Error(w, http.StatusText(500), 500)
+	op := &TeamUpdateRequest{}
+	if err := render.Bind(r, op); err != nil {
+		ErrInvalidRequest(err)
+		return
+	}
+	teamID, err := strconv.Atoi(chi.URLParam(r, "teamID"))
+	if err != nil {
+		ErrInvalidRequest(errors.Wrap(err, "UpdateTeam, teamID URL param"))
+		return
+	} else if teamID != op.Team.ID {
+		ErrInvalidRequest(errors.New("UpdateTeam (IDs do not match)"))
 		return
 	}
 
-	var updateOp map[string]interface{}
-	if err := json.NewDecoder(r.Body).Decode(&updateOp); err != nil {
-		Logger.Error("Error decoding update PUT body: ", err)
-		http.Error(w, err.Error(), 500)
-		return
-	}
-
-	if err := DataUpdateTeam(teamName, updateOp); err != nil {
-		Logger.Error("Failed to update team: ", err)
-		http.Error(w, err.Error(), 500)
+	if err := op.Team.Update(db); err != nil {
+		ErrInternal(errors.Wrap(err, "UpdateTeam"))
 		return
 	}
 	w.WriteHeader(http.StatusOK)
 }
 
 func DeleteTeam(w http.ResponseWriter, r *http.Request) {
-	teamName := chi.URLParam(r, "teamName")
-	if teamName == "" {
-		Logger.Error("Failed to delete team: missing 'teamName' URL Paramater")
-		http.Error(w, http.StatusText(500), 500)
+	teamID, err := strconv.Atoi(chi.URLParam(r, "teamID"))
+	if err != nil {
+		ErrInvalidRequest(errors.Wrap(err, "DeleteTeam, teamID URL param"))
 		return
 	}
 
-	err := DataDeleteTeam(teamName)
-	if err != nil {
-		Logger.Error("Failed to delete team: ", err)
-		http.Error(w, err.Error(), 500)
+	team := &models.Team{ID: teamID}
+	if err = team.Delete(db); err != nil {
+		ErrInternal(err)
 		return
 	}
 	w.WriteHeader(http.StatusOK)
 }
 
-type BonusDescriptor struct {
-	Teams   []string `json:"teams"`
-	Points  int      `json:"points"`
-	Details string   `json:"details"`
+type BonusPointsRequest struct {
+	*models.OtherPoints
+	TeamIDs []int `json:"teams"`
 }
 
 func GrantBonusPoints(w http.ResponseWriter, r *http.Request) {
-	var bonus BonusDescriptor
-
-	if err := json.NewDecoder(r.Body).Decode(&bonus); err != nil {
-		Logger.Error("GrantBonusPoints: failed to decode request body: ", err)
-		http.Error(w, err.Error(), http.StatusBadRequest)
+	batch := &BonusPointsRequest{}
+	if err := render.Decode(r, batch); err != nil {
+		ErrInvalidRequest(err)
 		return
 	}
 
-	if err := grantBonusPoints(bonus); err != nil {
-		Logger.Errorln("GrantBonusPoints failed:", err)
-		if err == mgo.ErrCursor {
-			http.Error(w, err.Error(), http.StatusInternalServerError)
-		} else {
-			http.Error(w, err.Error(), http.StatusBadRequest)
-		}
+	cnt := len(batch.TeamIDs)
+	bonus := make(models.OtherPointsSlice, cnt, cnt)
+	for idx, teamID := range batch.TeamIDs {
+		bonus[idx] = *batch.OtherPoints
+		bonus[idx].TeamID = teamID
+	}
+	if err := bonus.Insert(db); err != nil {
+		ErrInternal(err)
 		return
 	}
+
+	CaptFlagsLogger.WithFields(logrus.Fields{
+		"teams":  batch.TeamIDs,
+		"reason": batch.Reason,
+		"points": batch.Points,
+	}).Infoln("Bonus awarded!")
+
 	w.WriteHeader(http.StatusOK)
-}
-
-func grantBonusPoints(bonus BonusDescriptor) error {
-	if len(bonus.Teams) == 0 {
-		return fmt.Errorf("Field 'teams' must be filled in")
-	}
-
-	teams := make([]models.Team, len(bonus.Teams))
-	for i, teamName := range bonus.Teams {
-		team, err := GetTeamByTeamname(teamName)
-		if err != nil {
-			return fmt.Errorf("failed to fetch team '%s': %v", teamName, err)
-		}
-		teams[i] = team
-	}
-	if len(teams) != len(bonus.Teams) {
-		return fmt.Errorf("failed to generate complete list of teams (did you have duplicate team names?)")
-	}
-
-	now := time.Now()
-	results := make([]models.Result, len(teams))
-	for i := range results {
-		results[i] = models.Result{
-			Type:       CTF,
-			Group:      "BONUS",
-			Timestamp:  now,
-			Teamname:   teams[i].Name,
-			Teamnumber: teams[i].Number,
-			Details:    bonus.Details,
-			Points:     bonus.Points,
-		}
-	}
-	CaptFlagsLogger.WithField("teams", bonus.Teams).WithField("challenge", bonus.Details).WithField("chalGroup", "BONUS").
-		WithField("points", bonus.Points).Println("Bonus awarded!")
-
-	return DataAddResults(results, false)
 }
 
 // CTF Configuration

@@ -11,7 +11,7 @@ function build_hc_series(scores, categories = SCOREBOARD_CATEGORIES) {
 $(function () {
 
     // Get initial chart data, set up columns for teams
-    $.getJSON( '/api/public/scores/split' )
+    $.getJSON( '/api/public/scores' )
     .done(function(scores) {
         const teams = [...new Set(scores.map(doc => doc.teamname))];
 

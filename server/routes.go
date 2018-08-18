@@ -45,7 +45,6 @@ func CreateWebRouter(teamScoreUpdater, servicesUpdater *broadcastHub) chi.Router
 	// Public API
 	api.Route("/public/", func(public chi.Router) {
 		public.Get("/scores", GetScores)
-		public.Get("/scores/split", GetScoresSplit)
 		public.Get("/services", GetServices)
 		public.Handle("/scores/live", teamScoreUpdater.ServeWs())
 		public.Handle("/services/live", servicesUpdater.ServeWs())
@@ -88,11 +87,11 @@ func CreateWebRouter(teamScoreUpdater, servicesUpdater *broadcastHub) chi.Router
 	api.Route("/admin/", func(admin chi.Router) {
 		admin.Use(RequireLogin, RequireAdmin)
 
-		admin.Get("/teams", GetAllUsers)
+		admin.Get("/teams", GetAllTeams)
 		admin.Post("/teams", AddTeams)
 
-		admin.Put("/team/{teamName}", UpdateTeam)
-		admin.Delete("/team/{teamName}", DeleteTeam)
+		admin.Put("/team/{teamID}", UpdateTeam)
+		admin.Delete("/team/{teamID}", DeleteTeam)
 	})
 
 	root.Mount("/api/", api)

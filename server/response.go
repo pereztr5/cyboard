@@ -17,23 +17,28 @@ func setupResponder(logger *logrus.Logger) {
 
 	render.Respond = func(w http.ResponseWriter, r *http.Request, v interface{}) {
 		if err, ok := v.(error); ok {
-
 			// We set a default error status response code if one hasn't been set.
 			if _, ok := r.Context().Value(render.StatusCtxKey).(int); !ok {
 				w.WriteHeader(http.StatusBadRequest)
 			}
 
-			logmsg := logger.WithError(err.Error())
+			logmsg := logger.WithError(err.Error()).WithFields("path", r.URL.Path)
 			if fields, ok := r.Context().Value(ctxErrorMsgFields).(logrus.Fields); ok {
 				logmsg = logmsg.WithFields(fields)
 			}
 			logmsg.Error("error during request")
 
+			msg := render.M{status: "error"}
 			// We change the response to not reveal the actual error message,
-			// instead we can transform the message something more friendly or mapped
-			// to some code / language, etc.
-			//render.DefaultResponder(w, r, render.M{"status": "error"})
-			//return
+			team := getCtxTeam(r)
+			if team != nil {
+				switch team.RoleName {
+				// Expose the error to staff
+				case TeamRoleAdmin, TeamRoleCtfCreator:
+					msg["error"] = err
+				}
+			}
+			render.DefaultResponder(w, r, msg)
 		}
 
 		render.DefaultResponder(w, r, v)

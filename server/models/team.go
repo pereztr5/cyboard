@@ -3,7 +3,6 @@ package models
 
 import (
 	"github.com/pkg/errors"
-	"golang.org/x/crypto/bcrypt"
 )
 
 // Team represents a row from 'cyboard.team'.
@@ -108,7 +107,7 @@ func AllTeams(db DB) ([]Team, error) {
 // BlueTeamStore contains the fields used to insert new blue teams into the database.
 type BlueTeamStore struct {
 	Name       string `json:"name"`        // name
-	Password   string `json:"password"`    // --- (becomes the `hash` column)
+	Hash       []byte `json:"-"`           // hash
 	BlueteamIP int16  `json:"blueteam_ip"` // blueteam_ip
 }
 
@@ -117,7 +116,6 @@ type BlueTeamStoreSlice []BlueTeamStore
 
 // Insert a batch of new blue teams into the database.
 // Blue teams must have a unique name and ip from all other blueteams.
-// The Password field will be hashed & salted before ultimately being saved.
 func (teams BlueTeamStoreSlice) Insert(db TXer) error {
 	tx, err := db.Begin()
 	if err != nil {
@@ -127,17 +125,7 @@ func (teams BlueTeamStoreSlice) Insert(db TXer) error {
 
 	const sqlstr = `INSERT INTO team (role_name, name, blueteam_ip, hash) VALUES ('blueteam', $1, $2, $3)`
 	for _, t := range teams {
-		if t.Password == "" {
-			return errors.Errorf("insert bluteams (team=%q): passwords must not be empty", t.Name)
-		}
-
-		hash, err := bcrypt.GenerateFromPassword([]byte(t.Password), bcrypt.DefaultCost)
-		if err != nil {
-			return errors.Wrapf(err, "insert bluteams (team=%q)", t.Name)
-		}
-		t.Password = ""
-
-		_, err = tx.Exec(sqlstr, t.Name, t.BlueteamIP, hash)
+		_, err = tx.Exec(sqlstr, t.Name, t.BlueteamIP, t.Hash)
 		if err != nil {
 			return errors.Wrapf(err, "insert bluteams (team=%q)", t.Name)
 		}
