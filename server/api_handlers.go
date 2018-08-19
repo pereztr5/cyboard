@@ -1,7 +1,6 @@
 package server
 
 import (
-	"encoding/json"
 	"net/http"
 	"strconv"
 
@@ -88,7 +87,7 @@ func SubmitFlag(w http.ResponseWriter, r *http.Request) {
 func GetAllTeams(w http.ResponseWriter, r *http.Request) {
 	teams, err := models.AllTeams(db)
 	if err != nil {
-		ErrInternal(err)
+		RenderQueryErr(w, r, errors.Wrap(err, "GetAllTeams"))
 		return
 	}
 	render.JSON(w, r, teams)
@@ -138,7 +137,7 @@ func AddTeams(w http.ResponseWriter, r *http.Request) {
 		ErrInternal(err)
 		return
 	}
-	w.WriteHeader(http.StatusOK)
+	w.WriteHeader(http.StatusCreated)
 }
 
 type TeamUpdateRequest struct {
@@ -234,186 +233,103 @@ func GrantBonusPoints(w http.ResponseWriter, r *http.Request) {
 		"points": batch.Points,
 	}).Infoln("Bonus awarded!")
 
-	w.WriteHeader(http.StatusOK)
+	w.WriteHeader(http.StatusCreated)
 }
 
 // CTF Configuration
 
-// findConfigurableFlagFromReq will find the matching flag in the URL
-// from the list of owned challenges that exist on the request context.
-// (They are added by the RequireCtfGroupOwner middleware)
-func findConfigurableFlagFromReq(r *http.Request) *models.Challenge {
-	chals, flagName := getCtxOwnedChallenges(r), chi.URLParam(r, "flag")
-	for _, c := range chals {
-		if c.Name == flagName {
-			return &c
-		}
-	}
-	return nil
-}
-
-// ctfIsAdminOf returns true if the team is allowed control
-// over the challenge.
-func ctfIsAdminOf(t *models.Team, c *models.Challenge) bool {
-	switch t.Group {
-	case "admin", "blackteam":
-		return true
-	default:
-		return t.AdminOf == c.Group
-	}
-}
-
-func getChallengesOwnerOf(adminof, teamgroup string) []string {
-	switch teamgroup {
-	case "admin", "blackteam":
-		return DataGetChallengeGroupsList()
-	default:
-		return []string{adminof}
-	}
-}
-
-func GetConfigurableFlags(w http.ResponseWriter, r *http.Request) {
-	chals := getCtxOwnedChallenges(r)
-
-	w.Header().Set("Content-Type", "application/json; charset=UTF-8")
-	if err := json.NewEncoder(w).Encode(chals); err != nil {
-		Logger.Error("Error encoding GetConfigurableFlags json: ", err)
-		http.Error(w, http.StatusText(500), 500)
+func GetAllFlags(w http.ResponseWriter, r *http.Request) {
+	challenges, err := models.AllChallenges(db)
+	if err != nil {
+		RenderQueryErr(w, r, errors.Wrap(err, "GetAllFlags"))
 		return
 	}
+	// NOTE: render.JSON will automatically escape any HTML during json encoding,
+	// which we may not want to do if we decide that Challenge.Body could have raw HTML.
+	render.JSON(w, r, challenges)
 }
 
 func AddFlags(w http.ResponseWriter, r *http.Request) {
-	team := getCtxTeam(r)
-	var insertOp []models.Challenge
+	newChallenges := models.ChallengeSlice{}
+	if err := render.Decode(r, newChallenges); err != nil {
+		ErrInvalidRequest(err)
+		return
+	}
 
-	if err := json.NewDecoder(r.Body).Decode(&insertOp); err != nil {
-		Logger.Error("AddFlags: decode req body: ", err)
-		http.Error(w, err.Error(), http.StatusBadRequest)
+	if err := newChallenges.Insert(db); err != nil {
+		ErrInternal(err)
 		return
 	}
-	if err := DataAddChallenges(team, insertOp); err != nil {
-		Logger.Error("AddFlags:", err)
-		http.Error(w, err.Error(), http.StatusBadRequest)
-		return
-	}
+
 	w.WriteHeader(http.StatusCreated)
 }
 
-func GetFlagByName(w http.ResponseWriter, r *http.Request) {
-	chal := findConfigurableFlagFromReq(r)
-	if chal == nil {
-		http.Error(w, http.StatusText(http.StatusForbidden), http.StatusForbidden)
+func GetFlagByID(w http.ResponseWriter, r *http.Request) {
+	flagID, err := strconv.Atoi(chi.URLParam(r, "flagID"))
+	if err != nil {
+		ErrInvalidRequest(errors.Wrap(err, "GetFlagByName, flagID URL param"))
 		return
 	}
 
-	w.Header().Set("Content-Type", "application/json; charset=UTF-8")
-	if err := json.NewEncoder(w).Encode(chal); err != nil {
-		Logger.Error("GetFlagByName: ", err)
-		http.Error(w, http.StatusText(http.StatusInternalServerError), http.StatusInternalServerError)
+	challenge, err := models.ChallengeByID(db, flagID)
+	if err != nil {
+		RenderQueryErr(w, r, errors.Wrap(err, "GetFlagByName"))
 		return
 	}
-}
-
-func AddFlag(w http.ResponseWriter, r *http.Request) {
-	team := getCtxTeam(r)
-	var insertOp models.Challenge
-
-	if err := json.NewDecoder(r.Body).Decode(&insertOp); err != nil {
-		Logger.Error("AddFlag: decode req body: ", err)
-		http.Error(w, err.Error(), http.StatusBadRequest)
-		return
-	} else if chi.URLParam(r, "flag") != insertOp.Name {
-		http.Error(w, "URL flag name and body's flag name must match", http.StatusBadRequest)
-		return
-	} else if !ctfIsAdminOf(team, &insertOp) {
-		Logger.WithField("challenge", insertOp.Name).WithField("team", team.Name).Error("AddFlag: unauthorized to add flag")
-		http.Error(w, http.StatusText(http.StatusForbidden), http.StatusForbidden)
-		return
-	}
-	if err := DataAddChallenge(&insertOp); err != nil {
-		http.Error(w, err.Error(), http.StatusInternalServerError)
-		return
-	}
-	w.WriteHeader(http.StatusCreated)
+	w.WriteHeader(http.StatusOK)
 }
 
 func UpdateFlag(w http.ResponseWriter, r *http.Request) {
-	chal := findConfigurableFlagFromReq(r)
-	if chal == nil {
-		http.Error(w, http.StatusText(http.StatusForbidden), http.StatusForbidden)
+	challenge := &models.Challenge{}
+	if err := render.Decode(r, challenge); err != nil {
+		ErrInvalidRequest(err)
+		return
+	}
+	flagID, err := strconv.Atoi(chi.URLParam(r, "flagID"))
+	if err != nil {
+		ErrInvalidRequest(errors.Wrap(err, "UpdateFlag, flagID URL param"))
+		return
+	} else if flagID != challenge.ID {
+		ErrInvalidRequest(errors.New("UpdateFlag (IDs do not match)"))
 		return
 	}
 
-	var updateOp models.Challenge
-	if err := json.NewDecoder(r.Body).Decode(&updateOp); err != nil {
-		Logger.Error("UpdateFlag: decode req body: ", err)
-		http.Error(w, err.Error(), http.StatusBadRequest)
-		return
-	}
-
-	if err := DataUpdateChallenge(&chal.Id, &updateOp); err != nil {
-		Logger.Error("UpdateFlag: db update: ", err)
-		http.Error(w, err.Error(), http.StatusInternalServerError)
+	if err := challenge.Update(db); err != nil {
+		ErrInternal(err)
 		return
 	}
 	w.WriteHeader(http.StatusOK)
 }
 
 func DeleteFlag(w http.ResponseWriter, r *http.Request) {
-	team, deleteOp := getCtxTeam(r), findConfigurableFlagFromReq(r)
-	if deleteOp == nil {
-		flagName := chi.URLParam(r, "flag")
-		Logger.WithField("challenge", flagName).WithField("team", team.Name).Error("DeleteFlag: unauthorized")
-		http.Error(w, http.StatusText(http.StatusForbidden), http.StatusForbidden)
+	flagID, err := strconv.Atoi(chi.URLParam(r, "flagID"))
+	if err != nil {
+		ErrInvalidRequest(errors.Wrap(err, "DeleteFlag, flagID URL param"))
 		return
 	}
 
-	if err := DataDeleteChallenge(&deleteOp.Id); err != nil {
-		Logger.Error("DeleteFlag: db remove: ", err)
-		http.Error(w, err.Error(), http.StatusInternalServerError)
+	challenge := &models.Challenge{ID: flagID}
+	if err := challenge.Delete(db); err != nil {
+		ErrInternal(err)
 		return
 	}
 	w.WriteHeader(http.StatusOK)
 }
 
-// todo(tbutts): Reduce copied code. Particularly in the Breakdown methods, and anything that returns JSON.
-// todo(tbutts): Consider a middleware or some abstraction on the Json encoding (gorilla may already provide this)
-
 func GetBreakdownOfSubmissionsPerFlag(w http.ResponseWriter, r *http.Request) {
-	t := getCtxTeam(r)
-	chalGroups := getChallengesOwnerOf(t.AdminOf, t.Group)
-
-	flagsWithCapCounts, err := DataGetSubmissionsPerFlag(chalGroups)
+	brkdwn, err := models.ChallengeCapturesPerFlag(db)
 	if err != nil {
-		Logger.Error("Failed to get flags w/ occurences of capture: ", err)
-		http.Error(w, http.StatusText(500), 500)
+		ErrInternal(err)
 		return
 	}
-	w.Header().Set("Content-Type", "application/json; charset=UTF-8")
-	err = json.NewEncoder(w).Encode(flagsWithCapCounts)
-	if err != nil {
-		Logger.Error("Error encoding FlagCaptures breakdown json: ", err)
-		http.Error(w, http.StatusText(500), 500)
-		return
-	}
+	render.JSON(w, r, brkdwn)
 }
 
 func GetEachTeamsCapturedFlags(w http.ResponseWriter, r *http.Request) {
-	t := getCtxTeam(r)
-	chalGroups := getChallengesOwnerOf(t.AdminOf, t.Group)
-
-	teamsWithCapturedFlags, err := DataGetEachTeamsCapturedFlags(chalGroups)
+	brkdwn, err := models.ChallengeCapturesPerTeam(db)
 	if err != nil {
-		Logger.Error("Failed to get each teams' flag captures: ", err)
-		http.Error(w, http.StatusText(500), 500)
+		ErrInternal(err)
 		return
 	}
-	w.Header().Set("Content-Type", "application/json; charset=UTF-8")
-	err = json.NewEncoder(w).Encode(teamsWithCapturedFlags)
-	if err != nil {
-		Logger.Error("Error encoding each teams' flag captures breakdown json: ", err)
-		http.Error(w, http.StatusText(500), 500)
-		return
-	}
+	render.JSON(w, r, brkdwn)
 }

@@ -57,27 +57,18 @@ func CreateWebRouter(teamScoreUpdater, servicesUpdater *broadcastHub) chi.Router
 		blue.Post("/challenges", SubmitFlag)
 	})
 
-	// Black Team API
-	api.Route("/black/", func(black chi.Router) {
-		black.Use(
-			RequireLogin,
-			RequireGroupIsAnyOf([]string{"admin", "blackteam"}),
-		)
-		black.Post("/grant_bonus", GrantBonusPoints)
-	})
-
 	// Staff API to view & edit the CTF event
 	api.Route("/ctf/", func(ctfStaff chi.Router) {
 		ctfStaff.Use(RequireLogin, RequireCtfGroupOwner)
 		ctfStaff.Get("/stats/subs_per_flag", GetBreakdownOfSubmissionsPerFlag)
 		ctfStaff.Get("/stats/teams_flags", GetEachTeamsCapturedFlags)
 
-		ctfStaff.Get("/flags", GetConfigurableFlags)
+		ctfStaff.Get("/flags", GetAllFlags)
 		ctfStaff.Post("/flags", AddFlags)
 
-		ctfStaff.Route("/flags/{flag}", func(r chi.Router) {
-			r.Get("/", GetFlagByName)
-			r.Post("/", AddFlag)
+		ctfStaff.Route("/flags/{flagID}", func(r chi.Router) {
+			r.Get("/", GetFlagByID)
+			// r.Post("/", AddFlag)
 			r.Put("/", UpdateFlag)
 			r.Delete("/", DeleteFlag)
 		})
@@ -86,6 +77,8 @@ func CreateWebRouter(teamScoreUpdater, servicesUpdater *broadcastHub) chi.Router
 	// Admin API
 	api.Route("/admin/", func(admin chi.Router) {
 		admin.Use(RequireLogin, RequireAdmin)
+
+		admin.Post("/grant_bonus", GrantBonusPoints)
 
 		admin.Get("/teams", GetAllTeams)
 		admin.Post("/teams", AddTeams)

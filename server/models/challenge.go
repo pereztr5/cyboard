@@ -101,6 +101,36 @@ func ChallengeByID(db DB, id int) (*Challenge, error) {
 	return &c, nil
 }
 
+// AllChallenges fetches all ctf challenges from the database,
+// to be displayed to staff.
+func AllChallenges(db DB) ([]Challenge, error) {
+	const sqlstr = `SELECT ` +
+		`id, name, category, flag, total, body, hidden, designer_category, created_at, modified_at ` +
+		`FROM challenge`
+
+	rows, err := db.Query(sqlstr)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+
+	xs := []Challenge{}
+	for rows.Next() {
+		x := Challenge{}
+		err = rows.Scan(&x.ID, &x.Name, &x.Category, &x.Flag, &x.Total, &x.Body,
+			&x.Hidden, &x.DesignerCategory, &x.CreatedAt, &x.ModifiedAt)
+		if err != nil {
+			return nil, err
+		}
+		xs = append(xs, x)
+	}
+	if err = rows.Err(); err != nil {
+		return nil, err
+	}
+
+	return xs, nil
+}
+
 // ChallengeSlice is an array of challenges, suitable to insert many of at once.
 type ChallengeSlice []Challenge
 

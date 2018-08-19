@@ -407,7 +407,7 @@ function submitBonusPoints(form) {
 
     const status_node = form.parentsUntil('.bonus-display').parent().find('.status');
     $.ajax({
-        url: '/api/black/grant_bonus',
+        url: '/api/admin/grant_bonus',
         type: 'POST',
         contentType: 'application/json; charset=UTF-8',
         data: JSON.stringify(data),
