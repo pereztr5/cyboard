@@ -5,6 +5,7 @@ import (
 
 	"github.com/go-chi/render"
 	"github.com/jackc/pgx"
+	"github.com/pereztr5/cyboard/server/models"
 	"github.com/sirupsen/logrus"
 )
 
@@ -22,19 +23,19 @@ func setupResponder(logger *logrus.Logger) {
 				w.WriteHeader(http.StatusBadRequest)
 			}
 
-			logmsg := logger.WithError(err.Error()).WithFields("path", r.URL.Path)
+			logmsg := logger.WithError(err).WithField("path", r.URL.Path)
 			if fields, ok := r.Context().Value(ctxErrorMsgFields).(logrus.Fields); ok {
 				logmsg = logmsg.WithFields(fields)
 			}
 			logmsg.Error("error during request")
 
-			msg := render.M{status: "error"}
+			msg := render.M{"status": "error"}
 			// We change the response to not reveal the actual error message,
 			team := getCtxTeam(r)
 			if team != nil {
 				switch team.RoleName {
 				// Expose the error to staff
-				case TeamRoleAdmin, TeamRoleCtfCreator:
+				case models.TeamRoleAdmin, models.TeamRoleCtfCreator:
 					msg["error"] = err
 				}
 			}
@@ -88,4 +89,7 @@ func ErrInternal(err error) render.Renderer {
 	}
 }
 
-var ErrNotFound = &ErrResponse{HTTPStatusCode: 404, StatusText: "Resource not found"}
+var (
+	ErrNotFound  = &ErrResponse{HTTPStatusCode: 404, StatusText: "Resource not found"}
+	ErrForbidden = &ErrResponse{HTTPStatusCode: 403, StatusText: "Forbidden"}
+)

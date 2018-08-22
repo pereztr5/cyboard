@@ -13,7 +13,11 @@
 </head>
 <body>
     {{- template "navbar"  . -}}
-    {{-    block "content" . -}}{{ end }}
+    {{- if .Error }}
+        {{- template "oopsie" }}
+    {{- else }}
+        {{-    block "content" . -}}{{ end }}
+    {{- end }}
     {{- template "footer"  . -}}
 </body>
 </html>
@@ -52,6 +56,17 @@
             </div>
         </nav>
 {{/* container div is left dangling for convenience */}}
+{{- end }}
+
+{{ define "oopsie" }}
+<div class="jumbotron">
+    <h2>Oh no...</h2>
+    <div class="row text-center">
+        <p>💀 Something went wrong... 💀</p>
+        <p>Pinch yourself to make sure you're still breathing.</p>
+        {{- if isAdmin .T }}<p class="error">Error: {{ .Error }}</p>{{ end }}
+    </div>
+</div>
 {{- end }}
 
 {{ define "footer" }}

@@ -7,6 +7,7 @@ import (
 
 	"github.com/jackc/pgx"
 	"github.com/pereztr5/cyboard/server/models"
+	"github.com/sirupsen/logrus"
 )
 
 var (
@@ -23,7 +24,7 @@ func SetupPostgres(uri string) {
 		// Database connection is already set up
 		return
 	}
-	if ur == "" {
+	if uri == "" {
 		Logger.Fatal("No postgres-uri specified.")
 	}
 
@@ -33,12 +34,14 @@ func SetupPostgres(uri string) {
 		Logger.Fatal("Did you check the docs? https://www.postgresql.org/docs/current/static/libpq-connect.html#LIBPQ-CONNSTRING")
 	}
 
-	pool, err = pgx.NewConnPool(pgx.ConnPoolConfig{ConnConfig: baseCfg})
+	pool, err := pgx.NewConnPool(pgx.ConnPoolConfig{ConnConfig: baseCfg})
 	if err != nil {
 		cfgStr := PgConfigAsString(&baseCfg)
-		Logger.WithError(err).
-			WithField("uhoh", "pool's closed, fool").WithField("config", cfgStr).
-			Fatal("SetupPostgres: failed to create connection pool")
+		Logger.WithFields(logrus.Fields{
+			"error":  err,
+			"config": cfgStr,
+			"uhoh":   "pool's closed, fool",
+		}).Fatal("SetupPostgres: failed to create connection pool")
 	}
 	SetGlobalPostgresDBs(pool)
 

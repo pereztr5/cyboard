@@ -276,6 +276,7 @@ func GetFlagByID(w http.ResponseWriter, r *http.Request) {
 		RenderQueryErr(w, r, errors.Wrap(err, "GetFlagByName"))
 		return
 	}
+	render.JSON(w, r, challenge)
 	w.WriteHeader(http.StatusOK)
 }
 

@@ -7,6 +7,7 @@ import (
 	"time"
 
 	"github.com/gorilla/websocket"
+	"github.com/pereztr5/cyboard/server/models"
 )
 
 const (
@@ -20,6 +21,9 @@ const (
 	pingPeriod = 10 * time.Second
 )
 
+type timeCheckFn func(db models.DB) (time.Time, error)
+type payloadFn func(db models.DB) (interface{}, error)
+
 // broadcastHub allows a form of pub/sub messaging, in which many subscribers
 // listen to data from a single publisher. Whenever new data is received, the
 // hub will prepare the data once, and then send it to each client.
@@ -32,11 +36,11 @@ type broadcastHub struct {
 	// is nice for distros such as CentOS and Ubuntu.
 	*sync.RWMutex
 
-	timeCheck  func() (time.Time, error)
-	getPayload func() (interface{}, error)
+	timeCheck  timeCheckFn
+	getPayload payloadFn
 }
 
-func NewBroadcastHub(logID string, timeCheck func() (time.Time, error), getPayload func() (interface{}, error)) *broadcastHub {
+func NewBroadcastHub(logID string, timeCheck timeCheckFn, getPayload payloadFn) *broadcastHub {
 	return &broadcastHub{
 		logID:      logID,
 		timeCheck:  timeCheck,
@@ -81,11 +85,11 @@ func (b *broadcastHub) Start() {
 	updateTicker := time.NewTicker(updatePeriod)
 	defer updateTicker.Stop()
 
-	ts, _ := b.timeCheck()
+	ts, _ := b.timeCheck(db)
 	for {
 		select {
 		case <-updateTicker.C:
-			newTs, err := b.timeCheck()
+			newTs, err := b.timeCheck(db)
 			if err != nil {
 				b.logError("failed timeCheck: ", err)
 				continue
@@ -96,7 +100,7 @@ func (b *broadcastHub) Start() {
 			}
 
 			ts = newTs
-			payload, err := b.getPayload()
+			payload, err := b.getPayload(db)
 			if err != nil {
 				b.logError("failed getPayload:", err)
 				continue
@@ -199,8 +203,11 @@ func (b *broadcastHub) ServeWs() http.Handler {
 func ServiceStatusWsServer() *broadcastHub {
 	b := NewBroadcastHub(
 		"service status",
-		func() (time.Time, error) { return DataGetLastServiceResult(), nil },
-		func() (interface{}, error) { return DataGetServiceStatus(), nil },
+		models.LatestServiceCheckRun,
+		func(db models.DB) (interface{}, error) {
+			res, err := models.TeamServiceStatuses(db)
+			return res, err
+		},
 	)
 	go b.Start()
 	return b
@@ -210,8 +217,11 @@ func ServiceStatusWsServer() *broadcastHub {
 func TeamScoreWsServer() *broadcastHub {
 	b := NewBroadcastHub(
 		"team scores",
-		func() (time.Time, error) { return DataGetLastResult(), nil },
-		func() (interface{}, error) { return DataGetAllScoreSplitByType(), nil },
+		models.LatestScoreChange,
+		func(db models.DB) (interface{}, error) {
+			res, err := models.TeamsScores(db)
+			return res, err
+		},
 	)
 	go b.Start()
 	return b

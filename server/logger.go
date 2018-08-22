@@ -120,7 +120,7 @@ func (m *LoggerManager) newRequestMiddleware(logger *logrus.Logger) *negronilogr
 		role, teamName := "<none>", "<none>"
 		t := getCtxTeam(req)
 		if t != nil {
-			role = t.RoleName
+			role = t.RoleName.String()
 			teamName = t.Name
 		}
 

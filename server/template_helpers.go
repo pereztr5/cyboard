@@ -13,11 +13,16 @@ func buildHelperMap() template.FuncMap {
 		"title":       strings.Title,
 		"StringsJoin": strings.Join,
 
-		"isChallengeOwner": allowedToConfigureChallenges,
+		"isAdmin":    isAdmin,
+		"isCtfStaff": isCtfStaff,
 	}
 }
 
-func allowedToConfigureChallenges(t *models.Team) bool {
+func isAdmin(t *models.Team) bool {
+	return t.RoleName == models.TeamRoleAdmin
+}
+
+func isCtfStaff(t *models.Team) bool {
 	switch t.RoleName {
 	case models.TeamRoleAdmin, models.TeamRoleCtfCreator:
 		return true

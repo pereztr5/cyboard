@@ -20,12 +20,12 @@ import (
 
 type Check struct {
 	*models.Service
-	Script *exec.Cmd
+	Command *exec.Cmd
 }
 
 func (c *Check) String() string {
 	return fmt.Sprintf(`Check{name=%q, fullcmd="%s %s", pts=%v}`,
-		c.Name, filepath.Base(c.Script.Path), c.Args, c.Points)
+		c.Name, filepath.Base(c.Command.Path), c.Args, c.Points)
 }
 
 var (
@@ -59,17 +59,17 @@ func prepareChecks(services []models.Service, scriptsDir string) []Check {
 	checks := []Check{}
 
 	for idx, service := range services {
-		if service.Disable {
+		if service.Disabled {
 			Logger.Warnf("check.%d: DISABLED.", idx)
 			continue
 		}
 
-		script, err := getScript(filepath.Join(scriptsDir, check.Filename))
+		script, err := getScript(filepath.Join(scriptsDir, service.Script))
 		if err != nil {
 			Logger.Warnf("check.%d: SKIPPING! Failed to locate script: %v", idx, err)
 			continue
 		}
-		checks = append(checks, Check{Service: &service, Script: script})
+		checks = append(checks, Check{Service: &service, Command: script})
 	}
 
 	Logger.Print("All services:")
@@ -107,7 +107,7 @@ func getScript(path string) (*exec.Cmd, error) {
 
 func score(result *models.ServiceCheck) {
 	if dryRun {
-		result.CreatedAt = result.Timestamp.Round(time.Millisecond)
+		result.CreatedAt = result.CreatedAt.Round(time.Millisecond)
 		scoreTmplStr := "Timestamp: {{ .CreatedAt }} | Team: {{ .TeamID }} | ExitCode: {{ .ExitCode }} | Status: {{ .Status }}\n"
 		scoreTmpl := template.Must(template.New("result").Parse(scoreTmplStr))
 		err := scoreTmpl.Execute(Logger.Out, result)
@@ -119,7 +119,7 @@ func score(result *models.ServiceCheck) {
 
 func scoreAll(results []models.ServiceCheck) {
 	if !dryRun {
-		if err := ServiceCheckSlice(results).Insert(db); err != nil {
+		if err := models.ServiceCheckSlice(results).Insert(db); err != nil {
 			Logger.Error("Could not insert service results:", err)
 		}
 	} else {
@@ -129,9 +129,7 @@ func scoreAll(results []models.ServiceCheck) {
 	}
 }
 
-func startCheckService(checkCfg *CheckConfiguration, teams []models.Team) {
-	event := &checkCfg.Event
-	checks := checkCfg.Checks
+func startCheckService(event EventSettings, checks []Check, teams []models.BlueteamView) {
 	status := make(chan models.ServiceCheck)
 	resultsBuf := make([]models.ServiceCheck, len(teams)*len(checks))
 
@@ -194,10 +192,10 @@ func startCheckService(checkCfg *CheckConfiguration, teams []models.Team) {
 	}
 }
 
-func runCmd(team *models.Team, check *Check, timestamp time.Time, timeout time.Duration, status chan models.ServiceCheck) {
+func runCmd(team *models.BlueteamView, check *Check, timestamp time.Time, timeout time.Duration, status chan models.ServiceCheck) {
 	// TODO: Currently only one IP per team is supported
-	cmd := *check.Script
-	cmd.Args = parseArgs(cmd.Path, check.Args, team.Ip)
+	cmd := *check.Command
+	cmd.Args = parseArgs(cmd.Path, strings.Join(check.Args, " "), int(team.BlueteamIP))
 
 	var out bytes.Buffer
 	if dryRun {
@@ -234,7 +232,7 @@ func runCmd(team *models.Team, check *Check, timestamp time.Time, timeout time.D
 		result.Status = models.ExitStatusTimeout
 	case <-done:
 		// As long as it is done the error doesn't matter
-		result.ExitCode = cmd.ProcessState.Sys().(syscall.WaitStatus).ExitStatus()
+		result.ExitCode = int16(cmd.ProcessState.Sys().(syscall.WaitStatus).ExitStatus())
 		// if !dryRun {
 		//     result.Details = fmt.Sprintf("Status: %d", exitCode)
 		// } else {
@@ -253,22 +251,23 @@ func runCmd(team *models.Team, check *Check, timestamp time.Time, timeout time.D
 	status <- result
 }
 
-func parseArgs(name string, args string, ip string) []string {
+func parseArgs(name string, args string, ip int) []string {
 	//TODO: Quick fix but need to com back and do this right
 	//TODO(pereztr): This should at least have to be surrounded in braces or some meta-chars
 	const ReplacementText = "IP"
-	nArgs := name + " " + strings.Replace(args, ReplacementText, ip, 1)
+	ipStr := "192.168.0." + strconv.Itoa(ip)
+	nArgs := name + " " + strings.Replace(args, ReplacementText, ipStr, 1)
 	return strings.Split(nArgs, " ")
 }
 
-func testData() []models.Team {
-	var teams []models.Team
+func testData() []models.BlueteamView {
+	var teams []models.BlueteamView
 	for i := 0; i < 2; i++ {
-		t := models.Team{
-			Group:  "TEST",
-			Number: 90 + i,
-			Name:   "team9" + strconv.Itoa(i),
-			Ip:     "127.0.0.1",
+		ip := int16(90 + i)
+		t := models.BlueteamView{
+			ID:         i,
+			Name:       "team9" + strconv.Itoa(i),
+			BlueteamIP: ip,
 		}
 		teams = append(teams, t)
 	}
@@ -277,22 +276,22 @@ func testData() []models.Team {
 
 func ChecksRun(checkCfg *CheckConfiguration) {
 	SetupCheckServiceLogger(&checkCfg.Log)
-	SetupMongo(&checkCfg.Database, nil)
+	SetupPostgres(checkCfg.Database.URI)
 	rando = rand.New(rand.NewSource(time.Now().UTC().UnixNano()))
 
 	for {
 		cfgNeedsReload = false
 		prepareEvent(checkCfg)
-		checkCfg.Checks = prepareChecks(checkCfg.Checks, checkCfg.Event.ChecksDir)
+		checks := prepareChecks(checkCfg.Services, checkCfg.Event.ChecksDir)
 		if !dryRun {
-			teams, err := DataGetTeamIps()
+			teams, err := models.AllBlueteams(db)
 			if err != nil {
 				Logger.Fatal("Could not get teams for service checks: ", err)
 			}
-			startCheckService(checkCfg, teams)
+			startCheckService(checkCfg.Event, checks, teams)
 		} else {
 			teams := testData()
-			startCheckService(checkCfg, teams)
+			startCheckService(checkCfg.Event, checks, teams)
 		}
 
 		// If the checker service stopped other than by a config reload, then the event has reached

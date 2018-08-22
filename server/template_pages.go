@@ -7,6 +7,7 @@ import (
 	"strings"
 
 	"github.com/pereztr5/cyboard/server/models"
+	"github.com/sirupsen/logrus"
 )
 
 type Page struct {
@@ -27,18 +28,18 @@ func getPage(r *http.Request, title string) *Page {
 
 func (p *Page) checkErr(err error, target string) {
 	if err != nil {
-		Logger.WithError(err).WithFields(M{
-			team:   page.T.Name,
-			title:  page.Title,
-			target: target,
+		Logger.WithError(err).WithFields(logrus.Fields{
+			"team":   p.T.Name,
+			"title":  p.Title,
+			"target": target,
 		}).Error("unable to get data to render page")
-		page.Error = err
+		p.Error = err
 	}
 }
 
 var templates map[string]*template.Template
 
-func renderTemplate(w http.ResponseWriter, p Page) {
+func renderTemplate(w http.ResponseWriter, p *Page) {
 	tmpl, ok := templates[p.Title]
 	if !ok {
 		Logger.Errorln("Template does not exist:", p.Title)
@@ -79,10 +80,10 @@ func ShowHome(w http.ResponseWriter, r *http.Request) {
 
 func ShowLogin(w http.ResponseWriter, r *http.Request) {
 	if getCtxTeam(r) == nil {
-		p := Page{
+		page := &Page{
 			Title: "login",
 		}
-		renderTemplate(w, p)
+		renderTemplate(w, page)
 	} else {
 		http.Redirect(w, r, "/dashboard", 302)
 	}
@@ -102,7 +103,7 @@ func ShowTeamDashboard(w http.ResponseWriter, r *http.Request) {
 		// build up admin dashboard model data
 	}
 
-	renderTemplate(w, p)
+	renderTemplate(w, page)
 }
 
 func ShowChallenges(w http.ResponseWriter, r *http.Request) {
@@ -110,7 +111,8 @@ func ShowChallenges(w http.ResponseWriter, r *http.Request) {
 
 	chals, err := models.AllPublicChallenges(db)
 	page.checkErr(err, "public challenges")
-	renderTemplate(w, p)
+	page.Data = M{"Challenges": chals}
+	renderTemplate(w, page)
 }
 
 func ShowScoreboard(w http.ResponseWriter, r *http.Request) {
@@ -118,7 +120,7 @@ func ShowScoreboard(w http.ResponseWriter, r *http.Request) {
 
 	teamScores, err := models.TeamsScores(db)
 	page.checkErr(err, "team scores")
-	page.Data = M{TeamScores: teamScores}
+	page.Data = M{"TeamScores": teamScores}
 
 	renderTemplate(w, page)
 }

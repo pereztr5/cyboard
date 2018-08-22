@@ -1,9 +1,10 @@
 package server
 
 import (
-	"context"
 	"net/http"
 
+	"github.com/go-chi/render"
+	"github.com/pereztr5/cyboard/server/models"
 	"github.com/urfave/negroni"
 )
 
@@ -17,17 +18,17 @@ func RequireLogin(next http.Handler) http.Handler {
 	})
 }
 
-func RequireGroupIsAnyOf(whitelistedGroups []string) func(http.Handler) http.Handler {
+func RequireGroupIsAnyOf(whitelistedGroups []models.TeamRole) func(http.Handler) http.Handler {
 	return func(next http.Handler) http.Handler {
 		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 			team := getCtxTeam(r)
 			for _, group := range whitelistedGroups {
-				if team.Group == group {
+				if team.RoleName == group {
 					next.ServeHTTP(w, r)
 					return
 				}
 			}
-			http.Error(w, http.StatusText(http.StatusForbidden), http.StatusForbidden)
+			render.Render(w, r, ErrForbidden)
 		})
 	}
 }
@@ -35,30 +36,24 @@ func RequireGroupIsAnyOf(whitelistedGroups []string) func(http.Handler) http.Han
 func RequireAdmin(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		team := getCtxTeam(r)
-		if team.Group == "admin" {
+		if team.RoleName == models.TeamRoleAdmin {
 			next.ServeHTTP(w, r)
 		} else {
-			http.Redirect(w, r, "/login", 302)
+			render.Render(w, r, ErrForbidden)
 		}
 	})
 }
 
-func RequireCtfGroupOwner(next http.Handler) http.Handler {
+func RequireCtfStaff(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		t := getCtxTeam(r)
-		if !allowedToConfigureChallenges(t) {
-			http.Error(w, http.StatusText(http.StatusForbidden), http.StatusForbidden)
-			return
-		}
+		team := getCtxTeam(r)
 
-		chals, err := DataGetChallengesByGroup(t.AdminOf)
-		if err != nil {
-			Logger.Error("RequireCtfGroupOwner: failed to get flags by group: ", err)
-			http.Error(w, http.StatusText(500), 500)
-			return
+		switch team.RoleName {
+		case models.TeamRoleAdmin, models.TeamRoleCtfCreator:
+			next.ServeHTTP(w, r)
+		default:
+			render.Render(w, r, ErrForbidden)
 		}
-		ctx := context.WithValue(r.Context(), ctxOwnedChallenges, chals)
-		next.ServeHTTP(w, r.WithContext(ctx))
 	})
 }
 

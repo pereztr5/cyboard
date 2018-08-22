@@ -3,6 +3,8 @@ package server
 import (
 	"fmt"
 	"time"
+
+	"github.com/pereztr5/cyboard/server/models"
 )
 
 type LogSettings struct {
@@ -11,8 +13,7 @@ type LogSettings struct {
 }
 
 type DBSettings struct {
-	URI    string `mapstructure:"mongodb_uri"`
-	DBName string
+	URI string `mapstructure:"postgres_uri"`
 }
 
 type ServerSettings struct {
@@ -50,5 +51,5 @@ type CheckConfiguration struct {
 	Event    EventSettings
 	Log      LogSettings
 	Database DBSettings
-	// Checks   []models.Service
+	Services []models.Service
 }

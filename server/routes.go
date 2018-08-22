@@ -59,7 +59,7 @@ func CreateWebRouter(teamScoreUpdater, servicesUpdater *broadcastHub) chi.Router
 
 	// Staff API to view & edit the CTF event
 	api.Route("/ctf/", func(ctfStaff chi.Router) {
-		ctfStaff.Use(RequireLogin, RequireCtfGroupOwner)
+		ctfStaff.Use(RequireLogin, RequireCtfStaff)
 		ctfStaff.Get("/stats/subs_per_flag", GetBreakdownOfSubmissionsPerFlag)
 		ctfStaff.Get("/stats/teams_flags", GetEachTeamsCapturedFlags)
 

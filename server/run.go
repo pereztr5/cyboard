@@ -20,14 +20,14 @@ func Run(cfg *Configuration) {
 
 	setupResponder(Logger)
 
-	// MongoDB setup
-	//SetupMongo(&cfg.Database, cfg.Server.SpecialChallenges)
-	//CreateIndexes()
+	// Postgres setup
+	SetupPostgres(cfg.Database.URI)
+
 	// Web Server Setup
 	isHTTPS := cfg.Server.CertPath != "" && cfg.Server.CertKeyPath != ""
 	CreateStore(isHTTPS)
 	// On first run, prompt to set up an admin user
-	EnsureAdmin()
+	EnsureAdmin(db)
 
 	teamScoreUpdater, servicesUpdater := TeamScoreWsServer(), ServiceStatusWsServer()
 	defer teamScoreUpdater.Stop()
@@ -70,7 +70,7 @@ func EnsureAdmin(db models.DB) {
 
 	if err == nil {
 		return
-	} else if err != pgx.ErrNotFound {
+	} else if err != pgx.ErrNoRows {
 		Logger.WithError(err).Fatal("EnsureAdmin: failed to check for team with admin privs.")
 	}
 
@@ -93,7 +93,7 @@ func EnsureAdmin(db models.DB) {
 
 	newAdmin := &models.Team{
 		Name:     adminAccName,
-		RoleName: TeamRoleAdmin,
+		RoleName: models.TeamRoleAdmin,
 		Hash:     hashBytes,
 	}
 	err = newAdmin.Insert(db)

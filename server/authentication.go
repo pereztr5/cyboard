@@ -8,6 +8,7 @@ import (
 
 	"github.com/alexedwards/scs"
 	"github.com/alexedwards/scs/stores/cookiestore"
+	"github.com/jackc/pgx"
 	"github.com/pereztr5/cyboard/server/models"
 	"golang.org/x/crypto/bcrypt"
 )
@@ -55,7 +56,7 @@ func CheckCreds(w http.ResponseWriter, r *http.Request) bool {
 	}
 
 	session := sessionManager.Load(r)
-	err = session.PutInt(w, sessionIDKey, &t.ID)
+	err = session.PutInt(w, sessionIDKey, t.ID)
 	if err != nil {
 		http.Error(w, http.StatusText(500), 500)
 		Logger.Error("Error saving session: ", err)
@@ -79,7 +80,7 @@ func CheckSessionID(next http.Handler) http.Handler {
 		if err != nil {
 			Logger.WithError(err).Error("CheckSessionID: failed to load session data")
 		} else if hasID {
-			teamID, err := session.GetInt(sessionIDKey, teamID)
+			teamID, err := session.GetInt(sessionIDKey)
 			if err != nil {
 				Logger.WithError(err).Errorf("CheckSessionID: failed to load %q", sessionIDKey)
 			} else {
@@ -108,7 +109,7 @@ func getSigningKey() []byte {
 
 	err := db.QueryRow(`SELECT value FROM cyboard.config WHERE key = $1`, sessionPGConfigKey).Scan(&s)
 	if err != nil {
-		if err != pgx.ErrNotFound {
+		if err != pgx.ErrNoRows {
 			Logger.WithError(err).Fatal("getSigningKey: failed to fetch from postgres")
 		}
 
@@ -122,7 +123,7 @@ func getSigningKey() []byte {
 
 		s = base64.StdEncoding.EncodeToString(b)
 
-		err = db.Exec(`INSERT INTO cyboard.config (key, value) VALUES ($1,$2)`, sessionPGConfigKey, s)
+		_, err = db.Exec(`INSERT INTO cyboard.config (key, value) VALUES ($1,$2)`, sessionPGConfigKey, s)
 		if err != nil {
 			Logger.WithError(err).Fatal("getSigningKey: failed to insert new key into postgres")
 		}
