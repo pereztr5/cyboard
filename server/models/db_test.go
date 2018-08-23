@@ -2,7 +2,6 @@ package models
 
 import (
 	"database/sql"
-	"io/ioutil"
 	"os"
 	"testing"
 
@@ -58,8 +57,6 @@ func checkErr(err error, context string) {
 func TestMain(m *testing.M) {
 	logger = logrus.New()
 	logger.SetLevel(logrus.DebugLevel)
-	CaptFlagsLogger = logrus.New()
-	CaptFlagsLogger.Out = ioutil.Discard
 
 	setupDB()
 	var err error

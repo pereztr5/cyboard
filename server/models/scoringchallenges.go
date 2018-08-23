@@ -6,7 +6,6 @@ import (
 
 	"github.com/jackc/pgx"
 	"github.com/pkg/errors"
-	"github.com/sirupsen/logrus"
 )
 
 // CtfSolve represents a row from 'cyboard.ctf_solve'.
@@ -84,13 +83,8 @@ func CheckFlagSubmission(db TXer, ctx context.Context, team *Team, chal *Challen
 	}
 
 	if err != nil {
-		if err == pgx.ErrNoRows {
-			CaptFlagsLogger.WithField("team", team.Name).WithField("guess", chal.Flag).WithField("challenge", chal.Name).Println("Bad guess")
-			return InvalidFlag, nil
-		}
 		return InvalidFlag, err
-	}
-	if solverID != nil {
+	} else if solverID != nil {
 		// Got challenge already
 		return AlreadyCaptured, nil
 	}
@@ -103,7 +97,6 @@ func CheckFlagSubmission(db TXer, ctx context.Context, team *Team, chal *Challen
 	if err = tx.Commit(); err != nil {
 		return InvalidFlag, errors.WithMessage(err, "CheckFlagSubmission: failed to commit transaction")
 	}
-	CaptFlagsLogger.WithFields(logrus.Fields{"team": team.Name, "challenge": chal.Name, "category": chal.Category, "points": points}).Println("Score!!")
 	return ValidFlag, nil
 }
 

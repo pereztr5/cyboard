@@ -6,6 +6,7 @@ import (
 
 	"github.com/go-chi/chi"
 	"github.com/go-chi/render"
+	"github.com/jackc/pgx"
 	"github.com/pereztr5/cyboard/server/models"
 	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
@@ -77,9 +78,16 @@ func SubmitFlag(w http.ResponseWriter, r *http.Request) {
 	team := getCtxTeam(r)
 	flagState, err := models.CheckFlagSubmission(db, r.Context(), team, guess)
 	if err != nil {
-		saveCtxErrMsgFields(r, M{"challenge_name": guess.Name, "team": team.Name})
-		ErrInternal(err)
-		return
+		if err == pgx.ErrNoRows {
+			CaptFlagsLogger.WithFields(logrus.Fields{"team": team.Name, "guess": guess.Flag, "challenge": guess.Name}).Println("Bad guess")
+		} else {
+			saveCtxErrMsgFields(r, M{"challenge_name": guess.Name, "team": team.Name})
+			ErrInternal(err)
+			return
+		}
+	}
+	if flagState == models.ValidFlag {
+		CaptFlagsLogger.WithFields(logrus.Fields{"team": team.Name, "challenge": guess.Name, "category": guess.Category}).Println("Score!!")
 	}
 	render.JSON(w, r, flagState)
 }

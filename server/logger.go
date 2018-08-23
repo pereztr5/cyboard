@@ -9,7 +9,6 @@ import (
 	"time"
 
 	"github.com/meatballhat/negroni-logrus"
-	"github.com/pereztr5/cyboard/server/models"
 	"github.com/sirupsen/logrus"
 	"github.com/urfave/negroni"
 	"gopkg.in/natefinch/lumberjack.v2"
@@ -41,7 +40,6 @@ func SetupScoringLoggers(lc *LogSettings) {
 
 	Logger = LogManager.newLogger(applicationLogName)
 	CaptFlagsLogger = LogManager.newLogger(capturedFlagsLogName)
-	models.CaptFlagsLogger = CaptFlagsLogger
 
 	requestsLog := LogManager.newLogger(requestLogName)
 	RequestLogger = LogManager.newRequestMiddleware(requestsLog)

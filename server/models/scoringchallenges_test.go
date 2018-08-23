@@ -4,6 +4,7 @@ import (
 	"context"
 	"testing"
 
+	"github.com/jackc/pgx"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -38,12 +39,12 @@ func Test_CheckFlagSubmission(t *testing.T) {
 		err  error
 	}{
 		"New capture":    {team: teams_not_capped(), cg: guess_named_valid(), fs: ValidFlag, err: nil},
-		"Failed capture": {team: teams_not_capped(), cg: guess_named_bad(), fs: InvalidFlag, err: nil},
+		"Failed capture": {team: teams_not_capped(), cg: guess_named_bad(), fs: InvalidFlag, err: pgx.ErrNoRows},
 		"Already capped": {team: teams_already_capped(), cg: guess_named_valid(), fs: AlreadyCaptured, err: nil},
-		"Failed+Already": {team: teams_already_capped(), cg: guess_named_bad(), fs: InvalidFlag, err: nil},
+		"Failed+Already": {team: teams_already_capped(), cg: guess_named_bad(), fs: InvalidFlag, err: pgx.ErrNoRows},
 
 		"Anon new capture":    {team: teams_not_capped(), cg: guess_anon_valid(), fs: ValidFlag, err: nil},
-		"Anon fail capture":   {team: teams_not_capped(), cg: guess_anon_bad(), fs: InvalidFlag, err: nil},
+		"Anon fail capture":   {team: teams_not_capped(), cg: guess_anon_bad(), fs: InvalidFlag, err: pgx.ErrNoRows},
 		"Anon already capped": {team: teams_already_capped(), cg: guess_anon_valid(), fs: AlreadyCaptured, err: nil},
 	}
 
