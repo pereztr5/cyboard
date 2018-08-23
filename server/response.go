@@ -17,13 +17,13 @@ func setupResponder(logger *logrus.Logger) {
 	https://github.com/go-chi/chi/blob/0c5e7abb4e562fa14dd2548cb57b28f979a7dcd9/_examples/rest/main.go#L261 */
 
 	render.Respond = func(w http.ResponseWriter, r *http.Request, v interface{}) {
-		if err, ok := v.(error); ok {
+		if err, ok := v.(*ErrResponse); ok {
 			// We set a default error status response code if one hasn't been set.
 			if _, ok := r.Context().Value(render.StatusCtxKey).(int); !ok {
 				w.WriteHeader(http.StatusBadRequest)
 			}
 
-			logmsg := logger.WithError(err).WithField("path", r.URL.Path)
+			logmsg := logger.WithError(err.Err).WithField("path", r.URL.Path)
 			if fields, ok := r.Context().Value(ctxErrorMsgFields).(logrus.Fields); ok {
 				logmsg = logmsg.WithFields(fields)
 			}
@@ -36,10 +36,12 @@ func setupResponder(logger *logrus.Logger) {
 				switch team.RoleName {
 				// Expose the error to staff
 				case models.TeamRoleAdmin, models.TeamRoleCtfCreator:
-					msg["error"] = err
+					msg["error"] = err.ErrorText
+				default:
 				}
 			}
 			render.DefaultResponder(w, r, msg)
+			return
 		}
 
 		render.DefaultResponder(w, r, v)

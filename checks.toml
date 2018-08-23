@@ -12,8 +12,7 @@ level = "info"
 stdout = false
 
 [database]
-mongodb_uri = "mongodb://127.0.0.1"
-dbname = "scorengine"
+postgres_uri = "dbname=cyboard_test user=cybot host=/var/run/postgresql sslmode=disable"
 
 # The double-brackets make an array of structs, zero-indexed.
 # This is just a weird config file quirk, copy it for each script added and move on.

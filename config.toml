@@ -7,11 +7,6 @@ https_port = "8081"
 # cert = "certs/cert.pem"
 # key = "certs/key.pem"
 
-# Most CTF challenges do not show their name to any blue teams.
-# Challenges in the following group will be displayed on a
-# special page, making them known.
-#special_challenges = ["Wireless", "Rusted Bunions"]
-
 [log]
 # Levels: "debug", "info", "warn", "error"
 level = "info"
@@ -19,5 +14,4 @@ level = "info"
 stdout = false
 
 [database]
-mongodb_uri = "mongodb://127.0.0.1"
-dbname = "scorengine"
+postgres_uri = "dbname=cyboard_test user=cybot host=/var/run/postgresql sslmode=disable"

@@ -45,7 +45,7 @@ func CreateWebRouter(teamScoreUpdater, servicesUpdater *broadcastHub) chi.Router
 	// Public API
 	api.Route("/public/", func(public chi.Router) {
 		public.Get("/scores", GetScores)
-		public.Get("/services", GetServices)
+		public.Get("/services", GetServicesStatuses)
 		public.Handle("/scores/live", teamScoreUpdater.ServeWs())
 		public.Handle("/services/live", servicesUpdater.ServeWs())
 	})

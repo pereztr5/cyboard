@@ -15,6 +15,7 @@ func buildHelperMap() template.FuncMap {
 
 		"isAdmin":    isAdmin,
 		"isCtfStaff": isCtfStaff,
+		"isBlueteam": isBlueteam,
 	}
 }
 
@@ -29,4 +30,8 @@ func isCtfStaff(t *models.Team) bool {
 	default:
 		return false
 	}
+}
+
+func isBlueteam(t *models.Team) bool {
+	return t.RoleName == models.TeamRoleBlueteam
 }

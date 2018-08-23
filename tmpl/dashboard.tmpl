@@ -1,25 +1,25 @@
 {{- define "content" }}
 <h3 class="page-header">Dashboard <small>{{ .T.Name }}</small></h3>
-{{ if eq .T.Group "blueteam" }}
+{{ if isBlueteam .T }}
     {{- template "blueteam_dash" . }}
-{{ else if eq .T.Group "admin" }}
+{{ else if isAdmin .T }}
     {{- template "admin_dash" . }}
-{{ else if isChallengeOwner .T  }}
+{{ else if isCtfStaff .T  }}
     {{- template "ctf_config_dash" . }}
 {{ end }}
 {{ end }}
 
 {{ define "styles" }}
-    {{- if isChallengeOwner .T }}
+    {{- if isCtfStaff .T }}
     <link rel="stylesheet" href="/assets/css/config-dashboard.css">
     <link rel="stylesheet" href="/assets/bootstrap-dialog/bootstrap-dialog.min.css">
     {{- end }}
 {{ end }}
 
 {{ define "scripts" }}
-    {{- if eq .T.Group "blueteam" }}
+    {{- if isBlueteam .T }}
     <script src="/assets/js/dashboard.js"></script>
-    {{- else if isChallengeOwner .T }}
+    {{- else if isCtfStaff .T }}
     <script src="/assets/js/jquery.csv.min.js"></script>
     <script src="/assets/js/mindmup-editabletable.js"></script>
     <script src="/assets/bootstrap-dialog/bootstrap-dialog.min.js"></script>
@@ -172,6 +172,7 @@
                     <th>Update/Delete</th>
                 </tr>
                 </thead>
+                            {{/*
                 <tbody>
                 {{- range $userData := allUsers }}
                 {{- with $userData }}
@@ -184,12 +185,12 @@
                     <td class="placeholder">{Unchanged}</td>
                     <th class="controls">
                         <div class="btn-group">
-                            {{/*
+                            <!--
                             Copy to clipboard is not implemented yet
                             <button type="button" class="btn btn-success user-clip">
                                 <i class="fa fa-clipboard" aria-hidden="true"></i>
                             </button>
-                            */}}
+                            -->
                             <button type="button" class="btn btn-warning user-update">
                                 <i class="fa fa-pencil" aria-hidden="true"></i>
                             </button>
@@ -202,6 +203,7 @@
                 {{- end }}
                 {{- end }}
                 </tbody>
+                */}}
             </table>
         </div>
     </div>
@@ -276,6 +278,7 @@
     {{- end }}
 
     <div class="guidelines">
+        {{/*
         <h4>Challenge Editing Guidelines:</h4>
         <ul>
             <li>The challenge <b>name</b> and <b>group</b> act as the unique keys when
@@ -283,10 +286,11 @@
             <li>You can only add flags in your group (show below), unless you are an "admin".</li>
             <li>Points must be whole numbers.</li>
         </ul>
+        */}}
     </div>
 
     <div class="edit-flag-controls">
-        <h5>Challenges - [{{ StringsJoin (getOwnedChalGroups .T.AdminOf .T.Group) ", "}}]</h5>
+        <h5>Challenges</h5>
         <div class="status-region">
             <p class="status"></p>
         </div>

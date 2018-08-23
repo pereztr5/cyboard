@@ -17,12 +17,11 @@ type DBSettings struct {
 }
 
 type ServerSettings struct {
-	IP                string
-	HTTPPort          string   `mapstructure:"http_port"`
-	HTTPSPort         string   `mapstructure:"https_port"`
-	CertPath          string   `mapstructure:"cert"`
-	CertKeyPath       string   `mapstructure:"key"`
-	SpecialChallenges []string `mapstructure:"special_challenges"`
+	IP          string
+	HTTPPort    string `mapstructure:"http_port"`
+	HTTPSPort   string `mapstructure:"https_port"`
+	CertPath    string `mapstructure:"cert"`
+	CertKeyPath string `mapstructure:"key"`
 
 	EventSettings
 }

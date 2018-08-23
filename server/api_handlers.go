@@ -49,10 +49,10 @@ func GetScores(w http.ResponseWriter, r *http.Request) {
 	render.JSON(w, r, scores)
 }
 
-func GetServices(w http.ResponseWriter, r *http.Request) {
-	services, err := models.AllServices(db)
+func GetServicesStatuses(w http.ResponseWriter, r *http.Request) {
+	services, err := models.TeamServiceStatuses(db)
 	if err != nil {
-		RenderQueryErr(w, r, errors.Wrap(err, "GetServices"))
+		RenderQueryErr(w, r, errors.Wrap(err, "GetServicesStatuses"))
 		return
 	}
 	render.JSON(w, r, services)
