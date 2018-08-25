@@ -58,7 +58,6 @@ func CheckCreds(w http.ResponseWriter, r *http.Request) bool {
 	session := sessionManager.Load(r)
 	err = session.PutInt(w, sessionIDKey, t.ID)
 	if err != nil {
-		http.Error(w, http.StatusText(500), 500)
 		Logger.Error("Error saving session: ", err)
 	}
 	return err == nil

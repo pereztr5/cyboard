@@ -55,6 +55,7 @@ func redirecter(port string) func(w http.ResponseWriter, r *http.Request) {
 			Logger.Println("Error redirecting:", err)
 			errCode := http.StatusInternalServerError
 			http.Error(w, http.StatusText(errCode), errCode)
+			return
 		}
 
 		dest := fmt.Sprintf("https://%s:%s%s", u.Hostname(), port, r.URL.Path)

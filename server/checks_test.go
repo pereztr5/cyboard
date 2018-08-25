@@ -1,16 +1,6 @@
 package server
 
-import (
-	"fmt"
-	"os/exec"
-	"testing"
-	"time"
-
-	"github.com/stretchr/testify/assert"
-
-	"github.com/pereztr5/cyboard/server/models"
-)
-
+/*
 func init() {
 	SetupCheckServiceLogger(&LogSettings{Level: "warn", Stdout: true})
 	ensureTestDB()
@@ -84,3 +74,4 @@ func Test_runCmd(t *testing.T) {
 		})
 	}
 }
+*/

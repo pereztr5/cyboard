@@ -18,7 +18,7 @@ func Test_TeamByID(t *testing.T) {
 	}
 	for name, tt := range tests {
 		t.Run(name, func(t *testing.T) {
-			team, err := TeamByID(rawDB, tt.team_id)
+			team, err := TeamByID(db, tt.team_id)
 			if assert.Equal(t, tt.err, err) && tt.err == nil {
 				assert.Equal(t, tt.team_id, team.ID)
 			}

@@ -6,28 +6,22 @@ import (
 	"net/url"
 	"testing"
 
+	"github.com/pereztr5/cyboard/server/apptest"
 	"github.com/stretchr/testify/assert"
 )
-
-func init() {
-	SetupScoringLoggers(&LogSettings{Level: "warn", Stdout: true})
-	ensureTestDB()
-	CreateStore(false)
-}
 
 func loginReq() (http.ResponseWriter, *http.Request) {
 	w := httptest.NewRecorder()
 	r := httptest.NewRequest("GET", "/login", nil)
 	r.Form = make(url.Values)
 	r.Form.Add(formCredsTeam, "team1")
-	r.Form.Add(formCredsPass, "pass1")
+	r.Form.Add(formCredsPass, "ramjam")
 	return w, r
 }
 
 func TestCheckCreds(t *testing.T) {
 	// Setup Database
-	cleanupDB()
-	DataAddTeams(TestTeams)
+	apptest.PrepDatabase(t)
 
 	tests := map[string]struct {
 		formPrep func(f *url.Values)
@@ -51,9 +45,11 @@ func TestCheckCreds(t *testing.T) {
 		},
 	}
 	for name, tt := range tests {
-		w, r := loginReq()
-		tt.formPrep(&r.Form)
-		succ := CheckCreds(w, r)
-		assert.Equal(t, tt.expect, succ, name)
+		t.Run(name, func(t *testing.T) {
+			w, r := loginReq()
+			tt.formPrep(&r.Form)
+			loginState := CheckCreds(w, r)
+			assert.Equal(t, tt.expect, loginState)
+		})
 	}
 }

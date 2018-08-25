@@ -4,6 +4,7 @@ import (
 	"testing"
 	"time"
 
+	"github.com/pereztr5/cyboard/server/apptest"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
@@ -18,7 +19,7 @@ func Test_LatestServiceCheckRun(t *testing.T) {
 		assert.Equal(t, expected_ts, ts)
 	}
 
-	_, err = stdlibDB.Exec(`DELETE FROM service_check`)
+	_, err = apptest.StdlibDB.Exec(`DELETE FROM service_check`)
 	require.Nil(t, err)
 
 	time_str = "1970-01-01T00:00:00.000Z"
