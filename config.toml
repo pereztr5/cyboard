@@ -1,17 +1,51 @@
-appname = "CNY Hackathon"
+# Cyboard Config file
 
-[server]
-ip = "127.0.0.1"
-http_port = "8080"
-https_port = "8081"
-# cert = "certs/cert.pem"
-# key = "certs/key.pem"
+[database]
+# Connection string for PostgreSQL. There are many different way to specify this:
+# https://www.postgresql.org/docs/current/static/libpq-connect.html#LIBPQ-CONNSTRING
+postgres_uri = "dbname=cyboard user=cybot host=/var/run/postgresql sslmode=disable"
 
 [log]
 # Levels: "debug", "info", "warn", "error"
 level = "info"
-# use stdout instead of a file
+# use stdout instead of a files in log/
 stdout = false
 
-[database]
-postgres_uri = "dbname=cyboard_test user=cybot host=/var/run/postgresql sslmode=disable"
+
+[event]
+# When will the event be taking place?
+# CTF will only be unlocked after the event starts.
+start = 2017-11-04T09:00:00-05:00
+end   = 2017-11-04T19:30:00-05:00
+
+# Are there any breaks (e.g. lunch time, overnight) that no contestants should score during?
+breaks = [
+    { at = 2017-11-04T12:00:00-05:00, for = "1h" }
+]
+
+
+[server]
+# This section is for the "server" command.
+
+appname = "CNY Hackathon"
+ip = "127.0.0.1"
+http_port = "8080"
+https_port = "8081"
+
+# Set up SSL.
+#cert = "certs/cert.pem"
+#key = "certs/key.pem"
+
+
+[service_monitor]
+# This section is for the "checks" command.
+
+# How long between service checks?
+intervals = "15s"
+
+# If a team's service doesn't respond in this time, it must be timed-out (offline).
+timeout = "5s"
+
+# Where are script files located?
+checks_dir = "scripts"
+

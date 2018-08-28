@@ -20,7 +20,6 @@ type Service struct {
 	StartsAt   time.Time `json:"starts_at"`   // starts_at
 	CreatedAt  time.Time `json:"created_at"`  // created_at
 	ModifiedAt time.Time `json:"modified_at"` // modified_at
-
 }
 
 // Insert inserts the Service to the database.
@@ -107,5 +106,32 @@ func AllServices(db DB) ([]Service, error) {
 	}
 
 	return ss, nil
+}
 
+// AllActiveServices retrieves all monitored services from 'cyboard.service'.
+func AllActiveServices(db DB) ([]Service, error) {
+	const sqlstr = `
+	SELECT id, name, category, description, total_points, points, script, args, disabled, starts_at, created_at, modified_at
+	FROM cyboard.service
+	WHERE disabled = false`
+
+	rows, err := db.Query(sqlstr)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+
+	ss := []Service{}
+	for rows.Next() {
+		s := Service{}
+		if err = rows.Scan(&s.ID, &s.Name, &s.Category, &s.Description, &s.TotalPoints, &s.Points, &s.Script, &s.Args, &s.Disabled, &s.StartsAt, &s.CreatedAt, &s.ModifiedAt); err != nil {
+			return nil, err
+		}
+		ss = append(ss, s)
+	}
+	if err = rows.Err(); err != nil {
+		return nil, err
+	}
+
+	return ss, nil
 }

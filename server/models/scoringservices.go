@@ -4,6 +4,7 @@ import (
 	"time"
 
 	"github.com/jackc/pgx"
+	"github.com/pkg/errors"
 )
 
 // ServiceCheck represents a row from 'cyboard.service_check'.
@@ -108,4 +109,28 @@ func TeamServiceStatuses(db DB) ([]TeamServiceStatusesView, error) {
 	}
 
 	return xs, nil
+}
+
+// LoadServicesAndTeams fetches every active service and blueteam from the
+// database, at the same time. If no rows come back from the db, an empty array
+// of that model type will be returned instead of an error.
+// If there is any other error getting the data, then nil is returned for
+// the two slices along with the error itself.
+func LoadServicesAndTeams(db DBClient) ([]Service, []BlueteamView, error) {
+	services, err := AllActiveServices(db)
+	if err != nil {
+		if err != pgx.ErrNoRows {
+			return nil, nil, errors.Wrapf(err, "Load AllActiveServices")
+		}
+		services = make([]Service, 0)
+	}
+
+	teams, err := AllBlueteams(db)
+	if err != nil {
+		if err != pgx.ErrNoRows {
+			return nil, nil, errors.Wrapf(err, "Load AllBlueteams")
+		}
+		teams = make([]BlueteamView, 0)
+	}
+	return services, teams, nil
 }

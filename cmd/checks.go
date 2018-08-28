@@ -19,19 +19,20 @@ var (
 func init() {
 	flags := CheckCmd.Flags()
 	flags.StringP("config", "c", "", "service check config file (default is $HOME/.cyboard/checks.toml)")
-	flags.BoolP("dry", "d", false, "Do a dry run of checks")
+	//flags.BoolP("dry", "d", false, "Do a dry run of checks")
 
 	checkConfig.BindPFlag("configPath", flags.Lookup("config"))
-	checkConfig.BindPFlag("dryRun", flags.Lookup("dry"))
+	//checkConfig.BindPFlag("dryRun", flags.Lookup("dry"))
 }
 
 func startChecks(cmd *cobra.Command, args []string) {
 	// The service checker's config is `checks.toml` by default
-	initConfig(checkConfig, "checks")
+	initConfig(checkConfig, "config")
 	checkForDebugDump(checkConfig)
-	server.SetupChecksCfg(checkConfig)
 
-	c := &server.CheckConfiguration{}
+	c := &server.Configuration{}
 	mustUnmarshal(checkConfig, c)
+	// TODO: validate
+
 	server.ChecksRun(c)
 }

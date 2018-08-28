@@ -22,3 +22,10 @@ func ReadStdinLine() ([]byte, error) {
 	stdin.Scan()
 	return stdin.Bytes(), stdin.Err()
 }
+
+func Int64Max(x, y int64) int64 {
+	if x > y {
+		return x
+	}
+	return y
+}
