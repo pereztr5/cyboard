@@ -19,7 +19,7 @@ type Page struct {
 
 func getPage(r *http.Request, title string) *Page {
 	team := getCtxTeam(r)
-	page := &Page{Title: "services"}
+	page := &Page{Title: title}
 	if team != nil {
 		page.T = team
 	}

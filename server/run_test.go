@@ -1,6 +1,7 @@
 package server
 
 import (
+	"os"
 	"testing"
 
 	"github.com/alexedwards/scs"
@@ -22,5 +23,5 @@ func TestMain(m *testing.M) {
 	SetGlobalPostgresDBs(apptest.DB)
 	createTestLoginStore()
 
-	m.Run()
+	os.Exit(m.Run())
 }
