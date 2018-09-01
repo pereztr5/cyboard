@@ -5,6 +5,7 @@ import (
 	"os"
 	"sort"
 
+	"github.com/pereztr5/cyboard/server"
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
 )
@@ -81,6 +82,13 @@ func checkForDebugDump(v *viper.Viper) {
 func mustUnmarshal(v *viper.Viper, cfg interface{}) {
 	if err := v.Unmarshal(cfg); err != nil {
 		fmt.Println("Unmarshal of config failed:", err)
+		os.Exit(1)
+	}
+}
+
+func mustValidate(cfg *server.Configuration) {
+	if err := cfg.Validate(); err != nil {
+		fmt.Println("Config file validation failed:", err)
 		os.Exit(1)
 	}
 }

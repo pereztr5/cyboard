@@ -2,6 +2,7 @@ package server
 
 import (
 	"fmt"
+	"sort"
 	"time"
 )
 
@@ -18,9 +19,13 @@ type ScheduledBreak struct {
 	GoesFor  time.Duration `mapstructure:"for"`
 }
 
-func (sb *ScheduledBreak) String() string {
+func (sb *ScheduledBreak) End() time.Time {
+	return sb.StartsAt.Add(sb.GoesFor)
+}
+
+func (sb ScheduledBreak) String() string {
 	return fmt.Sprintf(`ScheduledBreak{at=%v, for=%v}`,
-		sb.StartsAt.Format(time.UnixDate), sb.GoesFor)
+		sb.StartsAt.Format(time.Stamp), sb.GoesFor)
 }
 
 type DBSettings struct {
@@ -34,10 +39,10 @@ type EventSettings struct {
 	// OnBreak bool `mapstructure:"on_break"`
 }
 
-func (es *EventSettings) String() string {
+func (es EventSettings) String() string {
 	return fmt.Sprintf(
 		`Event{start=%v, end=%v, breaks=%v}`,
-		es.Start.Format(time.UnixDate), es.End.Format(time.UnixDate), es.Breaks)
+		es.Start.Format(time.Stamp), es.End.Format(time.Stamp), es.Breaks)
 }
 
 type LogSettings struct {
@@ -58,4 +63,59 @@ type ServiceMonitorSettings struct {
 	ChecksDir string `mapstructure:"checks_dir"`
 	Intervals time.Duration
 	Timeout   time.Duration
+}
+
+// Validate checks for constraints on the config, including: Event start is after event end,
+// negative times (interval, timeout), breaks out of order, overlapping breaks,
+// break occurs before/after event starts/ends.
+func (cfg *Configuration) Validate() error {
+	event, mon := cfg.Event, cfg.ServiceMonitor
+
+	if event.Start.After(event.End) {
+		return fmt.Errorf("Event starts after it ends: event=%v", &event)
+	}
+
+	if mon.Intervals < 1 {
+		return fmt.Errorf("Check interval must be positive: service_monitor.intervals=%v",
+			mon.Intervals)
+	} else if mon.Timeout < 1 {
+		return fmt.Errorf("Timeout must be positive: service_monitor.timeout=%v",
+			mon.Timeout)
+	}
+
+	a := event.Breaks
+	b := append([]ScheduledBreak(nil), a...)
+	sort.Slice(b, func(i, j int) bool { return b[i].StartsAt.Before(b[j].StartsAt) })
+	for i := 0; i < len(a); i++ {
+		if !a[i].StartsAt.Equal(b[i].StartsAt) {
+			return fmt.Errorf("Breaks must be ordered earliest to latest: event.breaks=%v",
+				event.Breaks)
+		}
+
+		brk := a[i]
+		if brk.GoesFor < 1 {
+			return fmt.Errorf("Breaks must go for a positive amount of time: "+
+				"event.break[%d]=%v", i, brk)
+		}
+
+		if brk.StartsAt.Before(event.Start) {
+			return fmt.Errorf("Breaks must start after the event has started: "+
+				"event.break[%d]=%v, event.start=%v",
+				i, brk, event.Start)
+		} else if brk.End().After(event.End) {
+			return fmt.Errorf("Breaks must end before the event has ended: "+
+				"event.break[%d]=%v (ends_at=%v), event.end=%v",
+				i, brk, brk.End().Format(time.Stamp), event.End)
+		}
+	}
+
+	for i := 0; i < len(event.Breaks)-1; i++ {
+		brk, next := event.Breaks[i], event.Breaks[i+1]
+		if brk.End().After(next.StartsAt) {
+			return fmt.Errorf("Breaks must not overlap: break[%d]=%v, break[%d]=%v",
+				i, brk, i+1, next)
+		}
+	}
+
+	return nil
 }

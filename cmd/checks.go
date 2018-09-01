@@ -32,7 +32,7 @@ func startChecks(cmd *cobra.Command, args []string) {
 
 	c := &server.Configuration{}
 	mustUnmarshal(checkConfig, c)
-	// TODO: validate
+	mustValidate(c)
 
 	server.ChecksRun(c)
 }

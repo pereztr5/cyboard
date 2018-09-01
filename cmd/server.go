@@ -34,5 +34,6 @@ func serverRun(cmd *cobra.Command, args []string) {
 
 	c := &server.Configuration{}
 	mustUnmarshal(serverConfig, c)
+	mustValidate(c)
 	server.Run(c)
 }
