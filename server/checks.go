@@ -129,8 +129,9 @@ func runCmd(team *models.BlueteamView, check *Check, timestamp time.Time, timeou
 const PGListenNotifyChannel = "cyboard.server.checks"
 
 type Monitor struct {
-	Checks []Check
-	Teams  []models.BlueteamView
+	Checks    []Check
+	Unstarted []Check
+	Teams     []models.BlueteamView
 
 	breaktimeC chan time.Duration
 	done       chan struct{}
@@ -149,6 +150,37 @@ func NewMonitor() *Monitor {
 
 func (m *Monitor) Stop() {
 	close(m.done)
+}
+
+func (m *Monitor) ReloadServicesAndTeams(checksDir string) {
+	m.Lock()
+	defer m.Unlock()
+
+	services, teams, err := models.LoadServicesAndTeams(db)
+	if err != nil {
+		// Postgres is busted, someone is going to have to look at this, resolve it by hand
+		Logger.WithError(err).Fatal("failed to get teams & services for service monitor")
+		return
+	}
+	m.Teams = teams
+
+	checks := prepareChecks(services, checksDir)
+	// Realloc check slices. Anticipate most checks will be started, so alloc accordingly.
+	m.Checks = make([]Check, 0, len(checks))
+	m.Unstarted = make([]Check, 0)
+
+	now := time.Now()
+	for _, c := range checks {
+		if now.After(c.StartsAt) {
+			m.Checks = append(m.Checks, c)
+		} else {
+			m.Unstarted = append(m.Unstarted, c)
+		}
+	}
+
+	if len(m.Checks) == 0 {
+		Logger.Warn("No checks enabled/configured, waiting for services to be updated")
+	}
 }
 
 func (m *Monitor) Run(event *EventSettings, srvmon *ServiceMonitorSettings) {
@@ -202,6 +234,17 @@ func (m *Monitor) Run(event *EventSettings, srvmon *ServiceMonitorSettings) {
 		// m.Checks & m.Teams need protection from concurrent use.
 		// The PG Listen thread updates them whenever the DB changes.
 		m.Lock()
+
+		// Each check has a separte time for when they should begin, so examine each of them
+		// and if they are now past their start time, append them to the active checks.
+		for i := 0; i < len(m.Unstarted); i++ {
+			c := m.Unstarted[i]
+			if now.After(c.StartsAt) {
+				m.Checks = append(m.Checks, c)
+				m.Unstarted = append(m.Unstarted[:i], m.Unstarted[i+1:]...)
+				i--
+			}
+		}
 
 		// If there's no checks to run, just wait until they get set up in the pg-listener.
 		if len(m.Checks) == 0 {
@@ -273,23 +316,7 @@ func (m *Monitor) ListenForConfigUpdatesFromPG(ctx context.Context, checksDir st
 
 		log.WithField("notif", notification).Debug("update received")
 
-		// lock, update, unlock
-		m.Lock()
-		services, teams, err := models.LoadServicesAndTeams(db)
-		if err != nil {
-			m.Unlock()
-			// Postgres is busted, someone is going to have to look at this, resolve it by hand
-			log.WithError(err).Fatal("failed to get teams & services for service monitor")
-			return
-		}
-		m.Checks = prepareChecks(services, checksDir)
-		m.Teams = teams
-
-		if len(m.Checks) == 0 {
-			log.Warn("No checks enabled/configured, waiting for services to be updated")
-		}
-
-		m.Unlock()
+		m.ReloadServicesAndTeams(checksDir)
 		log.Info("Settings reloaded!")
 	}
 }
@@ -352,13 +379,7 @@ func ChecksRun(checkCfg *Configuration) {
 	monitor := NewMonitor()
 	defer monitor.Stop()
 
-	services, teams, err := models.LoadServicesAndTeams(db)
-	if err != nil {
-		Logger.WithError(err).Fatal("failed to init teams & services for service monitor")
-		return
-	}
-	monitor.Checks = prepareChecks(services, checksDir)
-	monitor.Teams = teams
+	monitor.ReloadServicesAndTeams(checksDir)
 
 	if time.Now().Before(event.Start) {
 		Logger.Infof("Waiting until the event starts [%v]...",

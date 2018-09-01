@@ -89,6 +89,27 @@ CREATE UNIQUE INDEX blueteam_ip_uni_idx
     ON team (blueteam_ip)
     WHERE role_name = 'blueteam';
 
+-- Signal when CRUD ops occur on team or service tables with this trigger.
+-- Allows the service monitor to automatically reload its config when there are changes in the db.
+--
+-- TODO: Optimize for UPDATE ops so that the notification only fires on:
+--       1. Actual updates (more than 0 rows affected)
+--       2. Changes made to columns the service monitor cares about (id, and blueteam_ip)
+-- And do the same for the `service` table, below.
+--
+CREATE OR REPLACE FUNCTION simple_notify() RETURNS TRIGGER AS $$
+BEGIN
+    PERFORM pg_notify('cyboard.server.checks', NULL);
+    RETURN NULL;
+END;
+$$ LANGUAGE plpgsql;
+
+
+CREATE TRIGGER team_notify
+    AFTER INSERT OR UPDATE OR DELETE ON team
+    FOR EACH STATEMENT
+    EXECUTE PROCEDURE simple_notify();
+
 
 ----------------
 -- CTF Challenge
@@ -165,16 +186,22 @@ CREATE TABLE service (
     , args         TEXT[] NOT NULL DEFAULT '{}'
     , disabled     BOOL   NOT NULL DEFAULT true
 
-    , starts_at   TIMESTAMPTZ NOT NULL DEFAULT '-infinity'::TIMESTAMPTZ
+    , starts_at   TIMESTAMPTZ NOT NULL DEFAULT 'epoch'::TIMESTAMPTZ
     , created_at  TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP
     , modified_at TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP
 );
+
+-- NOTE: Triggers on the same table and operation will occur in alphabetical order
 
 CREATE TRIGGER mdt_service
     BEFORE UPDATE ON service
     FOR EACH ROW
     EXECUTE PROCEDURE moddatetime (modified_at);
 
+CREATE TRIGGER service_notify
+    AFTER INSERT OR UPDATE OR DELETE ON service
+    FOR EACH STATEMENT
+    EXECUTE PROCEDURE simple_notify();
 
 -----------------
 -- Scoring Tables

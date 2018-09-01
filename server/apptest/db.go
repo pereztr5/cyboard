@@ -86,7 +86,7 @@ func setupDB() {
 
 // PrepDatabase readies the db into a clean state. This should be called before
 // doing any interaction with the database in each test.
-func PrepDatabase(t *testing.T) {
+func PrepDatabase(t testing.TB) {
 	if err := fixtures.Load(); err != nil {
 		t.Fatalf("error preparing test database: %+v", err)
 	}

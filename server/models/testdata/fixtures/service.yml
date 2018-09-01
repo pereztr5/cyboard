@@ -10,7 +10,6 @@
   # This may break one day if the testfixtures lib adds real support for array-like objects.
   args: '{ --no-license-check, --fail-fast, --XX:JavaGCRuntimeDebug=off, --kube-meshnet-resiliency, eventual }'
   disabled: false
-  starts_at: -infinity
 
 - id: 2
   disabled: true
