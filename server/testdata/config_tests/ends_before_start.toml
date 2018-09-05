@@ -21,4 +21,5 @@ http_port = "8080"
 intervals = "15s"
 timeout = "5s"
 checks_dir = "scripts"
+base_ip_prefix = "192.168.0."
 

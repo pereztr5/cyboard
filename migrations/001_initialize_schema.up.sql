@@ -73,7 +73,7 @@ CREATE TABLE team (
     , blueteam_ip  SMALLINT   NULL
 
     /*
-    This is a two-way check. Only contestants (blueteam) must have an ip octect.
+    This is a two-way check. Only contestants (blueteam) must have an ip octet.
     No other team_role (staff, ctf designers) need an ip, so they *can't* have one,
     because it was awkward when it was like that before.
 

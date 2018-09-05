@@ -2,7 +2,9 @@ package server
 
 import (
 	"fmt"
+	"net"
 	"sort"
+	"strings"
 	"time"
 )
 
@@ -61,13 +63,14 @@ type ServerSettings struct {
 
 type ServiceMonitorSettings struct {
 	ChecksDir string `mapstructure:"checks_dir"`
+	BaseIP    string `mapstructure:"base_ip_prefix"`
 	Intervals time.Duration
 	Timeout   time.Duration
 }
 
 // Validate checks for constraints on the config, including: Event start is after event end,
 // negative times (interval, timeout), breaks out of order, overlapping breaks,
-// break occurs before/after event starts/ends.
+// break occurs before/after event starts/ends, and base_ip is a 3-octet IP prefix.
 func (cfg *Configuration) Validate() error {
 	event, mon := cfg.Event, cfg.ServiceMonitor
 
@@ -117,5 +120,16 @@ func (cfg *Configuration) Validate() error {
 		}
 	}
 
+	if !IPish(mon.BaseIP) {
+		return fmt.Errorf("3 octet IP Prefix should have the form \"192.168.0.\" "+
+			"but got the following instead: event.base_ip_prefix=%q", mon.BaseIP)
+	}
+
 	return nil
+}
+
+// IPish tests whether a string looks like the first 3 octets of an IPv4 address.
+func IPish(ip_prefix string) bool {
+	test_ip := ip_prefix + "0"
+	return strings.HasSuffix(ip_prefix, ".") && (net.ParseIP(test_ip) != nil)
 }

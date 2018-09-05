@@ -8,7 +8,7 @@ import (
 	"os/exec"
 	"os/signal"
 	"path/filepath"
-	"strconv"
+	"sort"
 	"strings"
 	"sync"
 	"syscall"
@@ -20,16 +20,22 @@ import (
 )
 
 type Check struct {
-	*models.Service
+	*models.MonitorTeamService
 	Command *exec.Cmd
 }
 
-func (c *Check) String() string {
-	return fmt.Sprintf(`Check{name=%q, fullcmd="%s %s", pts=%v}`,
-		c.Name, filepath.Base(c.Command.Path), c.Args, c.Points)
+func (c Check) String() string {
+	if c.MonitorTeamService == nil {
+		return "Check{}"
+	} else if c.Command == nil {
+		return fmt.Sprintf(`Check{name=%q, <unfinished>}`, c.Service.Name)
+	} else {
+		return fmt.Sprintf(`Check{name=%q, fullcmd="%s %s"}`,
+			c.Service.Name, filepath.Base(c.Command.Path), strings.Join(c.Service.Args, " "))
+	}
 }
 
-func getScript(path string) (*exec.Cmd, error) {
+func getScript(path string, args []string) (*exec.Cmd, error) {
 	dir, err := filepath.Abs(path)
 	if err != nil {
 		return nil, err
@@ -38,54 +44,82 @@ func getScript(path string) (*exec.Cmd, error) {
 	if err != nil {
 		return nil, err
 	}
-	return exec.Command(dir), nil
+	return exec.Command(dir, args...), nil
 }
 
-func prepareChecks(services []models.Service, scriptsDir string) []Check {
+func prepareChecks(teamsAndServices []models.MonitorTeamService, scriptsDir, baseIP string) []Check {
 	checks := []Check{}
 
-	for idx, service := range services {
-		if service.Disabled {
-			Logger.Warnf("check.%d: DISABLED.", idx)
+	for _, tas := range teamsAndServices {
+		path := filepath.Join(scriptsDir, tas.Service.Script)
+		script, err := getScript(path, tas.Service.Args)
+		if err != nil {
+			Logger.Warnf("check.%d (name=%q): SKIPPING! Failed to locate script: %v",
+				tas.Service.ID, tas.Service.Name, err)
 			continue
 		}
 
-		script, err := getScript(filepath.Join(scriptsDir, service.Script))
-		if err != nil {
-			Logger.Warnf("check.%d: SKIPPING! Failed to locate script: %v", idx, err)
-			continue
+		// Set args with team's IP, Name, and ID using simple string replace on each argument
+		var s string
+		script.Args = make([]string, 0, len(tas.Service.Args))
+		for _, arg := range tas.Service.Args {
+			switch arg {
+			case "{IP}":
+				// BaseIP is a config.toml option that looks like "192.168.0." which we add
+				// the last octet to from the `cyboard.team` table, giving us the
+				// full ip. E.G. "192.168.0.7"
+				s = baseIP + string(tas.Team.IP)
+			case "{TEAM_NAME}":
+				s = tas.Team.Name
+			case "{TEAM_ID}":
+				s = string(tas.Team.ID)
+			default:
+				s = arg
+			}
+			script.Args = append(script.Args, s)
 		}
-		checks = append(checks, Check{Service: &service, Command: script})
+
+		checks = append(checks, Check{MonitorTeamService: &tas, Command: script})
 	}
 
-	Logger.Print("All services:")
-	for i, check := range checks {
-		Logger.Printf("  [%d] %v", i, &check)
+	// Print all services from the Checks.
+	//
+	// (hoop-jumping required because the checks are a cross product of all teams x services,
+	// so we need to filter it down to just services and only print the service bits.)
+	if Logger.GetLevel() == logrus.InfoLevel {
+		// filter to unique services, by service id.
+		var uniqServices map[int]Check
+		for _, check := range checks {
+			uniqServices[check.Service.ID] = check
+		}
+
+		// get ordered IDs, to keep log statements ordered
+		var ids []int
+		for id := range uniqServices {
+			ids = append(ids, id)
+		}
+		sort.Ints(ids)
+
+		Logger.Info("All services:")
+		for _, id := range ids {
+			check := uniqServices[id]
+			Logger.Infof("  [%d] %v", check.Service.ID, &check)
+		}
 	}
 
 	return checks
 }
 
-func parseArgs(name string, args string, ip int) []string {
-	//TODO: Quick fix but need to com back and do this right
-	//TODO(pereztr): This should at least have to be surrounded in braces or some meta-chars
-	const ReplacementText = "IP"
-	ipStr := "192.168.0." + strconv.Itoa(ip)
-	nArgs := name + " " + strings.Replace(args, ReplacementText, ipStr, 1)
-	return strings.Split(nArgs, " ")
-}
-
-func runCmd(team *models.BlueteamView, check *Check, timestamp time.Time, timeout time.Duration, status chan models.ServiceCheck) {
+func runCmd(check *Check, timestamp time.Time, timeout time.Duration, status chan models.ServiceCheck) {
 	// TODO: Currently only one IP per team is supported
 	cmd := *check.Command
-	cmd.Args = parseArgs(cmd.Path, strings.Join(check.Args, " "), int(team.BlueteamIP))
 
 	err := cmd.Start()
 
 	result := models.ServiceCheck{
 		CreatedAt: timestamp,
-		TeamID:    team.ID,
-		ServiceID: check.ID,
+		TeamID:    check.Team.ID,
+		ServiceID: check.Service.ID,
 	}
 
 	if err != nil {
@@ -105,7 +139,7 @@ func runCmd(team *models.BlueteamView, check *Check, timestamp time.Time, timeou
 		if err := cmd.Process.Kill(); err != nil {
 			Logger.WithFields(logrus.Fields{
 				"error":   err,
-				"service": check.Name,
+				"service": check.Service.Name,
 			}).Error("Failed to Kill:")
 		}
 		result.ExitCode = 129
@@ -131,7 +165,6 @@ const PGListenNotifyChannel = "cyboard.server.checks"
 type Monitor struct {
 	Checks    []Check
 	Unstarted []Check
-	Teams     []models.BlueteamView
 
 	breaktimeC chan time.Duration
 	done       chan struct{}
@@ -152,26 +185,26 @@ func (m *Monitor) Stop() {
 	close(m.done)
 }
 
-func (m *Monitor) ReloadServicesAndTeams(checksDir string) {
+func (m *Monitor) ReloadServicesAndTeams(checksDir, baseIP string) {
 	m.Lock()
 	defer m.Unlock()
 
-	services, teams, err := models.LoadServicesAndTeams(db)
+	teamsAndServices, err := models.MonitorTeamsAndServices(db)
 	if err != nil {
 		// Postgres is busted, someone is going to have to look at this, resolve it by hand
+		// TODO: Retry at least a few times before crashing
 		Logger.WithError(err).Fatal("failed to get teams & services for service monitor")
 		return
 	}
-	m.Teams = teams
 
-	checks := prepareChecks(services, checksDir)
+	checks := prepareChecks(teamsAndServices, checksDir, baseIP)
 	// Realloc check slices. Anticipate most checks will be started, so alloc accordingly.
 	m.Checks = make([]Check, 0, len(checks))
 	m.Unstarted = make([]Check, 0)
 
 	now := time.Now()
 	for _, c := range checks {
-		if now.After(c.StartsAt) {
+		if now.After(c.Service.StartsAt) {
 			m.Checks = append(m.Checks, c)
 		} else {
 			m.Unstarted = append(m.Unstarted, c)
@@ -231,7 +264,7 @@ func (m *Monitor) Run(event *EventSettings, srvmon *ServiceMonitorSettings) {
 		jitter := time.Duration(m.rando.Int63n(freeTime))
 		<-time.After(jitter)
 
-		// m.Checks & m.Teams need protection from concurrent use.
+		// m.Checks needs protection from concurrent use.
 		// The PG Listen thread updates them whenever the DB changes.
 		m.Lock()
 
@@ -239,7 +272,7 @@ func (m *Monitor) Run(event *EventSettings, srvmon *ServiceMonitorSettings) {
 		// and if they are now past their start time, append them to the active checks.
 		for i := 0; i < len(m.Unstarted); i++ {
 			c := m.Unstarted[i]
-			if now.After(c.StartsAt) {
+			if now.After(c.Service.StartsAt) {
 				m.Checks = append(m.Checks, c)
 				m.Unstarted = append(m.Unstarted[:i], m.Unstarted[i+1:]...)
 				i--
@@ -255,8 +288,8 @@ func (m *Monitor) Run(event *EventSettings, srvmon *ServiceMonitorSettings) {
 			continue
 		}
 
-		if len(resultsBuf) != len(m.Teams)*len(m.Checks) {
-			resultsBuf = make([]models.ServiceCheck, len(m.Teams)*len(m.Checks))
+		if len(resultsBuf) != len(m.Checks) {
+			resultsBuf = make([]models.ServiceCheck, len(m.Checks))
 		}
 
 		log.Infof("Running [%d] Checks. Started +jitter = %s +%v",
@@ -264,10 +297,8 @@ func (m *Monitor) Run(event *EventSettings, srvmon *ServiceMonitorSettings) {
 
 		// Run each check against each teams' infrastructure.
 		// TODO: Add WorkGroup/timeout safety, in case runCmd never acks back
-		for _, team := range m.Teams {
-			for _, check := range m.Checks {
-				go runCmd(&team, &check, now, srvmon.Timeout, status)
-			}
+		for _, check := range m.Checks {
+			go runCmd(&check, now, srvmon.Timeout, status)
 		}
 		for idx := range resultsBuf {
 			resultsBuf[idx] = <-status
@@ -288,7 +319,7 @@ func (m *Monitor) Run(event *EventSettings, srvmon *ServiceMonitorSettings) {
 	checkTicker.Stop()
 }
 
-func (m *Monitor) ListenForConfigUpdatesFromPG(ctx context.Context, checksDir string) {
+func (m *Monitor) ListenForConfigUpdatesFromPG(ctx context.Context, checksDir, baseIP string) {
 	log := Logger.WithField("thread", "monitor_pg-listener")
 
 	conn, err := rawDB.Acquire()
@@ -316,7 +347,7 @@ func (m *Monitor) ListenForConfigUpdatesFromPG(ctx context.Context, checksDir st
 
 		log.WithField("notif", notification).Debug("update received")
 
-		m.ReloadServicesAndTeams(checksDir)
+		m.ReloadServicesAndTeams(checksDir, baseIP)
 		log.Info("Settings reloaded!")
 	}
 }
@@ -365,6 +396,7 @@ func ChecksRun(checkCfg *Configuration) {
 	signal.Notify(sigtermC, os.Interrupt)
 
 	checksDir := checkCfg.ServiceMonitor.ChecksDir
+	baseIP := checkCfg.ServiceMonitor.BaseIP
 	event := checkCfg.Event
 
 	/* lifecycle cases to handle:
@@ -379,7 +411,7 @@ func ChecksRun(checkCfg *Configuration) {
 	monitor := NewMonitor()
 	defer monitor.Stop()
 
-	monitor.ReloadServicesAndTeams(checksDir)
+	monitor.ReloadServicesAndTeams(checksDir, baseIP)
 
 	if time.Now().Before(event.Start) {
 		Logger.Infof("Waiting until the event starts [%v]...",
@@ -398,7 +430,7 @@ func ChecksRun(checkCfg *Configuration) {
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
 
-	go monitor.ListenForConfigUpdatesFromPG(ctx, checksDir)
+	go monitor.ListenForConfigUpdatesFromPG(ctx, checksDir, baseIP)
 	go monitor.Run(&event, &checkCfg.ServiceMonitor)
 
 	go monitor.BreaktimeScheduler(event.Breaks)

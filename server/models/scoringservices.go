@@ -4,7 +4,6 @@ import (
 	"time"
 
 	"github.com/jackc/pgx"
-	"github.com/pkg/errors"
 )
 
 // ServiceCheck represents a row from 'cyboard.service_check'.
@@ -111,26 +110,49 @@ func TeamServiceStatuses(db DB) ([]TeamServiceStatusesView, error) {
 	return xs, nil
 }
 
-// LoadServicesAndTeams fetches every active service and blueteam from the
-// database, at the same time. If no rows come back from the db, an empty array
-// of that model type will be returned instead of an error.
-// If there is any other error getting the data, then nil is returned for
-// the two slices along with the error itself.
-func LoadServicesAndTeams(db DBClient) ([]Service, []BlueteamView, error) {
-	services, err := AllActiveServices(db)
+type MonitorTeamService struct {
+	Team struct { // `cyboard.team` table
+		ID   int    // id
+		Name string // name
+		IP   int16  // blueteam_ip
+	}
+	Service struct { // `cyboard.service` table
+		ID       int       // id
+		Name     string    // name
+		Script   string    // script
+		Args     []string  // args
+		StartsAt time.Time // starts_at
+	}
+}
+
+// MonitorTeamsAndServices fetches every active service and blueteam from the
+// database, at the same time. Returns an empty array for no rows, or an error
+// if there is a problem fetching data from postgres.
+func MonitorTeamsAndServices(db DBClient) ([]MonitorTeamService, error) {
+	const sqlstr = `SELECT
+		t.id, t.name, t.blueteam_ip,
+		s.id, s.name, s.script, s.args, s.starts_at
+	FROM service AS s CROSS JOIN blueteam AS t
+	WHERE s.disabled = false`
+	rows, err := db.Query(sqlstr)
 	if err != nil {
-		if err != pgx.ErrNoRows {
-			return nil, nil, errors.Wrapf(err, "Load AllActiveServices")
+		return nil, err
+	}
+	defer rows.Close()
+
+	xs := []MonitorTeamService{}
+	for rows.Next() {
+		x := MonitorTeamService{}
+		err = rows.Scan(&x.Team.ID, &x.Team.Name, &x.Team.IP,
+			&x.Service.ID, &x.Service.Name, &x.Service.Script, &x.Service.Args, &x.Service.StartsAt)
+		if err != nil {
+			return nil, err
 		}
-		services = make([]Service, 0)
+		xs = append(xs, x)
+	}
+	if err = rows.Err(); err != nil {
+		return nil, err
 	}
 
-	teams, err := AllBlueteams(db)
-	if err != nil {
-		if err != pgx.ErrNoRows {
-			return nil, nil, errors.Wrapf(err, "Load AllBlueteams")
-		}
-		teams = make([]BlueteamView, 0)
-	}
-	return services, teams, nil
+	return xs, nil
 }

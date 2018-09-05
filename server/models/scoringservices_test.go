@@ -66,11 +66,11 @@ func Test_TeamServiceStatuses(t *testing.T) {
 	}
 }
 
-func Benchmark_LoadServicesAndTeams(b *testing.B) {
+func Benchmark_MonitorTeamsAndServices(b *testing.B) {
 	prepareTestDatabase(b)
 
 	b.ResetTimer()
 	for i := 0; i < b.N; i++ {
-		LoadServicesAndTeams(db)
+		MonitorTeamsAndServices(db)
 	}
 }
