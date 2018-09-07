@@ -24,10 +24,11 @@ var (
 func init() {
 	// This declares top level flags, shared by all commands
 	flags := RootCmd.PersistentFlags()
+	flags.StringP("config", "c", "", "config file (default ./config.toml)")
 	flags.BoolVar(&dumpConfig, "dump-config", false,
 		"Prints the parsed server / check config (for debugging purposes)")
-	flags.String("mongodb-uri", "mongodb://127.0.0.1",
-		"Address of MongoDB instance to use. Also configured with the environment var: `MONGODB_URI`")
+	flags.String("postgres-uri", "postgresql://cybot@localhost/cyboard",
+		"Connection string for PostgreSQL. Also configured with the environment var: `CY_POSTGRES_URI`")
 	flags.BoolP("stdout", "s", false, "Log to standard out")
 
 	RootCmd.AddCommand(ServerCmd, CheckCmd)
@@ -38,6 +39,15 @@ func init() {
 //
 // This function is used for both the CTF & Service checker (but not the RootCmd)
 func initConfig(v *viper.Viper, configName string) {
+	// Bind global flags & env vars to this specific config's values
+	flags := RootCmd.PersistentFlags()
+	v.BindPFlag("configPath", flags.Lookup("config"))
+	v.BindPFlag("database.postgres_uri", flags.Lookup("postgres-uri"))
+	v.BindPFlag("log.stdout", flags.Lookup("stdout"))
+
+	// Env var may be used for sensitive connection strings (alternative to .pgpass file)
+	v.BindEnv("database.postgres_uri", "CY_POSTRES_URI")
+
 	path := v.GetString("configPath")
 	if path != "" {
 		v.SetConfigFile(path)
@@ -52,12 +62,7 @@ func initConfig(v *viper.Viper, configName string) {
 		os.Exit(1)
 	}
 
-	// Bind global flags & env vars to this specific config's values
-	v.BindEnv("database.mongodb_uri", "MONGODB_URI")
-
-	flags := RootCmd.PersistentFlags()
-	v.BindPFlag("database.mongodb_uri", flags.Lookup("mongodb-uri"))
-	v.BindPFlag("log.stdout", flags.Lookup("stdout"))
+	checkForDebugDump(v)
 }
 
 // checkForDebugDump will dump the parsed config file and then exit the app
