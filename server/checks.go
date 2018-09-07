@@ -9,6 +9,7 @@ import (
 	"os/signal"
 	"path/filepath"
 	"sort"
+	"strconv"
 	"strings"
 	"sync"
 	"syscall"
@@ -28,14 +29,13 @@ func (c Check) String() string {
 	if c.MonitorTeamService == nil {
 		return "Check{}"
 	} else if c.Command == nil {
-		return fmt.Sprintf(`Check{name=%q, <unfinished>}`, c.Service.Name)
+		return fmt.Sprintf(`Check{team=%+v, service=%+v, <unfinished>}`, c.Team, c.Service)
 	} else {
-		return fmt.Sprintf(`Check{name=%q, fullcmd="%s %s"}`,
-			c.Service.Name, filepath.Base(c.Command.Path), strings.Join(c.Service.Args, " "))
+		return fmt.Sprintf(`Check{team=%+v, service=%+v, command=%+v}`, c.Team, c.Service, c.Command)
 	}
 }
 
-func getScript(path string, args []string) (*exec.Cmd, error) {
+func getScript(path string) (*exec.Cmd, error) {
 	dir, err := filepath.Abs(path)
 	if err != nil {
 		return nil, err
@@ -44,15 +44,17 @@ func getScript(path string, args []string) (*exec.Cmd, error) {
 	if err != nil {
 		return nil, err
 	}
-	return exec.Command(dir, args...), nil
+	return exec.Command(dir), nil
 }
 
 func prepareChecks(teamsAndServices []models.MonitorTeamService, scriptsDir, baseIP string) []Check {
 	checks := []Check{}
 
-	for _, tas := range teamsAndServices {
+	for i := range teamsAndServices {
+		tas := &teamsAndServices[i]
+
 		path := filepath.Join(scriptsDir, tas.Service.Script)
-		script, err := getScript(path, tas.Service.Args)
+		script, err := getScript(path)
 		if err != nil {
 			Logger.Warnf("check.%d (name=%q): SKIPPING! Failed to locate script: %v",
 				tas.Service.ID, tas.Service.Name, err)
@@ -68,27 +70,29 @@ func prepareChecks(teamsAndServices []models.MonitorTeamService, scriptsDir, bas
 				// BaseIP is a config.toml option that looks like "192.168.0." which we add
 				// the last octet to from the `cyboard.team` table, giving us the
 				// full ip. E.G. "192.168.0.7"
-				s = baseIP + string(tas.Team.IP)
+				s = baseIP + strconv.FormatInt(int64(tas.Team.IP), 10)
+			case "{TEAM_4TH_OCTET}":
+				s = strconv.FormatInt(int64(tas.Team.IP), 10)
 			case "{TEAM_NAME}":
 				s = tas.Team.Name
 			case "{TEAM_ID}":
-				s = string(tas.Team.ID)
+				s = strconv.FormatInt(int64(tas.Team.ID), 10)
 			default:
 				s = arg
 			}
 			script.Args = append(script.Args, s)
 		}
 
-		checks = append(checks, Check{MonitorTeamService: &tas, Command: script})
+		checks = append(checks, Check{MonitorTeamService: tas, Command: script})
 	}
 
 	// Print all services from the Checks.
 	//
 	// (hoop-jumping required because the checks are a cross product of all teams x services,
 	// so we need to filter it down to just services and only print the service bits.)
-	if Logger.GetLevel() == logrus.InfoLevel {
+	if Logger.IsLevelEnabled(logrus.InfoLevel) {
 		// filter to unique services, by service id.
-		var uniqServices map[int]Check
+		uniqServices := map[int]Check{}
 		for _, check := range checks {
 			uniqServices[check.Service.ID] = check
 		}
@@ -102,8 +106,10 @@ func prepareChecks(teamsAndServices []models.MonitorTeamService, scriptsDir, bas
 
 		Logger.Info("All services:")
 		for _, id := range ids {
-			check := uniqServices[id]
-			Logger.Infof("  [%d] %v", check.Service.ID, &check)
+			c := uniqServices[id]
+			Logger.Infof(`  [%d] Check{name=%q, fullcmd="%s %s"}`,
+				c.Service.ID, c.Service.Name,
+				filepath.Base(c.Command.Path), strings.Join(c.Service.Args, " "))
 		}
 	}
 
@@ -111,7 +117,6 @@ func prepareChecks(teamsAndServices []models.MonitorTeamService, scriptsDir, bas
 }
 
 func runCmd(check *Check, timestamp time.Time, timeout time.Duration, status chan models.ServiceCheck) {
-	// TODO: Currently only one IP per team is supported
 	cmd := *check.Command
 
 	err := cmd.Start()
@@ -162,6 +167,24 @@ func runCmd(check *Check, timestamp time.Time, timeout time.Duration, status cha
 
 const PGListenNotifyChannel = "cyboard.server.checks"
 
+// monitorRetryBackoffFn defines how long to wait in between attempts at critical
+// database operations. Right now, this will sleep the thread for attempt^2 seconds
+func monitorRetryWithBackoff(fn func() error) error {
+	const monitorDBMaxRetries = 5
+
+	var err error
+	for attempt := 1; attempt <= monitorDBMaxRetries; attempt++ {
+		x := time.Duration(attempt) // satisfy the compiler
+		time.Sleep(x * x * time.Second)
+		err = fn()
+		if err == nil {
+			Logger.WithField("attempts", attempt).Warn("failed to contact db several times, but managed to pull through!")
+			break
+		}
+	}
+	return err
+}
+
 type Monitor struct {
 	Checks    []Check
 	Unstarted []Check
@@ -175,6 +198,7 @@ type Monitor struct {
 
 func NewMonitor() *Monitor {
 	return &Monitor{
+		Mutex:      new(sync.Mutex),
 		breaktimeC: make(chan time.Duration),
 		done:       make(chan struct{}),
 		rando:      rand.New(rand.NewSource(time.Now().UTC().UnixNano())),
@@ -191,10 +215,16 @@ func (m *Monitor) ReloadServicesAndTeams(checksDir, baseIP string) {
 
 	teamsAndServices, err := models.MonitorTeamsAndServices(db)
 	if err != nil {
-		// Postgres is busted, someone is going to have to look at this, resolve it by hand
-		// TODO: Retry at least a few times before crashing
-		Logger.WithError(err).Fatal("failed to get teams & services for service monitor")
-		return
+		err = monitorRetryWithBackoff(func() error {
+			var err error
+			teamsAndServices, err = models.MonitorTeamsAndServices(db)
+			return err
+		})
+		if err != nil {
+			// Postgres is busted, someone is going to have to look at this, resolve it by hand
+			Logger.WithError(err).Fatal("failed to get teams & services for service monitor")
+			return
+		}
 	}
 
 	checks := prepareChecks(teamsAndServices, checksDir, baseIP)
@@ -219,8 +249,6 @@ func (m *Monitor) ReloadServicesAndTeams(checksDir, baseIP string) {
 func (m *Monitor) Run(event *EventSettings, srvmon *ServiceMonitorSettings) {
 	log := Logger.WithField("thread", "monitor_checks")
 
-	log.Println("Starting Checks")
-
 	// Run command every x seconds until scheduled end time
 	checkTicker := time.NewTicker(srvmon.Intervals)
 
@@ -244,6 +272,8 @@ func (m *Monitor) Run(event *EventSettings, srvmon *ServiceMonitorSettings) {
 		case <-checkTicker.C:
 		case breakDuration := <-m.breaktimeC:
 			checkTicker.Stop()
+			log.WithField("duration", breakDuration).
+				Infof("Break has begun, monitor is paused during break.")
 			select {
 			case <-time.After(breakDuration):
 				checkTicker = time.NewTicker(srvmon.Intervals)
@@ -297,8 +327,8 @@ func (m *Monitor) Run(event *EventSettings, srvmon *ServiceMonitorSettings) {
 
 		// Run each check against each teams' infrastructure.
 		// TODO: Add WorkGroup/timeout safety, in case runCmd never acks back
-		for _, check := range m.Checks {
-			go runCmd(&check, now, srvmon.Timeout, status)
+		for i := range m.Checks {
+			go runCmd(&m.Checks[i], now, srvmon.Timeout, status)
 		}
 		for idx := range resultsBuf {
 			resultsBuf[idx] = <-status
@@ -307,7 +337,14 @@ func (m *Monitor) Run(event *EventSettings, srvmon *ServiceMonitorSettings) {
 		m.Unlock()
 
 		if err := models.ServiceCheckSlice(resultsBuf).Insert(db); err != nil {
-			log.WithError(err).Error("failed to insert service results")
+			// Try *really hard* to not unrecoverable lose scoring data.
+			err = monitorRetryWithBackoff(func() error {
+				err := models.ServiceCheckSlice(resultsBuf).Insert(db)
+				return err
+			})
+			if err != nil {
+				log.WithError(err).Error("failed to insert service results despite multiple attempts!")
+			}
 		}
 
 		if !waitToContinue() {
@@ -361,6 +398,8 @@ func (m *Monitor) BreaktimeScheduler(breaks []ScheduledBreak) {
 		for _, br := range breaks {
 			if now.Before(br.StartsAt) {
 				nextbreak = &br
+			} else if now.After(br.StartsAt) && now.Before(br.End()) {
+				nextbreak = &br
 			}
 		}
 		if nextbreak == nil {
@@ -369,18 +408,25 @@ func (m *Monitor) BreaktimeScheduler(breaks []ScheduledBreak) {
 		}
 
 		wait := time.Until(nextbreak.StartsAt)
-		log.WithField("at", nextbreak.StartsAt).WithField("in", wait).Debug("next break")
+		log.WithField("at", nextbreak.StartsAt).WithField("in", wait).Info("Next break")
 
 		select {
 		case <-m.done:
 			return
 		case <-time.After(wait):
-			// Let the main Run thread know how long to pause for
-			log.WithField("duration", nextbreak.GoesFor).Debug("break started!")
+			endtime := nextbreak.End()
+			breakDuration := time.Until(endtime)
+			// Let the main Run thread know how long to pause for.
+			log.WithField("ends at", endtime).Info("Break started!")
 			select {
-			case m.breaktimeC <- nextbreak.GoesFor:
-				// Once signalled, go back to waiting until the next break
-				continue
+			case m.breaktimeC <- breakDuration:
+				// The scheduler itself should pause until the break is over.
+				select {
+				case <-time.After(time.Until(endtime)):
+					continue
+				case <-m.done:
+					return
+				}
 			case <-m.done:
 				return
 			}
@@ -402,16 +448,26 @@ func ChecksRun(checkCfg *Configuration) {
 	/* lifecycle cases to handle:
 	- regular -> no restart
 	- startup -> init everything
-	- on break, and setting up for the next break -> cancel all restart signals, ...then wait and restart
+	- on break -> stop monitoring and pause everything other than the updater
+	- startup during a scheduled break -> immediately pause
+	- startup before the event begins -> immeditately pause
+	- startup after the event is over -> immediately stop
 	- end of event -> cancel everything and clean up
 	- update to db -> reload teams & services
-	- database errors -> just straight die
+	- database errors -> retry a few times, then just straight die
 	- magically dying goroutines -> cosmic anomaly, lose hope
 	*/
 	monitor := NewMonitor()
 	defer monitor.Stop()
 
 	monitor.ReloadServicesAndTeams(checksDir, baseIP)
+
+	// Create control ctx, to let the pg-listener goroutine be stopped on demand.
+	ctx, cancel := context.WithCancel(context.Background())
+	defer cancel()
+
+	// Separate thread listens for updates from the DB and automatically reloads.
+	go monitor.ListenForConfigUpdatesFromPG(ctx, checksDir, baseIP)
 
 	if time.Now().Before(event.Start) {
 		Logger.Infof("Waiting until the event starts [%v]...",
@@ -426,14 +482,29 @@ func ChecksRun(checkCfg *Configuration) {
 		}
 	}
 
-	// Create control ctx, to let the pg-listener goroutine be stopped on demand.
-	ctx, cancel := context.WithCancel(context.Background())
-	defer cancel()
+	now := time.Now()
+	for _, br := range event.Breaks {
+		endtime := br.End()
+		if now.After(br.StartsAt) && now.Before(endtime) {
+			breakDuration := time.Until(endtime)
+			// Monitor was started during a break, pause immediately
+			Logger.WithFields(logrus.Fields{
+				"ends at":   endtime.Format(time.Stamp),
+				"remaining": breakDuration,
+			}).Infof("Waiting until break is over...")
+			select {
+			case <-time.After(breakDuration):
+			case <-monitor.done:
+				return
+			case <-sigtermC:
+				return
+			}
+		}
+	}
 
-	go monitor.ListenForConfigUpdatesFromPG(ctx, checksDir, baseIP)
-	go monitor.Run(&event, &checkCfg.ServiceMonitor)
-
+	Logger.Println("Starting Checks")
 	go monitor.BreaktimeScheduler(event.Breaks)
+	go monitor.Run(&event, &checkCfg.ServiceMonitor)
 
 	// Stop if: 1. The event is over 2. monitor has stopped 3. received ctrl+C (SIGTERM)
 	select {
