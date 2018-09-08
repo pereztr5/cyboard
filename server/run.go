@@ -10,7 +10,11 @@ import (
 	"golang.org/x/crypto/bcrypt"
 )
 
+var appCfg Configuration
+
 func Run(cfg *Configuration) {
+	appCfg = *cfg
+
 	// Verify web app template files are available in working dir
 	ensureAppTemplates()
 

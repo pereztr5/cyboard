@@ -85,6 +85,15 @@ func CreateWebRouter(teamScoreUpdater, servicesUpdater *broadcastHub) chi.Router
 
 		admin.Put("/team/{teamID}", UpdateTeam)
 		admin.Delete("/team/{teamID}", DeleteTeam)
+
+		admin.Get("/services", GetAllServices)
+		admin.Post("/services", AddService)
+		admin.Put("/services", UpdateService)
+
+		admin.Route("/services/{serviceID}", func(r chi.Router) {
+			r.Get("/", GetService)
+			r.Delete("/", DeleteService)
+		})
 	})
 
 	root.Mount("/api/", api)

@@ -25,12 +25,12 @@ type Service struct {
 // Insert inserts the Service to the database.
 func (s *Service) Insert(db DB) error {
 	const sqlstr = `INSERT INTO cyboard.service (` +
-		`name, category, description, total_points, points, script, args, disabled, starts_at, created_at, modified_at` +
+		`name, category, description, total_points, points, script, args, disabled, starts_at` +
 		`) VALUES (` +
-		`$1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11` +
+		`$1, $2, $3, $4, $5, $6, $7, $8, $9` +
 		`) RETURNING id`
 
-	return db.QueryRow(sqlstr, s.Name, s.Category, s.Description, s.TotalPoints, s.Points, s.Script, s.Args, s.Disabled, s.StartsAt, s.CreatedAt, s.ModifiedAt).Scan(&s.ID)
+	return db.QueryRow(sqlstr, s.Name, s.Category, s.Description, s.TotalPoints, s.Points, s.Script, s.Args, s.Disabled, s.StartsAt).Scan(&s.ID)
 }
 
 // Update updates the Service in the database.

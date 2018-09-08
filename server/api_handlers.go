@@ -325,6 +325,92 @@ func DeleteFlag(w http.ResponseWriter, r *http.Request) {
 	w.WriteHeader(http.StatusOK)
 }
 
+// Service Configuration
+
+func GetAllServices(w http.ResponseWriter, r *http.Request) {
+	services, err := models.AllServices(db)
+	if err != nil {
+		RenderQueryErr(w, r, errors.Wrap(err, "GetAllServices"))
+		return
+	}
+	render.JSON(w, r, services)
+}
+
+func GetService(w http.ResponseWriter, r *http.Request) {
+	serviceID, err := strconv.Atoi(chi.URLParam(r, "serviceID"))
+	if err != nil {
+		ErrInvalidRequest(errors.Wrap(err, "GetService, serviceID URL param"))
+		return
+	}
+
+	service, err := models.ServiceByID(db, serviceID)
+	if err != nil {
+		RenderQueryErr(w, r, errors.Wrap(err, "GetService"))
+		return
+	}
+	render.JSON(w, r, service)
+	w.WriteHeader(http.StatusOK)
+}
+
+type ServiceRequest struct {
+	*models.Service
+}
+
+func (sr *ServiceRequest) Bind(r *http.Request) error {
+	if _, ok := r.URL.Query()["rawpoints"]; !ok {
+		pts := CalcPointsPerCheck(sr.Service, &appCfg.Event, appCfg.ServiceMonitor.Intervals)
+		sr.Points = &pts
+	} else if sr.Points == nil {
+		return errors.New(`request with ?rawpoints=true must have {"points": <decimal>} field`)
+	}
+	return nil
+}
+
+func AddService(w http.ResponseWriter, r *http.Request) {
+	srv := new(ServiceRequest)
+	if err := render.Bind(r, srv); err != nil {
+		render.Render(w, r, ErrInvalidRequest(err))
+		return
+	}
+
+	if err := srv.Service.Insert(db); err != nil {
+		render.Render(w, r, ErrInternal(err))
+		return
+	}
+	w.WriteHeader(http.StatusCreated)
+}
+
+func UpdateService(w http.ResponseWriter, r *http.Request) {
+	srv := new(ServiceRequest)
+	if err := render.Bind(r, srv); err != nil {
+		render.Render(w, r, ErrInvalidRequest(err))
+		return
+	}
+
+	if err := srv.Service.Update(db); err != nil {
+		render.Render(w, r, ErrInternal(err))
+		return
+	}
+	w.WriteHeader(http.StatusOK)
+}
+
+func DeleteService(w http.ResponseWriter, r *http.Request) {
+	serviceID, err := strconv.Atoi(chi.URLParam(r, "serviceID"))
+	if err != nil {
+		ErrInvalidRequest(errors.Wrap(err, "DeleteService, serviceID URL param"))
+		return
+	}
+
+	service := &models.Service{ID: serviceID}
+	if err := service.Delete(db); err != nil {
+		ErrInternal(err)
+		return
+	}
+	w.WriteHeader(http.StatusOK)
+}
+
+// Scoring graphs
+
 func GetBreakdownOfSubmissionsPerFlag(w http.ResponseWriter, r *http.Request) {
 	brkdwn, err := models.ChallengeCapturesPerFlag(db)
 	if err != nil {
