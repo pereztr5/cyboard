@@ -36,7 +36,7 @@ func SubmitLogin(w http.ResponseWriter, r *http.Request) {
 func Logout(w http.ResponseWriter, r *http.Request) {
 	err := sessionManager.Load(r).Destroy(w)
 	if err != nil {
-		ErrInternal(err)
+		render.Render(w, r, ErrInternal(err))
 	}
 	http.Redirect(w, r, "/login", 302)
 }
@@ -82,7 +82,7 @@ func SubmitFlag(w http.ResponseWriter, r *http.Request) {
 			CaptFlagsLogger.WithFields(logrus.Fields{"team": team.Name, "guess": guess.Flag, "challenge": guess.Name}).Println("Bad guess")
 		} else {
 			saveCtxErrMsgFields(r, M{"challenge_name": guess.Name, "team": team.Name})
-			ErrInternal(err)
+			render.Render(w, r, ErrInternal(err))
 			return
 		}
 	}
@@ -133,7 +133,7 @@ func (batch BlueTeamInsertRequestSlice) Bind(r *http.Request) error {
 func AddTeams(w http.ResponseWriter, r *http.Request) {
 	batch := BlueTeamInsertRequestSlice{}
 	if err := render.Bind(r, batch); err != nil {
-		ErrInvalidRequest(err)
+		render.Render(w, r, ErrInvalidRequest(err))
 		return
 	}
 
@@ -142,7 +142,7 @@ func AddTeams(w http.ResponseWriter, r *http.Request) {
 		newteams[idx] = *t.BlueTeamStore
 	}
 	if err := newteams.Insert(db); err != nil {
-		ErrInternal(err)
+		render.Render(w, r, ErrInternal(err))
 		return
 	}
 	w.WriteHeader(http.StatusCreated)
@@ -178,20 +178,20 @@ func (tr *TeamUpdateRequest) Bind(r *http.Request) error {
 func UpdateTeam(w http.ResponseWriter, r *http.Request) {
 	op := &TeamUpdateRequest{}
 	if err := render.Bind(r, op); err != nil {
-		ErrInvalidRequest(err)
+		render.Render(w, r, ErrInvalidRequest(err))
 		return
 	}
 	teamID, err := strconv.Atoi(chi.URLParam(r, "teamID"))
 	if err != nil {
-		ErrInvalidRequest(errors.Wrap(err, "UpdateTeam, teamID URL param"))
+		render.Render(w, r, ErrInvalidRequest(errors.Wrap(err, "UpdateTeam, teamID URL param")))
 		return
 	} else if teamID != op.Team.ID {
-		ErrInvalidRequest(errors.New("UpdateTeam (IDs do not match)"))
+		render.Render(w, r, ErrInvalidRequest(errors.New("UpdateTeam (IDs do not match)")))
 		return
 	}
 
 	if err := op.Team.Update(db); err != nil {
-		ErrInternal(errors.Wrap(err, "UpdateTeam"))
+		render.Render(w, r, ErrInternal(errors.Wrap(err, "UpdateTeam")))
 		return
 	}
 	w.WriteHeader(http.StatusOK)
@@ -200,13 +200,13 @@ func UpdateTeam(w http.ResponseWriter, r *http.Request) {
 func DeleteTeam(w http.ResponseWriter, r *http.Request) {
 	teamID, err := strconv.Atoi(chi.URLParam(r, "teamID"))
 	if err != nil {
-		ErrInvalidRequest(errors.Wrap(err, "DeleteTeam, teamID URL param"))
+		render.Render(w, r, ErrInvalidRequest(errors.Wrap(err, "DeleteTeam, teamID URL param")))
 		return
 	}
 
 	team := &models.Team{ID: teamID}
 	if err = team.Delete(db); err != nil {
-		ErrInternal(err)
+		render.Render(w, r, ErrInternal(err))
 		return
 	}
 	w.WriteHeader(http.StatusOK)
@@ -220,7 +220,7 @@ type BonusPointsRequest struct {
 func GrantBonusPoints(w http.ResponseWriter, r *http.Request) {
 	batch := &BonusPointsRequest{}
 	if err := render.Decode(r, batch); err != nil {
-		ErrInvalidRequest(err)
+		render.Render(w, r, ErrInvalidRequest(err))
 		return
 	}
 
@@ -231,7 +231,7 @@ func GrantBonusPoints(w http.ResponseWriter, r *http.Request) {
 		bonus[idx].TeamID = teamID
 	}
 	if err := bonus.Insert(db); err != nil {
-		ErrInternal(err)
+		render.Render(w, r, ErrInternal(err))
 		return
 	}
 
@@ -260,12 +260,12 @@ func GetAllFlags(w http.ResponseWriter, r *http.Request) {
 func AddFlags(w http.ResponseWriter, r *http.Request) {
 	newChallenges := models.ChallengeSlice{}
 	if err := render.Decode(r, newChallenges); err != nil {
-		ErrInvalidRequest(err)
+		render.Render(w, r, ErrInvalidRequest(err))
 		return
 	}
 
 	if err := newChallenges.Insert(db); err != nil {
-		ErrInternal(err)
+		render.Render(w, r, ErrInternal(err))
 		return
 	}
 
@@ -275,7 +275,7 @@ func AddFlags(w http.ResponseWriter, r *http.Request) {
 func GetFlagByID(w http.ResponseWriter, r *http.Request) {
 	flagID, err := strconv.Atoi(chi.URLParam(r, "flagID"))
 	if err != nil {
-		ErrInvalidRequest(errors.Wrap(err, "GetFlagByName, flagID URL param"))
+		render.Render(w, r, ErrInvalidRequest(errors.Wrap(err, "GetFlagByName, flagID URL param")))
 		return
 	}
 
@@ -291,20 +291,20 @@ func GetFlagByID(w http.ResponseWriter, r *http.Request) {
 func UpdateFlag(w http.ResponseWriter, r *http.Request) {
 	challenge := &models.Challenge{}
 	if err := render.Decode(r, challenge); err != nil {
-		ErrInvalidRequest(err)
+		render.Render(w, r, ErrInvalidRequest(err))
 		return
 	}
 	flagID, err := strconv.Atoi(chi.URLParam(r, "flagID"))
 	if err != nil {
-		ErrInvalidRequest(errors.Wrap(err, "UpdateFlag, flagID URL param"))
+		render.Render(w, r, ErrInvalidRequest(errors.Wrap(err, "UpdateFlag, flagID URL param")))
 		return
 	} else if flagID != challenge.ID {
-		ErrInvalidRequest(errors.New("UpdateFlag (IDs do not match)"))
+		render.Render(w, r, ErrInvalidRequest(errors.New("UpdateFlag (IDs do not match)")))
 		return
 	}
 
 	if err := challenge.Update(db); err != nil {
-		ErrInternal(err)
+		render.Render(w, r, ErrInternal(err))
 		return
 	}
 	w.WriteHeader(http.StatusOK)
@@ -313,13 +313,13 @@ func UpdateFlag(w http.ResponseWriter, r *http.Request) {
 func DeleteFlag(w http.ResponseWriter, r *http.Request) {
 	flagID, err := strconv.Atoi(chi.URLParam(r, "flagID"))
 	if err != nil {
-		ErrInvalidRequest(errors.Wrap(err, "DeleteFlag, flagID URL param"))
+		render.Render(w, r, ErrInvalidRequest(errors.Wrap(err, "DeleteFlag, flagID URL param")))
 		return
 	}
 
 	challenge := &models.Challenge{ID: flagID}
 	if err := challenge.Delete(db); err != nil {
-		ErrInternal(err)
+		render.Render(w, r, ErrInternal(err))
 		return
 	}
 	w.WriteHeader(http.StatusOK)
@@ -339,7 +339,7 @@ func GetAllServices(w http.ResponseWriter, r *http.Request) {
 func GetService(w http.ResponseWriter, r *http.Request) {
 	serviceID, err := strconv.Atoi(chi.URLParam(r, "serviceID"))
 	if err != nil {
-		ErrInvalidRequest(errors.Wrap(err, "GetService, serviceID URL param"))
+		render.Render(w, r, ErrInvalidRequest(errors.Wrap(err, "GetService, serviceID URL param")))
 		return
 	}
 
@@ -397,13 +397,13 @@ func UpdateService(w http.ResponseWriter, r *http.Request) {
 func DeleteService(w http.ResponseWriter, r *http.Request) {
 	serviceID, err := strconv.Atoi(chi.URLParam(r, "serviceID"))
 	if err != nil {
-		ErrInvalidRequest(errors.Wrap(err, "DeleteService, serviceID URL param"))
+		render.Render(w, r, ErrInvalidRequest(errors.Wrap(err, "DeleteService, serviceID URL param")))
 		return
 	}
 
 	service := &models.Service{ID: serviceID}
 	if err := service.Delete(db); err != nil {
-		ErrInternal(err)
+		render.Render(w, r, ErrInternal(err))
 		return
 	}
 	w.WriteHeader(http.StatusOK)
@@ -414,7 +414,7 @@ func DeleteService(w http.ResponseWriter, r *http.Request) {
 func GetBreakdownOfSubmissionsPerFlag(w http.ResponseWriter, r *http.Request) {
 	brkdwn, err := models.ChallengeCapturesPerFlag(db)
 	if err != nil {
-		ErrInternal(err)
+		render.Render(w, r, ErrInternal(err))
 		return
 	}
 	render.JSON(w, r, brkdwn)
@@ -423,7 +423,7 @@ func GetBreakdownOfSubmissionsPerFlag(w http.ResponseWriter, r *http.Request) {
 func GetEachTeamsCapturedFlags(w http.ResponseWriter, r *http.Request) {
 	brkdwn, err := models.ChallengeCapturesPerTeam(db)
 	if err != nil {
-		ErrInternal(err)
+		render.Render(w, r, ErrInternal(err))
 		return
 	}
 	render.JSON(w, r, brkdwn)

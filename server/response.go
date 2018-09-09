@@ -68,6 +68,8 @@ type ErrResponse struct {
 	ErrorText  string `json:"error,omitempty"` // application-level error message, for debugging
 }
 
+// Render satisfies the go-chi/render.Renderer interface, making errors easy to
+// reuse and print out as JSON/XML
 func (e *ErrResponse) Render(w http.ResponseWriter, r *http.Request) error {
 	render.Status(r, e.HTTPStatusCode)
 	return nil
