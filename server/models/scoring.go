@@ -53,7 +53,7 @@ func TeamsScores(db DB) ([]TeamsScoresResponse, error) {
 // If the timestamp changes between calls, then that means other score or status related
 // data should be queried for again.
 func LatestScoreChange(db DB) (time.Time, error) {
-	const sqlstr = `SELECT '-infinity' AS created_at
+	const sqlstr = `SELECT 'epoch' AS created_at
 	UNION ALL SELECT created_at FROM service_check
 	UNION ALL SELECT created_at FROM ctf_solve
 	UNION ALL SELECT created_at FROM other_points

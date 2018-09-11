@@ -83,7 +83,7 @@ func Test_GetTeamCTFProgress(t *testing.T) {
 
 func Test_ChallengeCapturesPerFlag(t *testing.T) {
 	prepareTestDatabase(t)
-	expected := []ChallengeCaptureCount{{DesignerCategory: "test_master", Category: "RAD", Name: "Totally Rad Challenge", Count: 1}}
+	expected := []ChallengeCaptureCount{{Designer: "test_master", Category: "RAD", Name: "Totally Rad Challenge", Count: 1}}
 
 	challenge_captures, err := ChallengeCapturesPerFlag(db)
 	if assert.Nil(t, err) {
@@ -93,7 +93,7 @@ func Test_ChallengeCapturesPerFlag(t *testing.T) {
 
 func Test_ChallengeCapturesPerTeam(t *testing.T) {
 	prepareTestDatabase(t)
-	expected := []TeamChallengeCaptures{{Team: "team1", DesignerCategory: "test_master", Category: "RAD", Challenge: "Totally Rad Challenge"}}
+	expected := []TeamChallengeCaptures{{Team: "team1", Designer: "test_master", Category: "RAD", Challenge: "Totally Rad Challenge"}}
 
 	per_team_captures, err := ChallengeCapturesPerTeam(db)
 	if assert.Nil(t, err) {

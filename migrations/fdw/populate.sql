@@ -37,7 +37,7 @@ INSERT INTO challenge_category (name)
   (SELECT DISTINCT "group"
   FROM mgo.challenges);
 
-INSERT INTO challenge (name, designer_category, category, body, flag, total)
+INSERT INTO challenge (name, designer, category, body, flag, total)
   (SELECT name, "group", split_part(name, '-', 1), description, flag, points
   FROM mgo.challenges);
 

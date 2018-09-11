@@ -140,20 +140,20 @@ func GetTeamCTFProgress(db DB, teamID int) ([]CTFProgress, error) {
 
 // ChallengeCaptureCount holds the number of teams that have beaten a CTF challenge.
 type ChallengeCaptureCount struct {
-	DesignerCategory string `json:"designer_category"` // designer_category
-	Category         string `json:"category"`          // category
-	Name             string `json:"name"`              // name
-	Count            int    `json:"count"`             // --- (calculated column)
+	Designer string `json:"designer"` // designer
+	Category string `json:"category"` // category
+	Name     string `json:"name"`     // name
+	Count    int    `json:"count"`    // --- (calculated column)
 }
 
 // ChallengeCapturesPerFlag gets the number of times each flag was captured,
 // sorted by designer, then category, then name.
 func ChallengeCapturesPerFlag(db DB) ([]ChallengeCaptureCount, error) {
-	const sqlstr = `SELECT designer_category, category, name, COUNT(*)
+	const sqlstr = `SELECT designer, category, name, COUNT(*)
 	FROM challenge
 	JOIN ctf_solve AS solve ON solve.challenge_id = id
-	GROUP BY name, category, designer_category
-	ORDER BY designer_category, category, name`
+	GROUP BY name, category, designer
+	ORDER BY designer, category, name`
 
 	rows, err := db.Query(sqlstr)
 	if err != nil {
@@ -164,7 +164,7 @@ func ChallengeCapturesPerFlag(db DB) ([]ChallengeCaptureCount, error) {
 	ccs := []ChallengeCaptureCount{}
 	for rows.Next() {
 		cc := ChallengeCaptureCount{}
-		if err = rows.Scan(&cc.DesignerCategory, &cc.Category, &cc.Name, &cc.Count); err != nil {
+		if err = rows.Scan(&cc.Designer, &cc.Category, &cc.Name, &cc.Count); err != nil {
 			return nil, err
 		}
 		ccs = append(ccs, cc)
@@ -178,19 +178,19 @@ func ChallengeCapturesPerFlag(db DB) ([]ChallengeCaptureCount, error) {
 
 // TeamChallengeCaptures holds the flags a team has captured.
 type TeamChallengeCaptures struct {
-	Team             string `json:"team"`              // team.name
-	DesignerCategory string `json:"designer_category"` // challenge.designer_category
-	Category         string `json:"category"`          // challenge.category
-	Challenge        string `json:"challenge"`         // challenge.name
+	Team      string `json:"team"`      // team.name
+	Designer  string `json:"designer"`  // challenge.designer
+	Category  string `json:"category"`  // challenge.category
+	Challenge string `json:"challenge"` // challenge.name
 }
 
 // ChallengeCapturesPerTeam retrieves each team with the flags they've captured.
 func ChallengeCapturesPerTeam(db DB) ([]TeamChallengeCaptures, error) {
-	const sqlstr = `SELECT team.name, ch.designer_category, ch.category, ch.name
+	const sqlstr = `SELECT team.name, ch.designer, ch.category, ch.name
 	FROM team
 	  JOIN ctf_solve ON team.id = ctf_solve.team_id
 	  JOIN challenge AS ch ON ctf_solve.challenge_id = ch.id
-	ORDER BY team.id, ch.designer_category, ch.category, ch.name`
+	ORDER BY team.id, ch.designer, ch.category, ch.name`
 
 	rows, err := db.Query(sqlstr)
 	if err != nil {
@@ -201,7 +201,7 @@ func ChallengeCapturesPerTeam(db DB) ([]TeamChallengeCaptures, error) {
 	tccs := []TeamChallengeCaptures{}
 	for rows.Next() {
 		tcc := TeamChallengeCaptures{}
-		if err = rows.Scan(&tcc.Team, &tcc.DesignerCategory, &tcc.Category, &tcc.Challenge); err != nil {
+		if err = rows.Scan(&tcc.Team, &tcc.Designer, &tcc.Category, &tcc.Challenge); err != nil {
 			return nil, err
 		}
 		tccs = append(tccs, tcc)

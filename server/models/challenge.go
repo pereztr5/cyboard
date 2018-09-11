@@ -9,14 +9,14 @@ import (
 
 // Challenge represents a row from 'cyboard.challenge'.
 type Challenge struct {
-	ID               int     `json:"id"`                // id
-	Name             string  `json:"name"`              // name
-	Category         string  `json:"category"`          // category
-	Flag             string  `json:"flag"`              // flag
-	Total            float32 `json:"total"`             // total
-	Body             string  `json:"body"`              // body
-	Hidden           bool    `json:"hidden"`            // hidden
-	DesignerCategory string  `json:"designer_category"` // designer_category
+	ID       int     `json:"id"`       // id
+	Name     string  `json:"name"`     // name
+	Category string  `json:"category"` // category
+	Designer string  `json:"designer"` // designer
+	Flag     string  `json:"flag"`     // flag
+	Total    float32 `json:"total"`    // total
+	Body     string  `json:"body"`     // body
+	Hidden   bool    `json:"hidden"`   // hidden
 
 	CreatedAt  time.Time `json:"created_at"`  // created_at
 	ModifiedAt time.Time `json:"modified_at"` // modified_at
@@ -25,23 +25,23 @@ type Challenge struct {
 // Insert inserts the Challenge to the database.
 func (c *Challenge) Insert(db DB) error {
 	const sqlstr = `INSERT INTO cyboard.challenge (` +
-		`name, category, flag, total, body, hidden, designer_category` +
+		`name, category, designer, flag, total, body, hidden` +
 		`) VALUES (` +
 		`$1, $2, $3, $4, $5, $6, $7` +
 		`) RETURNING id`
 
-	return db.QueryRow(sqlstr, c.Name, c.Category, c.Flag, c.Total, c.Body, c.Hidden, c.DesignerCategory).Scan(&c.ID)
+	return db.QueryRow(sqlstr, c.Name, c.Category, c.Designer, c.Flag, c.Total, c.Body, c.Hidden).Scan(&c.ID)
 }
 
 // Update updates the Challenge in the database.
 func (c *Challenge) Update(db DB) error {
 	const sqlstr = `UPDATE cyboard.challenge SET (` +
-		`name, category, flag, total, body, hidden, designer_category` +
+		`name, category, designer, flag, total, body, hidden` +
 		`) = ( ` +
 		`$2, $3, $4, $5, $6, $7, $8` +
 		`) WHERE id = $1`
 
-	_, err := db.Exec(sqlstr, c.ID, c.Name, c.Category, c.Flag, c.Total, c.Body, c.Hidden, c.DesignerCategory)
+	_, err := db.Exec(sqlstr, c.ID, c.Name, c.Category, c.Designer, c.Flag, c.Total, c.Body, c.Hidden)
 	return err
 }
 
@@ -56,12 +56,12 @@ func (c *Challenge) Delete(db DB) error {
 // ChallengeByFlag retrieves a row from 'cyboard.challenge' as a Challenge.
 func ChallengeByFlag(db DB, flag string) (*Challenge, error) {
 	const sqlstr = `SELECT ` +
-		`id, name, category, flag, total, body, hidden, designer_category, created_at, modified_at ` +
+		`id, name, category, designer, flag, total, body, hidden, created_at, modified_at ` +
 		`FROM cyboard.challenge ` +
 		`WHERE flag = $1`
 
 	c := Challenge{}
-	err := db.QueryRow(sqlstr, flag).Scan(&c.ID, &c.Name, &c.Category, &c.Flag, &c.Total, &c.Body, &c.Hidden, &c.DesignerCategory, &c.CreatedAt, &c.ModifiedAt)
+	err := db.QueryRow(sqlstr, flag).Scan(&c.ID, &c.Name, &c.Category, &c.Designer, &c.Flag, &c.Total, &c.Body, &c.Hidden, &c.CreatedAt, &c.ModifiedAt)
 	if err != nil {
 		return nil, err
 	}
@@ -72,12 +72,12 @@ func ChallengeByFlag(db DB, flag string) (*Challenge, error) {
 // ChallengeByName retrieves a row from 'cyboard.challenge' as a Challenge.
 func ChallengeByName(db DB, name string) (*Challenge, error) {
 	const sqlstr = `SELECT ` +
-		`id, name, category, flag, total, body, hidden, designer_category, created_at, modified_at ` +
+		`id, name, category, designer, flag, total, body, hidden, created_at, modified_at ` +
 		`FROM cyboard.challenge ` +
 		`WHERE name = $1`
 
 	c := Challenge{}
-	err := db.QueryRow(sqlstr, name).Scan(&c.ID, &c.Name, &c.Category, &c.Flag, &c.Total, &c.Body, &c.Hidden, &c.DesignerCategory, &c.CreatedAt, &c.ModifiedAt)
+	err := db.QueryRow(sqlstr, name).Scan(&c.ID, &c.Name, &c.Category, &c.Designer, &c.Flag, &c.Total, &c.Body, &c.Hidden, &c.CreatedAt, &c.ModifiedAt)
 	if err != nil {
 		return nil, err
 	}
@@ -88,12 +88,12 @@ func ChallengeByName(db DB, name string) (*Challenge, error) {
 // ChallengeByID retrieves a row from 'cyboard.challenge' as a Challenge.
 func ChallengeByID(db DB, id int) (*Challenge, error) {
 	const sqlstr = `SELECT ` +
-		`id, name, category, flag, total, body, hidden, designer_category, created_at, modified_at ` +
+		`id, name, category, designer, flag, total, body, hidden, created_at, modified_at ` +
 		`FROM cyboard.challenge ` +
 		`WHERE id = $1`
 
 	c := Challenge{}
-	err := db.QueryRow(sqlstr, id).Scan(&c.ID, &c.Name, &c.Category, &c.Flag, &c.Total, &c.Body, &c.Hidden, &c.DesignerCategory, &c.CreatedAt, &c.ModifiedAt)
+	err := db.QueryRow(sqlstr, id).Scan(&c.ID, &c.Name, &c.Category, &c.Designer, &c.Flag, &c.Total, &c.Body, &c.Hidden, &c.CreatedAt, &c.ModifiedAt)
 	if err != nil {
 		return nil, err
 	}
@@ -105,7 +105,7 @@ func ChallengeByID(db DB, id int) (*Challenge, error) {
 // to be displayed to staff.
 func AllChallenges(db DB) ([]Challenge, error) {
 	const sqlstr = `SELECT ` +
-		`id, name, category, flag, total, body, hidden, designer_category, created_at, modified_at ` +
+		`id, name, category, designer, flag, total, body, hidden, created_at, modified_at ` +
 		`FROM challenge`
 
 	rows, err := db.Query(sqlstr)
@@ -117,8 +117,8 @@ func AllChallenges(db DB) ([]Challenge, error) {
 	xs := []Challenge{}
 	for rows.Next() {
 		x := Challenge{}
-		err = rows.Scan(&x.ID, &x.Name, &x.Category, &x.Flag, &x.Total, &x.Body,
-			&x.Hidden, &x.DesignerCategory, &x.CreatedAt, &x.ModifiedAt)
+		err = rows.Scan(&x.ID, &x.Name, &x.Category, &x.Designer, &x.Flag, &x.Total, &x.Body,
+			&x.Hidden, &x.CreatedAt, &x.ModifiedAt)
 		if err != nil {
 			return nil, err
 		}

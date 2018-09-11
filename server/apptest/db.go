@@ -33,7 +33,7 @@ func testFixtureFiles(testdataPath string) []string {
 	// The order of the files in the array is the order they will be loaded into
 	// the database before each test.
 	// Be careful changing this! The testfixtures library may swallow INSERT stmt errors.
-	files := []string{"team", "challenge_category", "challenge", "challenge_file", "ctf_solve", "service", "service_check", "other_points"}
+	files := []string{"team", "challenge", "challenge_file", "ctf_solve", "service", "service_check", "other_points"}
 	for i, filename := range files {
 		files[i] = fmt.Sprintf("%s/%s.yml", testdataPath, filename)
 	}
