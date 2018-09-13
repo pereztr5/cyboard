@@ -53,6 +53,7 @@ func PingDB(ctx context.Context) error {
 		return errors.New("db is nil (no connection)")
 	}
 	conn, err := rawDB.Acquire()
+	defer rawDB.Release(conn)
 	if err != nil {
 		return err
 	}

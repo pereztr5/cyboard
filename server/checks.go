@@ -364,7 +364,7 @@ func (m *Monitor) ListenForConfigUpdatesFromPG(ctx context.Context, checksDir, b
 		log.WithError(err).Fatal("failed to get pg connection")
 		return
 	}
-	defer conn.Close()
+	defer rawDB.Release(conn)
 	defer conn.Unlisten(PGListenNotifyChannel)
 
 	err = conn.Listen(PGListenNotifyChannel)
