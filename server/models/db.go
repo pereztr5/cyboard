@@ -35,6 +35,22 @@ type TXer interface {
 // which helps maintain the database state.
 type Tx = *pgx.Tx
 
+type Inserter interface {
+	Insert(DB) error
+}
+
+type ManyInserter interface {
+	Insert(TXer) error
+}
+
+type Updater interface {
+	Update(DB) error
+}
+
+type Deleter interface {
+	Delete(DB) error
+}
+
 var (
 	// DatabaseTables is a list of every table for the schema 'cyboard'
 	DatabaseTables = []string{

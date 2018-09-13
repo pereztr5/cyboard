@@ -1,7 +1,9 @@
 package server
 
 import (
+	"fmt"
 	"net/http"
+	"reflect"
 	"strconv"
 
 	"github.com/go-chi/chi"
@@ -12,6 +14,103 @@ import (
 	"github.com/sirupsen/logrus"
 	"golang.org/x/crypto/bcrypt"
 )
+
+// ApiQuery is a helper for HTTP GET operations for most models.
+// It handles responding to the API user with the results of a db query,
+// and handling of non-nil errors if they arise.
+func ApiQuery(w http.ResponseWriter, r *http.Request, v interface{}, err error) {
+	if err != nil {
+		RenderQueryErr(w, r, err)
+		return
+	}
+	render.JSON(w, r, v)
+}
+
+// ApiCreate is a helper for HTTP POST operations for ~a few~ models.
+//
+// model `v` is expected to implement either `models.Inserter` or `models.ManyInserter`,
+// or else it will error.
+//
+// This helper less reusable than the other helpers, due to the extra type gymnastics
+// which are difficult to abstract away (transforming input json into completely
+// different types, arranging slice layouts, etc.)
+func ApiCreate(w http.ResponseWriter, r *http.Request, v interface{}) {
+	var err error
+	if vbind, ok := v.(render.Binder); ok {
+		err = render.Bind(r, vbind)
+	} else {
+		err = render.Decode(r, v)
+	}
+
+	if err != nil {
+		render.Render(w, r, ErrInvalidRequest(err))
+		return
+	}
+
+	switch op := v.(type) {
+	case models.Inserter:
+		err = op.Insert(db)
+	case models.ManyInserter:
+		err = op.Insert(db)
+	default:
+		render.Render(w, r, ErrInternal(fmt.Errorf(
+			"model does not implement an insert-like method: type=%T", v)))
+		return
+	}
+
+	if err != nil {
+		render.Render(w, r, ErrInternal(err))
+		return
+	}
+	w.WriteHeader(http.StatusCreated)
+}
+
+// ApiUpdate is a helper for HTTP UPDATE operations for most models.
+// The model is expected to have an integer `ID` field, or it will panic.
+func ApiUpdate(w http.ResponseWriter, r *http.Request, v models.Updater) {
+	id, err := strconv.Atoi(chi.URLParam(r, "id"))
+	if err != nil {
+		render.Render(w, r, ErrInvalidRequest(errors.WithMessage(err, `"id" URL param`)))
+		return
+	}
+
+	if vbind, ok := v.(render.Binder); ok {
+		err = render.Bind(r, vbind)
+	} else {
+		err = render.Decode(r, v)
+	}
+
+	if err != nil {
+		render.Render(w, r, ErrInvalidRequest(err))
+		return
+	}
+
+	reflect.ValueOf(v).Elem().FieldByName(`ID`).SetInt(int64(id))
+
+	if err := v.Update(db); err != nil {
+		render.Render(w, r, ErrInternal(err))
+		return
+	}
+	render.JSON(w, r, v)
+}
+
+// ApiDelete is a helper for HTTP DELETE operations for most models.
+// The model is expected to have an integer `ID` field, or it will panic.
+func ApiDelete(w http.ResponseWriter, r *http.Request, v models.Deleter) {
+	id, err := strconv.Atoi(chi.URLParam(r, "id"))
+	if err != nil {
+		render.Render(w, r, ErrInvalidRequest(errors.WithMessage(err, `"id" URL param`)))
+		return
+	}
+
+	reflect.ValueOf(v).Elem().FieldByName(`ID`).SetInt(int64(id))
+
+	if err := v.Delete(db); err != nil {
+		render.Render(w, r, ErrInternal(err))
+		return
+	}
+	w.WriteHeader(http.StatusNoContent)
+}
 
 func PingHandler(w http.ResponseWriter, r *http.Request) {
 	if err := PingDB(r.Context()); err != nil {
@@ -25,6 +124,11 @@ func PingHandler(w http.ResponseWriter, r *http.Request) {
 }
 
 func SubmitLogin(w http.ResponseWriter, r *http.Request) {
+	if r.FormValue(formCredsTeam) == "" || r.FormValue(formCredsPass) == "" {
+		render.Render(w, r, ErrInvalidBecause(fmt.Sprintf("Missing form fields: "+
+			"requires both '%s' and '%s'", formCredsTeam, formCredsPass)))
+	}
+
 	loggedIn := CheckCreds(w, r)
 	if loggedIn {
 		http.Redirect(w, r, "/dashboard", 302)
@@ -43,35 +147,23 @@ func Logout(w http.ResponseWriter, r *http.Request) {
 
 func GetScores(w http.ResponseWriter, r *http.Request) {
 	scores, err := models.TeamsScores(db)
-	if err != nil {
-		RenderQueryErr(w, r, errors.Wrap(err, "GetScores"))
-		return
-	}
-	render.JSON(w, r, scores)
+	ApiQuery(w, r, scores, err)
 }
 
 func GetServicesStatuses(w http.ResponseWriter, r *http.Request) {
 	services, err := models.TeamServiceStatuses(db)
-	if err != nil {
-		RenderQueryErr(w, r, errors.Wrap(err, "GetServicesStatuses"))
-		return
-	}
-	render.JSON(w, r, services)
+	ApiQuery(w, r, services, err)
 }
 
 func GetPublicChallenges(w http.ResponseWriter, r *http.Request) {
 	chals, err := models.AllPublicChallenges(db)
-	if err != nil {
-		RenderQueryErr(w, r, errors.Wrap(err, "GetPublicChallenges"))
-		return
-	}
-	render.JSON(w, r, chals)
+	ApiQuery(w, r, chals, err)
 }
 
 func SubmitFlag(w http.ResponseWriter, r *http.Request) {
 	guess := &models.ChallengeGuess{Flag: r.FormValue("flag"), Name: r.FormValue("challenge")}
-	if guess.Flag == "" && guess.Name == "" {
-		w.WriteHeader(http.StatusBadRequest)
+	if guess.Flag == "" {
+		render.Render(w, r, ErrInvalidBecause(`Missing form field: 'flag'`))
 		return
 	}
 
@@ -94,30 +186,29 @@ func SubmitFlag(w http.ResponseWriter, r *http.Request) {
 
 func GetAllTeams(w http.ResponseWriter, r *http.Request) {
 	teams, err := models.AllTeams(db)
-	if err != nil {
-		RenderQueryErr(w, r, errors.Wrap(err, "GetAllTeams"))
-		return
-	}
-	render.JSON(w, r, teams)
+	ApiQuery(w, r, teams, err)
 }
 
 type BlueTeamInsertRequest struct {
 	*models.BlueTeamStore
-	Password string `json:"password"` // Becomes the `Hash` column
+	Password string `json:"password,omitempty"` // Becomes the `Hash` column
 }
 
-func (btr BlueTeamInsertRequest) Bind(r *http.Request) error {
+func (btr *BlueTeamInsertRequest) Bind(r *http.Request) error {
 	if btr.BlueTeamStore == nil {
-		return errors.New("missing both team `name` and `blueteam_ip` fields")
+		return errors.New(`missing all fields: 'name', 'password', 'blueteam_ip'`)
+	} else if btr.Name == "" {
+		return errors.New(`empty field: 'name'`)
 	} else if btr.Password == "" {
-		return errors.Errorf("insert bluteams (team=%q): passwords must not be empty",
-			btr.BlueTeamStore.Name)
+		return errors.New(`empty field: 'password'`)
+	} else if btr.BlueteamIP == 0 {
+		return errors.New(`empty/zero field: 'blueteam_ip'`)
 	}
 
 	btr.BlueTeamStore.Hash = nil
 	hash, err := bcrypt.GenerateFromPassword([]byte(btr.Password), bcrypt.DefaultCost)
 	if err != nil {
-		return errors.Wrapf(err, "insert blueteams (team=%q)", btr.BlueTeamStore.Name)
+		return err
 	}
 	btr.BlueTeamStore.Hash = hash
 	btr.Password = ""
@@ -126,31 +217,33 @@ func (btr BlueTeamInsertRequest) Bind(r *http.Request) error {
 
 type BlueTeamInsertRequestSlice []BlueTeamInsertRequest
 
-func (batch BlueTeamInsertRequestSlice) Bind(r *http.Request) error {
+func (batch *BlueTeamInsertRequestSlice) Bind(r *http.Request) error {
+	var err error
+	xs := *batch
+	for idx := range xs {
+		if err = xs[idx].Bind(r); err != nil {
+			return errors.WithMessage(err, fmt.Sprintf("team [%d]", idx))
+		}
+	}
 	return nil
 }
 
-func AddTeams(w http.ResponseWriter, r *http.Request) {
-	batch := BlueTeamInsertRequestSlice{}
-	if err := render.Bind(r, batch); err != nil {
-		render.Render(w, r, ErrInvalidRequest(err))
-		return
-	}
-
+func (batch BlueTeamInsertRequestSlice) Insert(tx models.TXer) error {
 	newteams := make(models.BlueTeamStoreSlice, len(batch), len(batch))
 	for idx, t := range batch {
 		newteams[idx] = *t.BlueTeamStore
 	}
-	if err := newteams.Insert(db); err != nil {
-		render.Render(w, r, ErrInternal(err))
-		return
-	}
-	w.WriteHeader(http.StatusCreated)
+	return newteams.Insert(tx)
+}
+
+func AddBlueteams(w http.ResponseWriter, r *http.Request) {
+	batch := &BlueTeamInsertRequestSlice{}
+	ApiCreate(w, r, batch)
 }
 
 type TeamUpdateRequest struct {
 	*models.Team
-	Password *string `json:"password"` // Becomes the `Hash` column
+	Password *string `json:"password,omitempty"` // Becomes the `Hash` column
 }
 
 func (tr *TeamUpdateRequest) Bind(r *http.Request) error {
@@ -160,14 +253,14 @@ func (tr *TeamUpdateRequest) Bind(r *http.Request) error {
 
 	tr.Team.Hash = nil
 	if tr.Password != nil {
+		// If a password is specified, it at least can't be empty
 		if *tr.Password == "" {
-			return errors.Errorf("update team (team=%q): passwords must not be empty",
-				tr.Team.Name)
+			return errors.New("empty field: 'password'")
 		}
 
 		hash, err := bcrypt.GenerateFromPassword([]byte(*tr.Password), bcrypt.DefaultCost)
 		if err != nil {
-			return errors.Wrapf(err, "update team (team=%q)", tr.Team.Name)
+			return err
 		}
 		tr.Team.Hash = hash
 		tr.Password = nil
@@ -176,40 +269,13 @@ func (tr *TeamUpdateRequest) Bind(r *http.Request) error {
 }
 
 func UpdateTeam(w http.ResponseWriter, r *http.Request) {
-	op := &TeamUpdateRequest{}
-	if err := render.Bind(r, op); err != nil {
-		render.Render(w, r, ErrInvalidRequest(err))
-		return
-	}
-	teamID, err := strconv.Atoi(chi.URLParam(r, "teamID"))
-	if err != nil {
-		render.Render(w, r, ErrInvalidRequest(errors.Wrap(err, "UpdateTeam, teamID URL param")))
-		return
-	} else if teamID != op.Team.ID {
-		render.Render(w, r, ErrInvalidRequest(errors.New("UpdateTeam (IDs do not match)")))
-		return
-	}
-
-	if err := op.Team.Update(db); err != nil {
-		render.Render(w, r, ErrInternal(errors.Wrap(err, "UpdateTeam")))
-		return
-	}
-	w.WriteHeader(http.StatusOK)
+	team := &TeamUpdateRequest{}
+	ApiUpdate(w, r, team)
 }
 
 func DeleteTeam(w http.ResponseWriter, r *http.Request) {
-	teamID, err := strconv.Atoi(chi.URLParam(r, "teamID"))
-	if err != nil {
-		render.Render(w, r, ErrInvalidRequest(errors.Wrap(err, "DeleteTeam, teamID URL param")))
-		return
-	}
-
-	team := &models.Team{ID: teamID}
-	if err = team.Delete(db); err != nil {
-		render.Render(w, r, ErrInternal(err))
-		return
-	}
-	w.WriteHeader(http.StatusOK)
+	team := &models.Team{}
+	ApiDelete(w, r, team)
 }
 
 type BonusPointsRequest struct {
@@ -248,108 +314,53 @@ func GrantBonusPoints(w http.ResponseWriter, r *http.Request) {
 
 func GetAllFlags(w http.ResponseWriter, r *http.Request) {
 	challenges, err := models.AllChallenges(db)
-	if err != nil {
-		RenderQueryErr(w, r, errors.Wrap(err, "GetAllFlags"))
-		return
-	}
-	// NOTE: render.JSON will automatically escape any HTML during json encoding,
+	// NOTE: ApiQuery will automatically escape any HTML during json encoding,
 	// which we may not want to do if we decide that Challenge.Body could have raw HTML.
-	render.JSON(w, r, challenges)
+	ApiQuery(w, r, challenges, err)
 }
 
 func AddFlags(w http.ResponseWriter, r *http.Request) {
-	newChallenges := models.ChallengeSlice{}
-	if err := render.Decode(r, newChallenges); err != nil {
-		render.Render(w, r, ErrInvalidRequest(err))
-		return
-	}
-
-	if err := newChallenges.Insert(db); err != nil {
-		render.Render(w, r, ErrInternal(err))
-		return
-	}
-
-	w.WriteHeader(http.StatusCreated)
+	newChallenges := &models.ChallengeSlice{}
+	ApiCreate(w, r, newChallenges)
 }
 
 func GetFlagByID(w http.ResponseWriter, r *http.Request) {
-	flagID, err := strconv.Atoi(chi.URLParam(r, "flagID"))
+	flagID, err := strconv.Atoi(chi.URLParam(r, "id"))
 	if err != nil {
-		render.Render(w, r, ErrInvalidRequest(errors.Wrap(err, "GetFlagByName, flagID URL param")))
+		render.Render(w, r, ErrInvalidRequest(errors.WithMessage(err, `"id" URL param`)))
 		return
 	}
 
 	challenge, err := models.ChallengeByID(db, flagID)
-	if err != nil {
-		RenderQueryErr(w, r, errors.Wrap(err, "GetFlagByName"))
-		return
-	}
-	render.JSON(w, r, challenge)
-	w.WriteHeader(http.StatusOK)
+	ApiQuery(w, r, challenge, err)
 }
 
 func UpdateFlag(w http.ResponseWriter, r *http.Request) {
 	challenge := &models.Challenge{}
-	if err := render.Decode(r, challenge); err != nil {
-		render.Render(w, r, ErrInvalidRequest(err))
-		return
-	}
-	flagID, err := strconv.Atoi(chi.URLParam(r, "flagID"))
-	if err != nil {
-		render.Render(w, r, ErrInvalidRequest(errors.Wrap(err, "UpdateFlag, flagID URL param")))
-		return
-	} else if flagID != challenge.ID {
-		render.Render(w, r, ErrInvalidRequest(errors.New("UpdateFlag (IDs do not match)")))
-		return
-	}
-
-	if err := challenge.Update(db); err != nil {
-		render.Render(w, r, ErrInternal(err))
-		return
-	}
-	w.WriteHeader(http.StatusOK)
+	ApiUpdate(w, r, challenge)
 }
 
 func DeleteFlag(w http.ResponseWriter, r *http.Request) {
-	flagID, err := strconv.Atoi(chi.URLParam(r, "flagID"))
-	if err != nil {
-		render.Render(w, r, ErrInvalidRequest(errors.Wrap(err, "DeleteFlag, flagID URL param")))
-		return
-	}
-
-	challenge := &models.Challenge{ID: flagID}
-	if err := challenge.Delete(db); err != nil {
-		render.Render(w, r, ErrInternal(err))
-		return
-	}
-	w.WriteHeader(http.StatusOK)
+	challenge := &models.Challenge{}
+	ApiDelete(w, r, challenge)
 }
 
 // Service Configuration
 
 func GetAllServices(w http.ResponseWriter, r *http.Request) {
 	services, err := models.AllServices(db)
-	if err != nil {
-		RenderQueryErr(w, r, errors.Wrap(err, "GetAllServices"))
-		return
-	}
-	render.JSON(w, r, services)
+	ApiQuery(w, r, services, err)
 }
 
-func GetService(w http.ResponseWriter, r *http.Request) {
-	serviceID, err := strconv.Atoi(chi.URLParam(r, "serviceID"))
+func GetServiceByID(w http.ResponseWriter, r *http.Request) {
+	serviceID, err := strconv.Atoi(chi.URLParam(r, "id"))
 	if err != nil {
-		render.Render(w, r, ErrInvalidRequest(errors.Wrap(err, "GetService, serviceID URL param")))
+		render.Render(w, r, ErrInvalidRequest(errors.WithMessage(err, `"id" URL param`)))
 		return
 	}
 
 	service, err := models.ServiceByID(db, serviceID)
-	if err != nil {
-		RenderQueryErr(w, r, errors.Wrap(err, "GetService"))
-		return
-	}
-	render.JSON(w, r, service)
-	w.WriteHeader(http.StatusOK)
+	ApiQuery(w, r, service, err)
 }
 
 type ServiceRequest struct {
@@ -357,74 +368,43 @@ type ServiceRequest struct {
 }
 
 func (sr *ServiceRequest) Bind(r *http.Request) error {
+	if sr.Service == nil {
+		return errors.New(`missing required 'service' fields`)
+	}
+
 	if _, ok := r.URL.Query()["rawpoints"]; !ok {
 		pts := CalcPointsPerCheck(sr.Service, &appCfg.Event, appCfg.ServiceMonitor.Intervals)
 		sr.Points = &pts
 	} else if sr.Points == nil {
 		return errors.New(`request with ?rawpoints=true must have {"points": <decimal>} field`)
 	}
+
 	return nil
 }
 
 func AddService(w http.ResponseWriter, r *http.Request) {
-	srv := new(ServiceRequest)
-	if err := render.Bind(r, srv); err != nil {
-		render.Render(w, r, ErrInvalidRequest(err))
-		return
-	}
-
-	if err := srv.Service.Insert(db); err != nil {
-		render.Render(w, r, ErrInternal(err))
-		return
-	}
-	w.WriteHeader(http.StatusCreated)
+	srv := &ServiceRequest{}
+	ApiCreate(w, r, srv)
 }
 
 func UpdateService(w http.ResponseWriter, r *http.Request) {
-	srv := new(ServiceRequest)
-	if err := render.Bind(r, srv); err != nil {
-		render.Render(w, r, ErrInvalidRequest(err))
-		return
-	}
-
-	if err := srv.Service.Update(db); err != nil {
-		render.Render(w, r, ErrInternal(err))
-		return
-	}
-	w.WriteHeader(http.StatusOK)
+	srv := &ServiceRequest{}
+	ApiUpdate(w, r, srv)
 }
 
 func DeleteService(w http.ResponseWriter, r *http.Request) {
-	serviceID, err := strconv.Atoi(chi.URLParam(r, "serviceID"))
-	if err != nil {
-		render.Render(w, r, ErrInvalidRequest(errors.Wrap(err, "DeleteService, serviceID URL param")))
-		return
-	}
-
-	service := &models.Service{ID: serviceID}
-	if err := service.Delete(db); err != nil {
-		render.Render(w, r, ErrInternal(err))
-		return
-	}
-	w.WriteHeader(http.StatusOK)
+	service := &models.Service{}
+	ApiDelete(w, r, service)
 }
 
 // Scoring graphs
 
 func GetBreakdownOfSubmissionsPerFlag(w http.ResponseWriter, r *http.Request) {
 	brkdwn, err := models.ChallengeCapturesPerFlag(db)
-	if err != nil {
-		render.Render(w, r, ErrInternal(err))
-		return
-	}
-	render.JSON(w, r, brkdwn)
+	ApiQuery(w, r, brkdwn, err)
 }
 
 func GetEachTeamsCapturedFlags(w http.ResponseWriter, r *http.Request) {
 	brkdwn, err := models.ChallengeCapturesPerTeam(db)
-	if err != nil {
-		render.Render(w, r, ErrInternal(err))
-		return
-	}
-	render.JSON(w, r, brkdwn)
+	ApiQuery(w, r, brkdwn, err)
 }

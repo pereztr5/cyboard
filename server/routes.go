@@ -43,7 +43,7 @@ func CreateWebRouter(teamScoreUpdater, servicesUpdater *broadcastHub) chi.Router
 	api := chi.NewRouter()
 
 	// Public API
-	api.Route("/public/", func(public chi.Router) {
+	api.Route("/public", func(public chi.Router) {
 		public.Get("/scores", GetScores)
 		public.Get("/services", GetServicesStatuses)
 		public.Handle("/scores/live", teamScoreUpdater.ServeWs())
@@ -51,48 +51,50 @@ func CreateWebRouter(teamScoreUpdater, servicesUpdater *broadcastHub) chi.Router
 	})
 
 	// Blue Team API
-	api.Route("/blue/", func(blue chi.Router) {
+	api.Route("/blue", func(blue chi.Router) {
 		blue.Use(RequireLogin)
 		blue.Get("/challenges", GetPublicChallenges)
 		blue.Post("/challenges", SubmitFlag)
 	})
 
 	// Staff API to view & edit the CTF event
-	api.Route("/ctf/", func(ctfStaff chi.Router) {
+	api.Route("/ctf", func(ctfStaff chi.Router) {
 		ctfStaff.Use(RequireLogin, RequireCtfStaff)
 		ctfStaff.Get("/stats/subs_per_flag", GetBreakdownOfSubmissionsPerFlag)
 		ctfStaff.Get("/stats/teams_flags", GetEachTeamsCapturedFlags)
 
-		ctfStaff.Get("/flags", GetAllFlags)
-		ctfStaff.Post("/flags", AddFlags)
+		ctfStaff.Route("/flags", func(r chi.Router) {
+			r.Get("/", GetAllFlags)
+			r.Post("/", AddFlags) // Insert many ctf challenges
 
-		ctfStaff.Route("/flags/{flagID}", func(r chi.Router) {
-			r.Get("/", GetFlagByID)
-			// r.Post("/", AddFlag)
-			r.Put("/", UpdateFlag)
-			r.Delete("/", DeleteFlag)
+			r.Get("/{id}", GetFlagByID)
+			r.Put("/{id}", UpdateFlag)
+			r.Delete("/{id}", DeleteFlag)
 		})
 	})
 
 	// Admin API
-	api.Route("/admin/", func(admin chi.Router) {
+	api.Route("/admin", func(admin chi.Router) {
 		admin.Use(RequireLogin, RequireAdmin)
 
 		admin.Post("/grant_bonus", GrantBonusPoints)
 
-		admin.Get("/teams", GetAllTeams)
-		admin.Post("/teams", AddTeams)
+		admin.Route("/teams", func(r chi.Router) {
+			r.Get("/", GetAllTeams)
 
-		admin.Put("/team/{teamID}", UpdateTeam)
-		admin.Delete("/team/{teamID}", DeleteTeam)
+			r.Put("/{id}", UpdateTeam)
+			r.Delete("/{id}", DeleteTeam)
+		})
 
-		admin.Get("/services", GetAllServices)
-		admin.Post("/services", AddService)
-		admin.Put("/services", UpdateService)
+		admin.Post("/blueteams", AddBlueteams) // Insert many blueteams
 
-		admin.Route("/services/{serviceID}", func(r chi.Router) {
-			r.Get("/", GetService)
-			r.Delete("/", DeleteService)
+		admin.Route("/services", func(r chi.Router) {
+			r.Get("/", GetAllServices)
+			r.Post("/", AddService) // Insert one service
+
+			r.Get("/{id}", GetServiceByID)
+			r.Put("/{id}", UpdateService)
+			r.Delete("/{id}", DeleteService)
 		})
 	})
 
