@@ -4,9 +4,7 @@ import (
 	"fmt"
 	"net/http"
 	"reflect"
-	"strconv"
 
-	"github.com/go-chi/chi"
 	"github.com/go-chi/render"
 	"github.com/jackc/pgx"
 	"github.com/pereztr5/cyboard/server/models"
@@ -68,12 +66,7 @@ func ApiCreate(w http.ResponseWriter, r *http.Request, v interface{}) {
 // ApiUpdate is a helper for HTTP UPDATE operations for most models.
 // The model is expected to have an integer `ID` field, or it will panic.
 func ApiUpdate(w http.ResponseWriter, r *http.Request, v models.Updater) {
-	id, err := strconv.Atoi(chi.URLParam(r, "id"))
-	if err != nil {
-		render.Render(w, r, ErrInvalidRequest(errors.WithMessage(err, `"id" URL param`)))
-		return
-	}
-
+	var err error
 	if vbind, ok := v.(render.Binder); ok {
 		err = render.Bind(r, vbind)
 	} else {
@@ -85,6 +78,7 @@ func ApiUpdate(w http.ResponseWriter, r *http.Request, v models.Updater) {
 		return
 	}
 
+	id := getCtxIdParam(r)
 	reflect.ValueOf(v).Elem().FieldByName(`ID`).SetInt(int64(id))
 
 	if err := v.Update(db); err != nil {
@@ -97,12 +91,7 @@ func ApiUpdate(w http.ResponseWriter, r *http.Request, v models.Updater) {
 // ApiDelete is a helper for HTTP DELETE operations for most models.
 // The model is expected to have an integer `ID` field, or it will panic.
 func ApiDelete(w http.ResponseWriter, r *http.Request, v models.Deleter) {
-	id, err := strconv.Atoi(chi.URLParam(r, "id"))
-	if err != nil {
-		render.Render(w, r, ErrInvalidRequest(errors.WithMessage(err, `"id" URL param`)))
-		return
-	}
-
+	id := getCtxIdParam(r)
 	reflect.ValueOf(v).Elem().FieldByName(`ID`).SetInt(int64(id))
 
 	if err := v.Delete(db); err != nil {
@@ -187,6 +176,12 @@ func SubmitFlag(w http.ResponseWriter, r *http.Request) {
 func GetAllTeams(w http.ResponseWriter, r *http.Request) {
 	teams, err := models.AllTeams(db)
 	ApiQuery(w, r, teams, err)
+}
+
+func GetTeamByID(w http.ResponseWriter, r *http.Request) {
+	id := getCtxIdParam(r)
+	team, err := models.TeamByID(db, id)
+	ApiQuery(w, r, team, err)
 }
 
 type BlueTeamInsertRequest struct {
@@ -325,12 +320,7 @@ func AddFlags(w http.ResponseWriter, r *http.Request) {
 }
 
 func GetFlagByID(w http.ResponseWriter, r *http.Request) {
-	flagID, err := strconv.Atoi(chi.URLParam(r, "id"))
-	if err != nil {
-		render.Render(w, r, ErrInvalidRequest(errors.WithMessage(err, `"id" URL param`)))
-		return
-	}
-
+	flagID := getCtxIdParam(r)
 	challenge, err := models.ChallengeByID(db, flagID)
 	ApiQuery(w, r, challenge, err)
 }
@@ -353,12 +343,7 @@ func GetAllServices(w http.ResponseWriter, r *http.Request) {
 }
 
 func GetServiceByID(w http.ResponseWriter, r *http.Request) {
-	serviceID, err := strconv.Atoi(chi.URLParam(r, "id"))
-	if err != nil {
-		render.Render(w, r, ErrInvalidRequest(errors.WithMessage(err, `"id" URL param`)))
-		return
-	}
-
+	serviceID := getCtxIdParam(r)
 	service, err := models.ServiceByID(db, serviceID)
 	ApiQuery(w, r, service, err)
 }

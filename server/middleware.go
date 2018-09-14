@@ -1,10 +1,14 @@
 package server
 
 import (
+	"fmt"
 	"net/http"
+	"strconv"
 
+	"github.com/go-chi/chi"
 	"github.com/go-chi/render"
 	"github.com/pereztr5/cyboard/server/models"
+	"github.com/pkg/errors"
 	"github.com/urfave/negroni"
 )
 
@@ -56,6 +60,23 @@ func RequireCtfStaff(next http.Handler) http.Handler {
 		}
 	})
 }
+
+func RequireUrlParamInt(name string) func(http.Handler) http.Handler {
+	return func(next http.Handler) http.Handler {
+		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+			p, err := strconv.Atoi(chi.URLParam(r, name))
+			if err != nil {
+				render.Render(w, r, ErrInvalidRequest(
+					errors.WithMessage(err, fmt.Sprintf("%q URL Param", name))))
+				return
+			}
+			ctx := saveCtxUrlParam(r, name, p)
+			next.ServeHTTP(w, r.WithContext(ctx))
+		})
+	}
+}
+
+var RequireIdParam = RequireUrlParamInt("id")
 
 func UnwrapNegroniMiddleware(nh negroni.Handler) func(http.Handler) http.Handler {
 	return func(next http.Handler) http.Handler {

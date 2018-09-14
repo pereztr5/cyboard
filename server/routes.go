@@ -67,9 +67,12 @@ func CreateWebRouter(teamScoreUpdater, servicesUpdater *broadcastHub) chi.Router
 			r.Get("/", GetAllFlags)
 			r.Post("/", AddFlags) // Insert many ctf challenges
 
-			r.Get("/{id}", GetFlagByID)
-			r.Put("/{id}", UpdateFlag)
-			r.Delete("/{id}", DeleteFlag)
+			r.Route("/{id}", func(r chi.Router) {
+				r.Use(RequireIdParam)
+				r.Get("/", GetFlagByID)
+				r.Put("/", UpdateFlag)
+				r.Delete("/", DeleteFlag)
+			})
 		})
 	})
 
@@ -82,8 +85,12 @@ func CreateWebRouter(teamScoreUpdater, servicesUpdater *broadcastHub) chi.Router
 		admin.Route("/teams", func(r chi.Router) {
 			r.Get("/", GetAllTeams)
 
-			r.Put("/{id}", UpdateTeam)
-			r.Delete("/{id}", DeleteTeam)
+			r.Route("/{id}", func(r chi.Router) {
+				r.Use(RequireIdParam)
+				r.Get("/", GetTeamByID)
+				r.Put("/", UpdateTeam)
+				r.Delete("/", DeleteTeam)
+			})
 		})
 
 		admin.Post("/blueteams", AddBlueteams) // Insert many blueteams
@@ -92,9 +99,12 @@ func CreateWebRouter(teamScoreUpdater, servicesUpdater *broadcastHub) chi.Router
 			r.Get("/", GetAllServices)
 			r.Post("/", AddService) // Insert one service
 
-			r.Get("/{id}", GetServiceByID)
-			r.Put("/{id}", UpdateService)
-			r.Delete("/{id}", DeleteService)
+			r.Route("/{id}", func(r chi.Router) {
+				r.Use(RequireIdParam)
+				r.Get("/", GetServiceByID)
+				r.Put("/", UpdateService)
+				r.Delete("/", DeleteService)
+			})
 		})
 	})
 

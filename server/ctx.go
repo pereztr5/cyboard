@@ -14,6 +14,8 @@ const (
 	ctxTeam = CtxKey(iota)
 	ctxOwnedChallenges
 	ctxErrorMsgFields
+
+	ctxUrlParamPrefix = "cyboard.param."
 )
 
 func getCtxTeam(r *http.Request) *models.Team {
@@ -48,4 +50,16 @@ func getCtxErrMsgFields(r *http.Request) logrus.Fields {
 		fields = make(logrus.Fields)
 	}
 	return fields
+}
+
+func saveCtxUrlParam(r *http.Request, name string, v interface{}) context.Context {
+	return context.WithValue(r.Context(), ctxUrlParamPrefix+name, v)
+}
+
+func getCtxUrlParamInt(r *http.Request, name string) int {
+	return r.Context().Value(ctxUrlParamPrefix + name).(int)
+}
+
+func getCtxIdParam(r *http.Request) int {
+	return getCtxUrlParamInt(r, "id")
 }
