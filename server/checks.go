@@ -36,15 +36,15 @@ func (c Check) String() string {
 }
 
 func getScript(path string) (*exec.Cmd, error) {
-	dir, err := filepath.Abs(path)
+	execpath, err := exec.LookPath(path)
 	if err != nil {
 		return nil, err
 	}
-	_, err = exec.LookPath(path)
+	abspath, err := filepath.Abs(execpath)
 	if err != nil {
 		return nil, err
 	}
-	return exec.Command(dir), nil
+	return exec.Command(abspath), nil
 }
 
 func prepareChecks(teamsAndServices []models.MonitorTeamService, scriptsDir, baseIP string) []Check {
@@ -60,6 +60,7 @@ func prepareChecks(teamsAndServices []models.MonitorTeamService, scriptsDir, bas
 				tas.Service.ID, tas.Service.Name, err)
 			continue
 		}
+		script.Dir = scriptsDir
 
 		// Set args with team's IP, Name, and ID using simple string replace on each argument
 		var s string
@@ -116,10 +117,39 @@ func prepareChecks(teamsAndServices []models.MonitorTeamService, scriptsDir, bas
 	return checks
 }
 
+func getCmdResult(cmd *exec.Cmd, timeout time.Duration) (int16, models.ExitStatus) {
+	var code int16
+	var status models.ExitStatus
+
+	done := make(chan error, 1)
+	go func() { done <- cmd.Wait() }()
+	select {
+	case <-time.After(timeout):
+		if err := cmd.Process.Kill(); err != nil {
+			Logger.WithFields(logrus.Fields{
+				"error":  err.Error(),
+				"script": cmd.Path,
+			}).Error("Failed to Kill:")
+		}
+		code, status = 129, models.ExitStatusTimeout
+	case <-done:
+		// As long as it is done the error doesn't matter
+		code = int16(cmd.ProcessState.Sys().(syscall.WaitStatus).ExitStatus())
+
+		switch code {
+		case 0:
+			status = models.ExitStatusPass
+		case 1:
+			status = models.ExitStatusPartial
+		default:
+			status = models.ExitStatusFail
+		}
+	}
+	return code, status
+}
+
 func runCmd(check *Check, timestamp time.Time, timeout time.Duration, status chan models.ServiceCheck) {
 	cmd := *check.Command
-
-	err := cmd.Start()
 
 	result := models.ServiceCheck{
 		CreatedAt: timestamp,
@@ -127,7 +157,7 @@ func runCmd(check *Check, timestamp time.Time, timeout time.Duration, status cha
 		ServiceID: check.Service.ID,
 	}
 
-	if err != nil {
+	if err := cmd.Start(); err != nil {
 		Logger.Error("Could not run script:", err)
 		result.ExitCode = 127 // 127=command not found: http://www.tldp.org/LDP/abs/html/exitcodes.html
 		result.Status = models.ExitStatusTimeout
@@ -135,33 +165,7 @@ func runCmd(check *Check, timestamp time.Time, timeout time.Duration, status cha
 		return
 	}
 
-	done := make(chan error, 1)
-	go func() {
-		done <- cmd.Wait()
-	}()
-	select {
-	case <-time.After(timeout):
-		if err := cmd.Process.Kill(); err != nil {
-			Logger.WithFields(logrus.Fields{
-				"error":   err,
-				"service": check.Service.Name,
-			}).Error("Failed to Kill:")
-		}
-		result.ExitCode = 129
-		result.Status = models.ExitStatusTimeout
-	case <-done:
-		// As long as it is done the error doesn't matter
-		result.ExitCode = int16(cmd.ProcessState.Sys().(syscall.WaitStatus).ExitStatus())
-
-		switch result.ExitCode {
-		case 0:
-			result.Status = models.ExitStatusPass
-		case 1:
-			result.Status = models.ExitStatusPartial
-		default:
-			result.Status = models.ExitStatusFail
-		}
-	}
+	result.ExitCode, result.Status = getCmdResult(&cmd, timeout)
 	status <- result
 }
 

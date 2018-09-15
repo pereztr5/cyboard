@@ -1,10 +1,19 @@
 package server
 
 import (
+	"bytes"
 	"fmt"
+	"io"
+	"io/ioutil"
+	"mime/multipart"
 	"net/http"
+	"os"
+	"os/exec"
+	"path/filepath"
 	"reflect"
+	"time"
 
+	"github.com/go-chi/chi"
 	"github.com/go-chi/render"
 	"github.com/jackc/pgx"
 	"github.com/pereztr5/cyboard/server/models"
@@ -380,6 +389,168 @@ func UpdateService(w http.ResponseWriter, r *http.Request) {
 func DeleteService(w http.ResponseWriter, r *http.Request) {
 	service := &models.Service{}
 	ApiDelete(w, r, service)
+}
+
+// Service Monitor Check Scripts Configuration
+//
+// Uses an ancient storage API know as 'the filesystem' to save scripts/binaries,
+// which are run by the service monitor.
+// Supporting files (tables, keys) may also be managed through these endpoints.
+// Everything goes in checks_dir (./scripts by default)
+//
+
+type FileInfo struct {
+	Name    string    `json:"name"`     // base name of the file
+	Size    int64     `json:"size"`     // length in bytes
+	ModTime time.Time `json:"mod_time"` // modification time
+}
+
+func GetScriptsList(w http.ResponseWriter, r *http.Request) {
+	fis, err := ioutil.ReadDir(appCfg.ServiceMonitor.ChecksDir)
+	if err != nil {
+		render.Render(w, r, ErrInvalidRequest(err))
+		return
+	}
+
+	infos := make([]FileInfo, len(fis), len(fis))
+	for i, fi := range fis {
+		infos[i] = FileInfo{Name: fi.Name(), Size: fi.Size(), ModTime: fi.ModTime()}
+	}
+
+	render.JSON(w, r, infos)
+}
+
+func GetScriptByName(w http.ResponseWriter, r *http.Request) {
+	name := chi.URLParam(r, "name")
+	file, err := http.Dir(appCfg.ServiceMonitor.ChecksDir).Open(name)
+	if err != nil {
+		render.Render(w, r, ErrInvalidRequest(err))
+		return
+	}
+	defer file.Close()
+	info, err := file.Stat()
+	if err != nil {
+		render.Render(w, r, ErrInvalidRequest(err))
+		return
+	} else if info.IsDir() {
+		render.Render(w, r, ErrInvalidBecause("stop"))
+		return
+	}
+
+	http.ServeContent(w, r, name, info.ModTime(), file)
+}
+
+func SaveScripts(w http.ResponseWriter, r *http.Request) {
+	err := r.ParseMultipartForm(100 << 20) // accept 100MB
+	if err != nil {
+		render.Render(w, r, ErrInvalidRequest(err))
+		return
+	}
+	fhs := r.MultipartForm.File["upload"]
+	if len(fhs) == 0 {
+		render.Render(w, r, ErrInvalidBecause("nothing uploaded"))
+		return
+	}
+
+	processFile := func(fh *multipart.FileHeader) error {
+		f, err := fh.Open()
+		if err != nil {
+			return err
+		}
+		defer f.Close()
+		path := filepath.Join(appCfg.ServiceMonitor.ChecksDir, fh.Filename)
+		if stat, err := os.Stat(path); err == nil {
+			Logger.WithFields(logrus.Fields{
+				"oldsize":  stat.Size(),
+				"newsize":  fh.Size,
+				"filename": fh.Filename,
+			}).Warn("Overwriting script file")
+		}
+
+		out, err := os.OpenFile(path, os.O_WRONLY|os.O_CREATE|os.O_TRUNC, 0755)
+		if err != nil {
+			return err
+		}
+		defer out.Close()
+		_, err = io.Copy(out, f)
+		return err
+	}
+
+	for i, fh := range fhs {
+		Logger.Debugf("Processing file [%d of %d] %q", i, len(fhs), fh.Filename)
+		if err := processFile(fh); err != nil {
+			render.Render(w, r, ErrInternal(
+				errors.WithMessage(err, fmt.Sprintf("file #%d, name=%q", i, fh.Filename))))
+			return
+		}
+	}
+	w.WriteHeader(http.StatusCreated)
+}
+
+func DeleteScript(w http.ResponseWriter, r *http.Request) {
+	path := filepath.Join(appCfg.ServiceMonitor.ChecksDir, chi.URLParam(r, "name"))
+
+	if err := os.Remove(path); err != nil {
+		render.Render(w, r, ErrInternal(err))
+		return
+	}
+	w.WriteHeader(http.StatusNoContent)
+}
+
+func RunScriptTest(w http.ResponseWriter, r *http.Request) {
+	dir := appCfg.ServiceMonitor.ChecksDir
+	path := filepath.Join(dir, chi.URLParam(r, "name"))
+	abspath, err := filepath.Abs(path)
+	if err != nil {
+		render.Status(r, http.StatusBadRequest)
+		render.PlainText(w, r, err.Error())
+		return
+	}
+
+	args := []string{}
+	if err := render.DecodeJSON(r.Body, &args); err != nil {
+		render.Status(r, http.StatusBadRequest)
+		render.PlainText(w, r, err.Error())
+		return
+	}
+
+	buf := &bytes.Buffer{}
+	cmd := exec.Command(abspath, args...)
+	cmd.Dir = dir
+	cmd.Stdout, cmd.Stderr = buf, buf
+
+	err = cmd.Start()
+	if err != nil {
+		render.Status(r, http.StatusInternalServerError)
+		render.PlainText(w, r, "unable to run command: "+err.Error())
+		return
+	}
+
+	code, status := getCmdResult(cmd, appCfg.ServiceMonitor.Timeout)
+
+	// NOTE(tbutts): If the command is killed by timeout, internal stdout/err buffers can't
+	// be finalized properly by the os/exec package, leaving null bytes in our buffer.
+	// This routine cleans them up.
+	if status == models.ExitStatusTimeout {
+		b := buf.Bytes()
+		offset := bytes.IndexByte(b, '\x00')
+		Logger.Debugf(`len=%d, offset to nul=%d`, buf.Len(), offset)
+		buf.Truncate(offset)
+	}
+
+	msg := fmt.Sprintf("[%s] exit code: %v", status, code)
+	buf.WriteString(msg + "\n")
+
+	// send stdout + stderr from the command to the user
+	render.PlainText(w, r, buf.String())
+
+	// also log the script run on the server
+	log := Logger.WithFields(logrus.Fields{"script": path, "args": args, "status": msg})
+	if code > 0 {
+		log.Warn("script test run failed")
+	} else {
+		log.Info("script test run passed")
+	}
 }
 
 // Scoring graphs
