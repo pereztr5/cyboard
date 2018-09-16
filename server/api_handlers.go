@@ -23,6 +23,10 @@ import (
 	"golang.org/x/crypto/bcrypt"
 )
 
+// Reusable API functions
+//
+// Covers HTTP GET, POST, PUT, and DELETE for most models.
+
 // ApiQuery is a helper for HTTP GET operations for most models.
 // It handles responding to the API user with the results of a db query,
 // and handling of non-nil errors if they arise.
@@ -111,6 +115,8 @@ func ApiDelete(w http.ResponseWriter, r *http.Request, v models.Deleter) {
 	w.WriteHeader(http.StatusNoContent)
 }
 
+// General Public API Methods (login, health check, public GETs)
+
 func PingHandler(w http.ResponseWriter, r *http.Request) {
 	if err := PingDB(r.Context()); err != nil {
 		Logger.WithError(err).Errorf("PingHandler: DB is down")
@@ -154,6 +160,8 @@ func GetServicesStatuses(w http.ResponseWriter, r *http.Request) {
 	ApiQuery(w, r, services, err)
 }
 
+// Blueteam API methods (view & submit challenges)
+
 func GetPublicChallenges(w http.ResponseWriter, r *http.Request) {
 	chals, err := models.AllPublicChallenges(db)
 	ApiQuery(w, r, chals, err)
@@ -182,6 +190,14 @@ func SubmitFlag(w http.ResponseWriter, r *http.Request) {
 	}
 	render.JSON(w, r, flagState)
 }
+
+// User/Team management (admin-only):
+//
+// * get team configurations from the db
+// * add several blue teams at once via JSON
+// * add one staff team via JSON
+// * update/delete teams
+// JSON "password" fields will be saved as a hash+salt, and can never be retrieved.
 
 func GetAllTeams(w http.ResponseWriter, r *http.Request) {
 	teams, err := models.AllTeams(db)
@@ -246,23 +262,42 @@ func AddBlueteams(w http.ResponseWriter, r *http.Request) {
 	ApiCreate(w, r, batch)
 }
 
-type TeamUpdateRequest struct {
+type TeamModRequest struct {
 	*models.Team
 	Password *string `json:"password,omitempty"` // Becomes the `Hash` column
 }
 
-func (tr *TeamUpdateRequest) Bind(r *http.Request) error {
+// Bind satisfies the go-chi/render#Binder interface, which does post-decode
+// validation & transforms on JSON/XML request bodies.
+//
+// For a TeamModRequest, "PUT" reqs are not required to update the password/hash
+// of the team, because it is impossible to recover.
+func (tr *TeamModRequest) Bind(r *http.Request) error {
 	if tr.Team == nil {
-		return errors.New("missing required team fields")
+		return errors.New("missing required team fields: 'name', 'role_name'")
+	} else if tr.Name == "" {
+		return errors.New(`empty field: 'name'`)
+	} else if tr.RoleName == models.TeamRoleUnspecified {
+		return errors.New(`empty field: 'role_name'`)
 	}
-
 	tr.Team.Hash = nil
-	if tr.Password != nil {
-		// If a password is specified, it at least can't be empty
-		if *tr.Password == "" {
+
+	hasPW := tr.Password != nil
+
+	switch r.Method {
+	default:
+		// POST: must specify password
+		if !hasPW || *tr.Password == "" {
 			return errors.New("empty field: 'password'")
 		}
+	case "PUT":
+		// PUT: If a password is specified, it at least can't be empty
+		if hasPW && *tr.Password == "" {
+			return errors.New("empty field: 'password'")
+		}
+	}
 
+	if hasPW {
 		hash, err := bcrypt.GenerateFromPassword([]byte(*tr.Password), bcrypt.DefaultCost)
 		if err != nil {
 			return err
@@ -273,8 +308,13 @@ func (tr *TeamUpdateRequest) Bind(r *http.Request) error {
 	return nil
 }
 
+func AddTeam(w http.ResponseWriter, r *http.Request) {
+	team := &TeamModRequest{}
+	ApiCreate(w, r, team)
+}
+
 func UpdateTeam(w http.ResponseWriter, r *http.Request) {
-	team := &TeamUpdateRequest{}
+	team := &TeamModRequest{}
 	ApiUpdate(w, r, team)
 }
 
@@ -282,6 +322,13 @@ func DeleteTeam(w http.ResponseWriter, r *http.Request) {
 	team := &models.Team{}
 	ApiDelete(w, r, team)
 }
+
+// Bonus Points API
+// Allows arbitrary point awards/deductions, stored in the "other_points" db table.
+// JSON input should give a list of team ids, point value, and a reason string.
+//
+// There is no formal way to `undo` these, just do another bonus with
+// the negated point value and the reason "reverting bonus because of 'thing'".
 
 type BonusPointsRequest struct {
 	*models.OtherPoints
@@ -596,7 +643,7 @@ func RunScriptTest(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
-// Scoring graphs
+// Scoring analytics & graphs (admin-only)
 
 func GetBreakdownOfSubmissionsPerFlag(w http.ResponseWriter, r *http.Request) {
 	brkdwn, err := models.ChallengeCapturesPerFlag(db)

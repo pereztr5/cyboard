@@ -2,6 +2,7 @@
 package models
 
 import (
+	"fmt"
 	"time"
 
 	"github.com/pkg/errors"
@@ -145,7 +146,8 @@ func (cs ChallengeSlice) Insert(db TXer) error {
 	for _, c := range cs {
 		err := c.Insert(tx)
 		if err != nil {
-			return errors.Wrapf(err, "insert challenges (challenge=%q)", c.Name)
+			return errors.WithMessage(err,
+				fmt.Sprintf("insert challenges (challenge=%q)", c.Name))
 		}
 	}
 	return tx.Commit()

@@ -10,6 +10,9 @@ import (
 type TeamRole uint16
 
 const (
+	// TeamRoleUnspecified is an invalid TeamRole, likely bad user input.
+	TeamRoleUnspecified = TeamRole(0)
+
 	// TeamRoleAdmin is the 'admin' TeamRole.
 	TeamRoleAdmin = TeamRole(1)
 

@@ -99,6 +99,7 @@ func CreateWebRouter(teamScoreUpdater, servicesUpdater *broadcastHub) chi.Router
 
 		admin.Route("/teams", func(r chi.Router) {
 			r.Get("/", GetAllTeams)
+			r.Post("/", AddTeam)
 
 			r.Route("/{id}", func(r chi.Router) {
 				r.Use(RequireIdParam)

@@ -341,7 +341,7 @@ func (m *Monitor) Run(event *EventSettings, srvmon *ServiceMonitorSettings) {
 		m.Unlock()
 
 		if err := models.ServiceCheckSlice(resultsBuf).Insert(db); err != nil {
-			// Try *really hard* to not unrecoverable lose scoring data.
+			// Try *really hard* to not lose unrecoverable scoring data.
 			err = monitorRetryWithBackoff(func() error {
 				err := models.ServiceCheckSlice(resultsBuf).Insert(db)
 				return err

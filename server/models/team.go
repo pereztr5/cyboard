@@ -2,6 +2,8 @@
 package models
 
 import (
+	"fmt"
+
 	"github.com/pkg/errors"
 )
 
@@ -93,7 +95,7 @@ func AllTeams(db DB) ([]Team, error) {
 	for rows.Next() {
 		t := Team{}
 		if err = rows.Scan(&t.ID, &t.Name, &t.RoleName, &t.Disabled, &t.BlueteamIP); err != nil {
-			return nil, errors.Wrapf(err, "AllTeams (team=%q)", t.Name)
+			return nil, errors.WithMessage(err, fmt.Sprintf("get all teams (team=%q)", t.Name))
 		}
 		ts = append(ts, t)
 	}
@@ -127,7 +129,7 @@ func (teams BlueTeamStoreSlice) Insert(db TXer) error {
 	for _, t := range teams {
 		_, err = tx.Exec(sqlstr, t.Name, t.BlueteamIP, t.Hash)
 		if err != nil {
-			return errors.Wrapf(err, "insert bluteams (team=%q)", t.Name)
+			return errors.WithMessage(err, fmt.Sprintf("insert bluteams (team=%q)", t.Name))
 		}
 	}
 	return tx.Commit()
