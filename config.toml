@@ -36,6 +36,8 @@ https_port = "8081"
 #cert = "certs/cert.pem"
 #key = "certs/key.pem"
 
+# Where are supplementary ctf files located?
+ctf_file_dir = "data/ctf"
 
 [service_monitor]
 # This section is for the "checks" command.
@@ -47,7 +49,7 @@ intervals = "15s"
 timeout = "5s"
 
 # Where are script files located?
-checks_dir = "scripts"
+checks_dir = "data/scripts"
 
 # To target teams' infrastructure, the service monitor will use this 3-octet IP component,
 # and get the final octet from the team's config (assigned through the web gui).

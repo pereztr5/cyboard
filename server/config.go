@@ -59,13 +59,16 @@ type ServerSettings struct {
 	HTTPSPort   string `mapstructure:"https_port"`
 	CertPath    string `mapstructure:"cert"`
 	CertKeyPath string `mapstructure:"key"`
+
+	CtfFileDir string `mapstructure:"ctf_file_dir"`
 }
 
 type ServiceMonitorSettings struct {
-	ChecksDir string `mapstructure:"checks_dir"`
 	BaseIP    string `mapstructure:"base_ip_prefix"`
 	Intervals time.Duration
 	Timeout   time.Duration
+
+	ChecksDir string `mapstructure:"checks_dir"`
 }
 
 // Validate checks for constraints on the config, including: Event start is after event end,

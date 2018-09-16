@@ -55,6 +55,12 @@ func CreateWebRouter(teamScoreUpdater, servicesUpdater *broadcastHub) chi.Router
 		blue.Use(RequireLogin)
 		blue.Get("/challenges", GetPublicChallenges)
 		blue.Post("/challenges", SubmitFlag)
+
+		blue.Route("/challenges/{id}/files", func(r chi.Router) {
+			r.Use(RequireIdParam)
+			r.Get("/", CtfFileMgr.GetFileList)
+			r.Get("/{name}", CtfFileMgr.GetFile)
+		})
 	})
 
 	// Staff API to view & edit the CTF event
@@ -72,6 +78,15 @@ func CreateWebRouter(teamScoreUpdater, servicesUpdater *broadcastHub) chi.Router
 				r.Get("/", GetFlagByID)
 				r.Put("/", UpdateFlag)
 				r.Delete("/", DeleteFlag)
+
+				// `<host>/api/ctf/flags/4/files/suspicious.pdf`
+				r.Route("/files", func(r chi.Router) {
+					r.Get("/", CtfFileMgr.GetFileList)
+					r.Post("/", CtfFileMgr.SaveFile)
+
+					r.Get("/{name}", CtfFileMgr.GetFile)
+					r.Delete("/{name}", CtfFileMgr.DeleteFile)
+				})
 			})
 		})
 	})
@@ -108,12 +123,12 @@ func CreateWebRouter(teamScoreUpdater, servicesUpdater *broadcastHub) chi.Router
 		})
 
 		admin.Route("/scripts", func(r chi.Router) {
-			r.Get("/", GetScriptsList)
-			r.Post("/", SaveScripts)
+			r.Get("/", ScriptMgr.GetFileList)
+			r.Post("/", ScriptMgr.SaveFile)
 
 			r.Route("/{name}", func(r chi.Router) {
-				r.Get("/", GetScriptByName)
-				r.Delete("/", DeleteScript)
+				r.Get("/", ScriptMgr.GetFile)
+				r.Delete("/", ScriptMgr.DeleteFile)
 
 				r.Post("/run", RunScriptTest)
 			})

@@ -11,6 +11,7 @@ import (
 	"os/exec"
 	"path/filepath"
 	"reflect"
+	"strconv"
 	"time"
 
 	"github.com/go-chi/chi"
@@ -344,6 +345,19 @@ func DeleteFlag(w http.ResponseWriter, r *http.Request) {
 	ApiDelete(w, r, challenge)
 }
 
+// CTF File Management
+// Files served with a given ctf challenge. e.g. `crackme` binaries, encrypted messages, etc.
+
+var CtfFileMgr = FSContentManager{
+	maxSize: 32 << 20, // Accept up to 32MB files
+	mode:    0644,
+	pathBuilder: func(r *http.Request) string {
+		base := appCfg.Server.CtfFileDir
+		ctfID := strconv.Itoa(getCtxIdParam(r))
+		return filepath.Join(base, ctfID)
+	},
+}
+
 // Service Configuration
 
 func GetAllServices(w http.ResponseWriter, r *http.Request) {
@@ -405,8 +419,14 @@ type FileInfo struct {
 	ModTime time.Time `json:"mod_time"` // modification time
 }
 
-func GetScriptsList(w http.ResponseWriter, r *http.Request) {
-	fis, err := ioutil.ReadDir(appCfg.ServiceMonitor.ChecksDir)
+type FSContentManager struct {
+	maxSize     int64
+	mode        os.FileMode
+	pathBuilder func(*http.Request) string
+}
+
+func (cm FSContentManager) GetFileList(w http.ResponseWriter, r *http.Request) {
+	fis, err := ioutil.ReadDir(cm.pathBuilder(r))
 	if err != nil {
 		render.Render(w, r, ErrInvalidRequest(err))
 		return
@@ -420,28 +440,39 @@ func GetScriptsList(w http.ResponseWriter, r *http.Request) {
 	render.JSON(w, r, infos)
 }
 
-func GetScriptByName(w http.ResponseWriter, r *http.Request) {
+func (cm FSContentManager) GetFile(w http.ResponseWriter, r *http.Request) {
 	name := chi.URLParam(r, "name")
-	file, err := http.Dir(appCfg.ServiceMonitor.ChecksDir).Open(name)
+	file, err := http.Dir(cm.pathBuilder(r)).Open(name)
 	if err != nil {
-		render.Render(w, r, ErrInvalidRequest(err))
+		render.Render(w, r, ErrNotFound)
 		return
 	}
 	defer file.Close()
 	info, err := file.Stat()
 	if err != nil {
-		render.Render(w, r, ErrInvalidRequest(err))
+		render.Render(w, r, ErrInternal(err))
 		return
 	} else if info.IsDir() {
-		render.Render(w, r, ErrInvalidBecause("stop"))
+		render.Render(w, r, ErrInvalidRequest(errors.New("path is a directory")))
 		return
 	}
 
 	http.ServeContent(w, r, name, info.ModTime(), file)
 }
 
-func SaveScripts(w http.ResponseWriter, r *http.Request) {
-	err := r.ParseMultipartForm(100 << 20) // accept 100MB
+func (cm FSContentManager) SaveFile(w http.ResponseWriter, r *http.Request) {
+	dir := cm.pathBuilder(r)
+
+	if _, err := os.Stat(dir); err != nil {
+		err = os.MkdirAll(dir, 0755)
+		if err != nil {
+			render.Render(w, r, ErrInternal(
+				errors.WithMessage(err, "unable to make internal content dir")))
+			return
+		}
+	}
+
+	err := r.ParseMultipartForm(cm.maxSize)
 	if err != nil {
 		render.Render(w, r, ErrInvalidRequest(err))
 		return
@@ -458,16 +489,17 @@ func SaveScripts(w http.ResponseWriter, r *http.Request) {
 			return err
 		}
 		defer f.Close()
-		path := filepath.Join(appCfg.ServiceMonitor.ChecksDir, fh.Filename)
+		path := filepath.Join(dir, fh.Filename)
 		if stat, err := os.Stat(path); err == nil {
 			Logger.WithFields(logrus.Fields{
+				"reqpath":  r.URL.Path,
 				"oldsize":  stat.Size(),
 				"newsize":  fh.Size,
 				"filename": fh.Filename,
-			}).Warn("Overwriting script file")
+			}).Warn("Overwriting file")
 		}
 
-		out, err := os.OpenFile(path, os.O_WRONLY|os.O_CREATE|os.O_TRUNC, 0755)
+		out, err := os.OpenFile(path, os.O_WRONLY|os.O_CREATE|os.O_TRUNC, cm.mode)
 		if err != nil {
 			return err
 		}
@@ -476,7 +508,8 @@ func SaveScripts(w http.ResponseWriter, r *http.Request) {
 		return err
 	}
 
-	for i, fh := range fhs {
+	for i := 1; i <= len(fhs); i++ {
+		fh := fhs[i-1]
 		Logger.Debugf("Processing file [%d of %d] %q", i, len(fhs), fh.Filename)
 		if err := processFile(fh); err != nil {
 			render.Render(w, r, ErrInternal(
@@ -487,8 +520,8 @@ func SaveScripts(w http.ResponseWriter, r *http.Request) {
 	w.WriteHeader(http.StatusCreated)
 }
 
-func DeleteScript(w http.ResponseWriter, r *http.Request) {
-	path := filepath.Join(appCfg.ServiceMonitor.ChecksDir, chi.URLParam(r, "name"))
+func (cm FSContentManager) DeleteFile(w http.ResponseWriter, r *http.Request) {
+	path := filepath.Join(cm.pathBuilder(r), chi.URLParam(r, "name"))
 
 	if err := os.Remove(path); err != nil {
 		render.Render(w, r, ErrInternal(err))
@@ -497,20 +530,31 @@ func DeleteScript(w http.ResponseWriter, r *http.Request) {
 	w.WriteHeader(http.StatusNoContent)
 }
 
+var ScriptMgr = FSContentManager{
+	maxSize: 100 << 20, // Up to 100MB files
+	mode:    0755,
+	pathBuilder: func(*http.Request) string {
+		return appCfg.ServiceMonitor.ChecksDir
+	},
+}
+
 func RunScriptTest(w http.ResponseWriter, r *http.Request) {
 	dir := appCfg.ServiceMonitor.ChecksDir
 	path := filepath.Join(dir, chi.URLParam(r, "name"))
 	abspath, err := filepath.Abs(path)
 	if err != nil {
-		render.Status(r, http.StatusBadRequest)
-		render.PlainText(w, r, err.Error())
+		render.Render(w, r, ErrInvalidRequest(err))
 		return
 	}
 
 	args := []string{}
 	if err := render.DecodeJSON(r.Body, &args); err != nil {
-		render.Status(r, http.StatusBadRequest)
-		render.PlainText(w, r, err.Error())
+		if err == io.EOF {
+			render.Render(w, r, ErrInvalidRequest(
+				errors.New("request body must be array of script args (include '[]')")))
+		} else {
+			render.Render(w, r, ErrInvalidRequest(err))
+		}
 		return
 	}
 
@@ -521,8 +565,7 @@ func RunScriptTest(w http.ResponseWriter, r *http.Request) {
 
 	err = cmd.Start()
 	if err != nil {
-		render.Status(r, http.StatusInternalServerError)
-		render.PlainText(w, r, "unable to run command: "+err.Error())
+		render.Render(w, r, ErrInternal(errors.WithMessage(err, "unable to run command")))
 		return
 	}
 

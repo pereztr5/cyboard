@@ -17,7 +17,7 @@ import (
 const (
 	DefaultRotateSize = 100 // MB
 	DefaultMaxBackups = 10
-	LogDir            = "log"
+	LogDir            = "data/log"
 
 	applicationLogName   = "server.log"
 	capturedFlagsLogName = "captured_flags.log"

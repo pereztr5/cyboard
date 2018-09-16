@@ -7,8 +7,8 @@ cyboard
 vendor/
 
 # Default cyboard dirs
-log/
-scripts/
+# Includes: logs/, scripts/, ctf/
+data/
 
 # Secrets
 *.pem
