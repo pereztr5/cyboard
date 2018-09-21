@@ -342,11 +342,13 @@ func GrantBonusPoints(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	now := time.Now()
 	cnt := len(batch.TeamIDs)
 	bonus := make(models.OtherPointsSlice, cnt, cnt)
 	for idx, teamID := range batch.TeamIDs {
 		bonus[idx] = *batch.OtherPoints
 		bonus[idx].TeamID = teamID
+		bonus[idx].CreatedAt = now
 	}
 	if err := bonus.Insert(db); err != nil {
 		render.Render(w, r, ErrInternal(err))

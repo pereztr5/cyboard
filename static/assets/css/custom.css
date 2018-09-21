@@ -100,6 +100,3 @@ table.scores-table {
     table-layout: fixed;
 }
 
-table.scores-table > thead > tr > th:first-child {
-    width: 5%;
-}

@@ -14,7 +14,7 @@
 <body>
     {{- template "navbar"  . -}}
     {{- if .Error }}
-        {{- template "oopsie" }}
+        {{- template "oopsie" . }}
     {{- else }}
         {{-    block "content" . -}}{{ end }}
     {{- end }}

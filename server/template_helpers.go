@@ -20,10 +20,14 @@ func buildHelperMap() template.FuncMap {
 }
 
 func isAdmin(t *models.Team) bool {
-	return t.RoleName == models.TeamRoleAdmin
+	return t != nil && t.RoleName == models.TeamRoleAdmin
 }
 
 func isCtfStaff(t *models.Team) bool {
+	if t == nil {
+		return false
+	}
+
 	switch t.RoleName {
 	case models.TeamRoleAdmin, models.TeamRoleCtfCreator:
 		return true
@@ -33,5 +37,5 @@ func isCtfStaff(t *models.Team) bool {
 }
 
 func isBlueteam(t *models.Team) bool {
-	return t.RoleName == models.TeamRoleBlueteam
+	return t != nil && t.RoleName == models.TeamRoleBlueteam
 }

@@ -118,9 +118,9 @@ func ShowChallenges(w http.ResponseWriter, r *http.Request) {
 func ShowScoreboard(w http.ResponseWriter, r *http.Request) {
 	page := getPage(r, "scoreboard")
 
-	teamScores, err := models.TeamsScores(db)
+	teamsScores, err := models.TeamsScores(db)
 	page.checkErr(err, "team scores")
-	page.Data = M{"TeamScores": teamScores}
+	page.Data = M{"TeamsScores": teamsScores}
 
 	renderTemplate(w, page)
 }
