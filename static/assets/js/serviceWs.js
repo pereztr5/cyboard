@@ -1,32 +1,45 @@
 $(function() {
-    const stat = document.getElementById('status');
-    const conn = new WebSocket('wss://' + window.location.host + '/api/public/services/live');
+    const protocol = location.protocol === 'https:' ? 'wss:' : 'ws:';
+    const endpoint = `${protocol}//${window.location.host}/api/public/services/live`;
+    const conn = new WebSocket(endpoint);
+
     conn.onclose = (evt) => {
-        stat.textContent = 'Connection closed';
+        const $statusNode = $('#status');
+        $statusNode.textContent = 'Connection closed';
     };
     conn.onmessage = (evt) => {
         results = JSON.parse(evt.data);
-        appendScores(results)
+        sync_services(results)
     };
-
 });
 
-function appendScores(res) {
-    const icons = 'fa-arrow-circle-up fa-arrow-circle-down fa-exclamation-circle fa-question-circle-o text-success text-danger text-warning text-muted blink';
-    res.forEach((resp) => {
-        const group = $('div').find('[data-check="' + resp.service_id + '"]');
-        r.statuses.forEach((status, idx) => {
-            const stat = group.find('[data-team=' + idx + ']');
-            stat.removeClass(icons);
+function sync_services(data) {
+    /* data looks like: [{
+        "service_id":1,
+        "service_name":"WWW Content",
+        "statuses": ["partial", "pass", ...],
+     },
+     {...}, ...]
+    */
+    data.forEach(service => {
+        const $group = $('div').find(`[data-check="${service.service_id}"]`);
+        service.statuses.forEach((status, idx) => {
+            const $statusBox = $group.find(`[data-team=${idx}]`);
+
+            // If the status hasn't changed, skip past this box/node.
+            if($statusBox.attr('data-status') === status) {
+                return;
+            }
 
             let newIcon;
             switch(status) {
             case 'pass': newIcon = 'fa-arrow-circle-up text-success'; break;
             case 'fail': newIcon = 'fa-arrow-circle-down text-danger blink'; break;
             case 'partial': newIcon = 'fa-exclamation-circle text-warning'; break;
-            default:     newIcon = 'fa-question-circle-o text-muted'; break;
+            default:     newIcon = 'fa-question-circle text-muted'; break;
             }
-            stat.addClass(newIcon);
+            $statusBox.attr('class', `fa ${newIcon}`)
+                      .attr('data-status', status);
         });
     });
 }

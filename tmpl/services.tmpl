@@ -12,9 +12,9 @@
             {{- range $team := .Data.Teams }}
             <div class='square-box'>
                 <div class='square-content labels'>
-                    <div>
+                    <div><span>
                         <small>{{ $team.Name }}</small>
-                    </div>
+                    </span></div>
                 </div>
             </div>
             {{- end }}
@@ -37,7 +37,7 @@
                         {{- else if eq . "partial" }} fa-exclamation-circle text-warning
                         {{- else }} fa-question-circle text-muted
                         {{- end }}{{ end }}"
-                        data-team={{ $idx }} aria-hidden="true">
+                        data-team={{$idx}} data-status={{$status}} aria-hidden="true">
                     </span></div>
                 </div>
             </div>

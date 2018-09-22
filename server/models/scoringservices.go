@@ -81,13 +81,13 @@ type TeamServiceStatusesView struct {
 func TeamServiceStatuses(db DB) ([]TeamServiceStatusesView, error) {
 	const sqlstr = `
 	SELECT ss.service, ss.service_name, jsonb_agg(ss.status) AS statuses
-	FROM blueteam AS team,
+	FROM (SELECT * FROM blueteam AS team,
 	LATERAL (SELECT id AS service, name AS service_name, COALESCE(last(sc.status, sc.created_at), 'timeout') AS status
 		FROM service
 			LEFT JOIN service_check AS sc ON id = sc.service_id AND team.id = sc.team_id
 		WHERE service.disabled = false
-		GROUP BY service.id, team.name
-		ORDER BY service.id, team.id) AS ss
+		GROUP BY service.id, team.name) AS ss
+		ORDER BY ss.service, team.id) AS ss
 	GROUP BY ss.service, ss.service_name`
 	rows, err := db.Query(sqlstr)
 	if err != nil {
