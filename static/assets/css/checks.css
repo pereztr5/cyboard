@@ -1,74 +1,94 @@
-.square-box {
-    position: relative;
-    width: 7%;
-    overflow: hidden;
-    float: left;
+.service-statuses,
+.sv-row,
+.sq {
+    display: flex;
+    flex-flow: row nowrap;
+    align-content: center;
+    justify-content: center;
 }
 
-.square-box:before {
-    content: "";
-    display: block;
-    padding-top: 100%;
+.sv-row,
+.sq {
+    flex-flow: column nowrap;
 }
 
-.square-content {
-    position: absolute;
-    top: 0;
-    left: 0;
-    bottom: 0;
-    right: 0;
+.sv-row {
+    flex-basis: 8.0em;
+}
+
+.sv-row .sq:first-child {
+    flex-grow: 1;
+}
+
+.sq-team {
+    align-items: flex-end;
+}
+
+.sq {
     color: white;
     border: 1px solid #252525;
-}
-
-.square-content div {
-    display: table;
-    width: 100%;
-    height: 100%;
-}
-
-.square-content .fa {
-    display: table-cell;
-    text-align: center;
-    vertical-align: middle;
-    font-size: 6vw;
-}
-
-.square-content.labels span,
-.square-content.labels-vert span {
-    display: table-cell;
-    text-align: center;
-    vertical-align: middle;
-    font-size: 1.5vw;
-    border: 0;
-}
-
-.square-content.labels,
-.square-content.labels-vert {
-    border: 0;
-    text-shadow: 1px 1px 10px #888;
     font-weight: bold;
+    text-align: center;
+
+    min-height: 2.5em;
+    min-width: 4em;
 }
 
-.square-content.labels span {
-    vertical-align: center;
-    transform: rotate(-60deg);
+.sq-label {
+    border: 0;
+    padding: 0 .4em;
+    text-shadow: 1px 1px 10px #888;
 }
 
-.square-content.labels span .teamnumber {
-    color: #5DFC0A;
+.sq .fa {
+    font-size: 2.25em;
 }
 
-.square-content.labels-vert span {
-    text-align: right;
-    padding-right: 5px;
+.invisible {
+    opacity: 0;
 }
 
-.group:after {
-    content: "";
-    display: table;
-    clear: both;
+@media (max-width: 768px) {
+    /* Transpose services display matrix */
+    .service-statuses {
+        flex-flow: column wrap;
+        display: inline-flex;
+        align-content: flex-start;
+    }
+    .sv-row {
+        flex-flow: row nowrap;
+        flex-basis: auto;
+        justify-content: flex-start;
+    }
+
+    /* adjust row sizes, add banding effect, tilt team names upwards */
+    .sq {
+        font-size: 0.8em;
+        min-height: 4em;
+    }
+    .sq .fa {
+        font-size: 3em;
+    }
+    .sv-row:nth-child(even) {
+        background-color: #141414;
+    }
+    .sq-team {
+        transform: rotate(-80deg);
+    }
 }
+
+/* Phonies */
+@media (max-width: 450px) {
+    .sq {
+        font-size: .6em;
+        min-height:5em;
+    }
+
+    .sq-service {
+        font-size: .74em;
+    }
+}
+
 
 .blink {
     animation-name: blink;
@@ -81,40 +101,4 @@
     0%   { opacity: 1.0; }
     50%  { opacity: 0.0; }
     100% { opacity: 1.0; }
-}
-
-@media (min-width: 320px) {
-    .square-box {
-        width: 6%;
-    }
-    .square-content .fa {
-        font-size: 4.5vw;
-    }
-}
-
-@media (min-width: 768px) {
-    .square-box {
-        width: 7.6%;
-    }
-    .square-content .fa {
-        font-size: 4.1vw;
-    }
-}
-
-@media (max-width: 992px) {
-    .square-content.labels span {
-        font-size: 1.2vw;
-    }
-}
-
-@media (min-width: 1200px) {
-    .square-box {
-        width: 72px;
-    }
-    .square-content .fa {
-        font-size: 53px;
-    }
-    .square-content.labels-vert span {
-        font-size: 17px;
-    }
 }

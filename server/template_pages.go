@@ -33,7 +33,10 @@ func (p *Page) checkErr(err error, target string) {
 			"title":  p.Title,
 			"target": target,
 		}).Error("unable to get data to render page")
-		p.Error = err
+
+		if p.Error == nil {
+			p.Error = err
+		}
 	}
 }
 
@@ -116,11 +119,18 @@ func ShowChallenges(w http.ResponseWriter, r *http.Request) {
 }
 
 func ShowScoreboard(w http.ResponseWriter, r *http.Request) {
+	var err error
 	page := getPage(r, "scoreboard")
+	page.Data = make(map[string]interface{})
 
-	teamsScores, err := models.TeamsScores(db)
+	page.Data["TeamsScores"], err = models.TeamsScores(db)
 	page.checkErr(err, "team scores")
-	page.Data = M{"TeamsScores": teamsScores}
+
+	page.Data["Teams"], err = models.AllBlueteams(db)
+	page.checkErr(err, "all blue teams")
+
+	page.Data["Statuses"], err = models.TeamServiceStatuses(db)
+	page.checkErr(err, "all teams' service statuses")
 
 	renderTemplate(w, page)
 }

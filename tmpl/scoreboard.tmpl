@@ -1,8 +1,45 @@
 {{ define "content" }}
-<h3 class="page-header">{{ title .Title }}</h3>
+{{/* close container, this page is full-width */}}
+</div>
 
-<div id="hc_scoreboard">{{/* Init in assets/js/hc_scoreboard.js */}}</div>
+<div class="fullscreen">
 
+    <div id="hc_scoreboard">{{/* Init in assets/js/hc_scoreboard.js */}}</div>
+    <noscript>{{ template "noscript-scoreboard" . }}</noscript>
+
+    <div class="service-statuses">
+        <div class="sv-row">
+            <div class="sq sq-label invisible">teams</div>
+            {{- range $team := .Data.Teams }}
+            <div class="sq sq-label sq-team">{{ $team.Name }}</div>
+            {{- end }}
+        </div>
+
+        {{- range $service_statuses := .Data.Statuses }}
+        <div class="sv-row" data-check='{{ $service_statuses.ServiceID }}'>
+            <div class="sq sq-label sq-service">{{ $service_statuses.ServiceName }}</div>
+            {{- range $idx, $status := $service_statuses.Statuses }}
+            <div class="sq">
+                <span class="fa
+                    {{- with $status.String }}
+                    {{-      if eq . "pass" }} fa-arrow-circle-up text-success
+                    {{- else if eq . "fail" }} fa-arrow-circle-down text-danger blink
+                    {{- else if eq . "partial" }} fa-exclamation-circle text-warning
+                    {{- else }} fa-question-circle text-muted
+                    {{- end }}{{ end }}"
+                    data-team={{$idx}} data-status={{$status}} aria-hidden="true">
+                </span>
+            </div>
+            {{- end }}
+        </div>
+        {{- end }}
+    </div>
+</div>
+
+<div class="container">
+{{ end }}
+
+{{ define "noscript-scoreboard" }}
 <table class="table table-striped table-hover scores-table">
     <thead>
         <tr>
@@ -29,10 +66,13 @@
 {{ end }}
 
 {{ define "styles" }}
+    <link rel="stylesheet" href="/assets/css/checks.css">
 {{ end }}
 
 {{ define "scripts" }}
     <script src="/assets/highcharts/highcharts.js"></script>
     <script src="/assets/highcharts/themes/dark-unica.js"></script>
     <script src="/assets/js/hc_scoreboard.js"></script>
+
+    <script src="/assets/js/serviceWs.js"></script>
 {{ end }}
