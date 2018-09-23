@@ -20,12 +20,12 @@ function build_hc_cfg(series, teams) {
             type: 'category',
             categories: teams,
             labels: {
-                align: 'center',
+                autoRotation: [-45, -90],
                 style: {
-                    fontSize: '14pt',
+                    fontSize: '1.2em',
                     fontWeight: 'bold',
                     textOutline: '1px contrast'
-                }
+                },
             },
             tickWidth: 0,
             crosshair: false,
@@ -59,7 +59,7 @@ function build_hc_cfg(series, teams) {
                     enabled: true,
                     formatter: function() { return this.y; },
                     style: {
-                        fontSize: '2.2em',
+                        fontSize: '3.0em',
                     },
                 },
             }
@@ -67,10 +67,9 @@ function build_hc_cfg(series, teams) {
         // Legend is a floating box on the top-right of the chart
         legend: {
             floating: true,
-            verticalAlign: 'top',
-            y: 25,
             align: 'right',
-            x: -30,
+            verticalAlign: 'top',
+            x: -30, y: 25,
             backgroundColor: (Highcharts.theme && Highcharts.theme.background2) || 'gray',
             borderColor: '#CCC',
             borderWidth: 1,
@@ -88,11 +87,44 @@ function build_hc_cfg(series, teams) {
             footerFormat: '</table>',
             hideDelay: 100,
             style: {
-                fontSize: '22pt',
+                fontSize: '2em',
             },
+        },
+
+        responsive: {
+            rules: [{
+                condition: { maxWidth: 720 },
+                chartOptions: {
+                    ...hc_col_fsize('2em'),
+                    yAxis: { title: { text: null }},
+                }
+            }, {
+                condition: { maxWidth: 600 },
+                chartOptions: {
+                    ...hc_col_fsize('1.3em'),
+                    ...hc_xax_fsize('0.7em'),
+                    legend: {
+                        floating: false,
+                        verticalAlign: 'bottom',
+                        align: 'center',
+                        x: 0, y: 0,
+                    },
+                },
+            }, {
+                condition: { maxWidth: 400 },
+                chartOptions: { ...hc_col_fsize('0.8em') }
+            }]
         },
         series: series,
     };
+}
+
+function hc_col_fsize(em) {
+    return { plotOptions: { column: { dataLabels: { style: { fontSize: em }}}}}
+}
+
+function hc_xax_fsize(em) {
+    return { xAxis: { labels: { style: { fontSize: em }}}}
 }
 
 // Get initial chart data, set up columns for teams
@@ -115,7 +147,6 @@ function init_scoreboard_updater_ws() {
     const conn = new WebSocket(endpoint);
     conn.onmessage = function(evt) {
         const results = JSON.parse(evt.data);
-        sync_score_table(results);
         sync_scoreboard(results);
     };
     conn.onclose = function(evt) {
@@ -126,18 +157,6 @@ function init_scoreboard_updater_ws() {
         };
         chart.setSubtitle(warning_subtitle);
     };
-}
-
-function sync_score_table(scores) {
-    Object.keys(scores).map(k => scores[k]).forEach(r => {
-        const row = $('#scoreboard-table').find('#' + r.name);
-        // row.find('.teamnumber').html(r.id);
-        row.find('.teamname').html(r.name);
-        row.find('.points').html(r.score);
-        row.find('.service').html(r.service);
-        row.find('.ctf').html(r.ctf);
-        row.find('.other').html(r.other);
-    });
 }
 
 function sync_scoreboard(res) {

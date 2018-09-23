@@ -20,7 +20,8 @@
     flex-grow: 1;
 }
 
-.sq-team {
+.sq-team,
+.sv-help {
     align-items: flex-end;
 }
 
@@ -42,11 +43,13 @@
 
 .sq .fa {
     font-size: 2.25em;
+    filter: contrast(200%);
 }
 
 .invisible {
     opacity: 0;
 }
+
 
 @media (max-width: 768px) {
     /* Transpose services display matrix */
@@ -74,6 +77,10 @@
     }
     .sq-team {
         transform: rotate(-80deg);
+        max-width: 3.75em;
+    }
+    .sv-help {
+        align-items: center;
     }
 }
 
@@ -90,6 +97,40 @@
 }
 
 
+/* Help popup ('i' icon) */
+.sq-label.sv-help {
+    cursor: help;
+    z-index: 1;
+    background: none;
+    outline: none;
+}
+
+.sv-help-content {
+    display: none;
+
+    flex-direction: column;
+    align-items: start;
+
+    background: #1e1e1e;
+    border: 1em double white;
+    position: absolute;
+
+    font-size: 1.5em;
+    padding: 1em;
+}
+.sv-help:hover  .sv-help-content,
+.sv-help:focus .sv-help-content {
+    display: flex;
+}
+.sv-help-content .fa {
+    text-shadow: none;
+}
+.sv-help-content .explain {
+    font-size: 1.5em;
+    padding: .4em;
+}
+
+
 .blink {
     animation-name: blink;
     animation-duration: 2s;
@@ -99,6 +140,6 @@
 
 @keyframes blink {
     0%   { opacity: 1.0; }
-    50%  { opacity: 0.0; }
+    50%  { opacity: 0.15; }
     100% { opacity: 1.0; }
 }

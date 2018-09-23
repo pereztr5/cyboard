@@ -9,7 +9,10 @@
 
     <div class="service-statuses">
         <div class="sv-row">
-            <div class="sq sq-label invisible">teams</div>
+            <button class="sq sq-label sv-help"><small>
+                <span class="fa fa-info-circle"></span>
+                {{ template "services-display-help" }}
+            </small></button>
             {{- range $team := .Data.Teams }}
             <div class="sq sq-label sq-team">{{ $team.Name }}</div>
             {{- end }}
@@ -63,6 +66,28 @@
     {{- end }}
     </tbody>
 </table>
+{{ end }}
+
+{{ define "services-display-help" }}
+<div class="sv-help-content">
+    <p class="explain">Services Legend:</p>
+    <p>
+        <span class="fa fa-arrow-circle-up text-success"></span>
+        <span class="explain">= running good!</span>
+    </p>
+    <p>
+        <span class="fa fa-arrow-circle-down text-danger"></span>
+        <span class="explain">= down/no response!</span>
+    </p>
+    <p>
+        <span class="fa fa-exclamation-circle text-warning"></span>
+        <span class="explain">= up but misconfigured!</span>
+    </p>
+    <p>
+        <span class="fa fa-question-circle text-muted"></span>
+        <span class="explain">= timeout/routing incorrectly!</span>
+    </p>
+</div>
 {{ end }}
 
 {{ define "styles" }}
