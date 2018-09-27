@@ -30,7 +30,7 @@
                     {{- else if eq . "partial" }} fa-exclamation-circle text-warning
                     {{- else }} fa-question-circle text-muted
                     {{- end }}{{ end }}"
-                    data-team={{$idx}} data-status={{$status}} aria-hidden="true">
+                    data-status={{$status}} aria-hidden="true">
                 </span>
             </div>
             {{- end }}
@@ -85,7 +85,7 @@
     </p>
     <p>
         <span class="fa fa-question-circle text-muted"></span>
-        <span class="explain">= timeout/routing incorrectly!</span>
+        <span class="explain">= timeout/bad routing!</span>
     </p>
 </div>
 {{ end }}
