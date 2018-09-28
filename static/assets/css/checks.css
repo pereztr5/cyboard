@@ -147,3 +147,8 @@
     50%  { opacity: 0.15; }
     100% { opacity: 1.0; }
 }
+
+.no-animate, .no-animate * {
+    animation: none !important;
+}
+

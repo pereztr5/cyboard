@@ -16,6 +16,7 @@ function build_hc_cfg(series, teams) {
         chart: { type: 'column' },
         title: { text: 'Team Scores' },
         subtitle: { text: '(Updates automatically)' },
+        // xAxis is the team names along the bottom
         xAxis: {
             type: 'category',
             categories: teams,
@@ -30,11 +31,13 @@ function build_hc_cfg(series, teams) {
             tickWidth: 0,
             crosshair: false,
         },
+        // yAxis is the left-side Point values
         yAxis: {
             min: 0,
             title: {
                 text: 'Points'
             },
+            // yAxis.stackLabels is the top-of-the-bar point total for each team
             stackLabels: {
                 enabled: true,
                 // Fixes scores above columns from disappearing
@@ -43,17 +46,17 @@ function build_hc_cfg(series, teams) {
                 formatter: function() { return this.total; },
                 style: {
                     color: (Highcharts.theme && Highcharts.theme.contrastTextColor) || 'white',
-                    fontSize: '3.5vw',
+                    fontSize: '3.5em',
                 }
             },
         },
+        // plotOptions.column is the bars themselves, with embedded point labels
+        // (the ones that are always off-center)
         plotOptions: {
             column: {
                 stacking: 'normal',
                 pointPadding: 0,
                 groupPadding: 0.1,
-                // borderWidth: 0,
-                // colorByPoint: true,
                 shadow: true,
                 dataLabels: {
                     enabled: true,
@@ -95,13 +98,15 @@ function build_hc_cfg(series, teams) {
             rules: [{
                 condition: { maxWidth: 720 },
                 chartOptions: {
-                    ...hc_col_fsize('2em'),
+                    ...hc_yax_bar_top_fsize('2.5em'),
+                    ...hc_yax_cat_pts_fsize('2em'),
                     yAxis: { title: { text: null }},
                 }
             }, {
                 condition: { maxWidth: 600 },
                 chartOptions: {
-                    ...hc_col_fsize('1.3em'),
+                    ...hc_yax_bar_top_fsize('1.9em'),
+                    ...hc_yax_cat_pts_fsize('1.3em'),
                     ...hc_xax_fsize('0.7em'),
                     legend: {
                         floating: false,
@@ -112,19 +117,26 @@ function build_hc_cfg(series, teams) {
                 },
             }, {
                 condition: { maxWidth: 400 },
-                chartOptions: { ...hc_col_fsize('0.8em') }
+                chartOptions: {
+                    ...hc_yax_bar_top_fsize('1.0em'),
+                    ...hc_yax_cat_pts_fsize('0.8em'),
+                }
             }]
         },
         series: series,
     };
 }
 
-function hc_col_fsize(em) {
-    return { plotOptions: { column: { dataLabels: { style: { fontSize: em }}}}}
+function hc_yax_bar_top_fsize(em) {
+    return { yAxis: { stackLabels: { style: { fontSize: em }}}};
+}
+
+function hc_yax_cat_pts_fsize(em) {
+    return { plotOptions: { column: { dataLabels: { style: { fontSize: em }}}}};
 }
 
 function hc_xax_fsize(em) {
-    return { xAxis: { labels: { style: { fontSize: em }}}}
+    return { xAxis: { labels: { style: { fontSize: em }}}};
 }
 
 // Get initial chart data, set up columns for teams

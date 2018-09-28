@@ -88,6 +88,9 @@ body {
 
 #hc_scoreboard {
   min-width: 300px;
+  max-width: 1600px;
+  height: 400px;
+  background-color: #333;
   margin: 0 auto;
 }
 

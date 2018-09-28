@@ -1,4 +1,16 @@
 $(function() {
+    serviceAnimationPrefs();
+    initServiceSocket();
+});
+
+// Can disable the red service "blink" effect, which uses a fair amount of CPU.
+function serviceAnimationPrefs() {
+    if (window.localStorage.getItem('anim_prefs') === "true") {
+        $('.service-statuses').addClass('no-animate');
+    }
+}
+
+function initServiceSocket() {
     const protocol = location.protocol === 'https:' ? 'wss:' : 'ws:';
     const endpoint = `${protocol}//${window.location.host}/api/public/services/live`;
     const conn = new WebSocket(endpoint);
@@ -25,7 +37,7 @@ $(function() {
             }
         }
     };
-});
+}
 
 function ErrorTeamSync() {
     this.message = 'teams out of sync';
