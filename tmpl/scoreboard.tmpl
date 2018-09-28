@@ -1,93 +1,20 @@
 {{ define "content" }}
-{{/* close container, this page is full-width */}}
+{{/* close container, this page is a larger width */}}
 </div>
 
 <div class="fullscreen">
-
     <div id="hc_scoreboard">{{/* Init in assets/js/hc_scoreboard.js */}}</div>
-    <noscript>{{ template "noscript-scoreboard" . }}</noscript>
 
-    <div class="service-statuses">
-        <div class="sv-row">
-            <button class="sq sq-label sv-help"><small>
-                <span class="fa fa-info-circle"></span>
-                {{ template "services-display-help" }}
-            </small></button>
-            {{- range $team := .Data.Teams }}
-            <div class="sq sq-label sq-team">{{ $team.Name }}</div>
-            {{- end }}
-        </div>
+    <noscript>
+    <p>If you can't enable Javascript, you can at least get the latest scores <a
+        href="/scoreboard?noscript=true">here</a>
+    </p>
+    </noscript>
 
-        {{- range $service_statuses := .Data.Statuses }}
-        <div class="sv-row" data-check='{{ $service_statuses.ServiceID }}'>
-            <div class="sq sq-label sq-service">{{ $service_statuses.ServiceName }}</div>
-            {{- range $idx, $status := $service_statuses.Statuses }}
-            <div class="sq">
-                <span class="fa
-                    {{- with $status.String }}
-                    {{-      if eq . "pass" }} fa-arrow-circle-up text-success
-                    {{- else if eq . "fail" }} fa-arrow-circle-down text-danger blink
-                    {{- else if eq . "partial" }} fa-exclamation-circle text-warning
-                    {{- else }} fa-question-circle text-muted
-                    {{- end }}{{ end }}"
-                    data-status={{$status}} aria-hidden="true">
-                </span>
-            </div>
-            {{- end }}
-        </div>
-        {{- end }}
-    </div>
+    {{ template "services-display-main" . }}
 </div>
 
 <div class="container">
-{{ end }}
-
-{{ define "noscript-scoreboard" }}
-<table class="table table-striped table-hover scores-table">
-    <thead>
-        <tr>
-            <th>Team</th>
-            <th>Points</th>
-            <th>CTF</th>
-            <th>Services</th>
-            <th>Other</th>
-        </tr>
-    </thead>
-    <tbody id="scoreboard-table">
-    {{- range $team := .Data.TeamsScores }}
-        <tr id="{{ $team.Name }}">
-            {{/* <td class="teamnumber">{{ $team.ID }}</td> */}}
-            <td class="teamname">{{ $team.Name }}</td>
-            <td class="points">{{ $team.Score }}</td>
-            <td class="ctf">{{ $team.Ctf }}</td>
-            <td class="service">{{ $team.Service }}</td>
-            <td class="other">{{ $team.Other }}</td>
-        </tr>
-    {{- end }}
-    </tbody>
-</table>
-{{ end }}
-
-{{ define "services-display-help" }}
-<div class="sv-help-content">
-    <p class="explain">Services Legend:</p>
-    <p>
-        <span class="fa fa-arrow-circle-up text-success"></span>
-        <span class="explain">= running good!</span>
-    </p>
-    <p>
-        <span class="fa fa-arrow-circle-down text-danger"></span>
-        <span class="explain">= down/no response!</span>
-    </p>
-    <p>
-        <span class="fa fa-exclamation-circle text-warning"></span>
-        <span class="explain">= up but misconfigured!</span>
-    </p>
-    <p>
-        <span class="fa fa-question-circle text-muted"></span>
-        <span class="explain">= timeout/bad routing!</span>
-    </p>
-</div>
 {{ end }}
 
 {{ define "styles" }}

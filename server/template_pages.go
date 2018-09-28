@@ -120,11 +120,17 @@ func ShowChallenges(w http.ResponseWriter, r *http.Request) {
 
 func ShowScoreboard(w http.ResponseWriter, r *http.Request) {
 	var err error
-	page := getPage(r, "scoreboard")
-	page.Data = make(map[string]interface{})
+	var page *Page
+	if _, ok := r.URL.Query()["noscript"]; !ok {
+		page = getPage(r, "scoreboard")
+		page.Data = make(map[string]interface{})
+	} else {
+		page = getPage(r, "noscript_scoreboard")
+		page.Data = make(map[string]interface{})
 
-	page.Data["TeamsScores"], err = models.TeamsScores(db)
-	page.checkErr(err, "team scores")
+		page.Data["TeamsScores"], err = models.TeamsScores(db)
+		page.checkErr(err, "team scores")
+	}
 
 	page.Data["Teams"], err = models.AllBlueteams(db)
 	page.checkErr(err, "all blue teams")

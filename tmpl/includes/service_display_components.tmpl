@@ -1,0 +1,55 @@
+{{ define "services-display-help" }}
+<div class="sv-help-content">
+    <p class="explain">Services Legend:</p>
+    <p>
+        <span class="fa fa-arrow-circle-up text-success"></span>
+        <span class="explain">= running good!</span>
+    </p>
+    <p>
+        <span class="fa fa-arrow-circle-down text-danger"></span>
+        <span class="explain">= down/no response!</span>
+    </p>
+    <p>
+        <span class="fa fa-exclamation-circle text-warning"></span>
+        <span class="explain">= up but misconfigured!</span>
+    </p>
+    <p>
+        <span class="fa fa-question-circle text-muted"></span>
+        <span class="explain">= timeout/bad routing!</span>
+    </p>
+</div>
+{{ end }}
+
+{{ define "services-display-main" }}
+    <div class="service-statuses">
+        <div class="sv-row">
+            <button class="sq sq-label sv-help"><small>
+                <span class="fa fa-info-circle"></span>
+                {{ template "services-display-help" }}
+            </small></button>
+            {{- range $team := .Data.Teams }}
+            <div class="sq sq-label sq-team">{{ $team.Name }}</div>
+            {{- end }}
+        </div>
+
+        {{- range $service_statuses := .Data.Statuses }}
+        <div class="sv-row" data-check='{{ $service_statuses.ServiceID }}'>
+            <div class="sq sq-label sq-service">{{ $service_statuses.ServiceName }}</div>
+            {{- range $idx, $status := $service_statuses.Statuses }}
+            <div class="sq">
+                <span class="fa
+                    {{- with $status.String }}
+                    {{-      if eq . "pass" }} fa-arrow-circle-up text-success
+                    {{- else if eq . "fail" }} fa-arrow-circle-down text-danger blink
+                    {{- else if eq . "partial" }} fa-exclamation-circle text-warning
+                    {{- else }} fa-question-circle text-muted
+                    {{- end }}{{ end }}"
+                    data-status={{$status}} aria-hidden="true">
+                </span>
+            </div>
+            {{- end }}
+        </div>
+        {{- end }}
+    </div>
+{{ end }}
+

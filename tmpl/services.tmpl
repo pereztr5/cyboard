@@ -1,51 +1,5 @@
-{{ define "content" -}}
-<h3 class="page-header">{{ title .Title }}</h3>
-<div class="row">
-    <div id="status"></div>
-    <div class="col-md-10 col-md-offset-1 col-sm-10 col-sm-offset-1 col-xs-10 col-xs-offset-1">
-        <div class="group">
-            <div class='square-box'>
-                <div class='square-content labels'>
-                    <div></div>
-                </div>
-            </div>
-            {{- range $team := .Data.Teams }}
-            <div class='square-box'>
-                <div class='square-content labels'>
-                    <div><span>
-                        <small>{{ $team.Name }}</small>
-                    </span></div>
-                </div>
-            </div>
-            {{- end }}
-        </div>
-        {{- range $service_statuses := .Data.Statuses }}
-        <div class='group' data-check='{{ $service_statuses.ServiceID }}'>
-            <div class='square-box'>
-                <div class='square-content labels-vert'>
-                    <div><span>{{ $service_statuses.ServiceName }}</span></div>
-                </div>
-            </div>
-            {{- range $idx, $status := $service_statuses.Statuses }}
-            <div class='square-box'>
-                <div class='square-content'>
-                    <div><span
-                        class="fa
-                        {{- with $status.String }}
-                        {{-      if eq . "pass" }} fa-arrow-circle-up text-success
-                        {{- else if eq . "fail" }} fa-arrow-circle-down text-danger blink
-                        {{- else if eq . "partial" }} fa-exclamation-circle text-warning
-                        {{- else }} fa-question-circle text-muted
-                        {{- end }}{{ end }}"
-                        data-team={{$idx}} data-status={{$status}} aria-hidden="true">
-                    </span></div>
-                </div>
-            </div>
-            {{- end }}
-        </div>
-        {{- end }}
-    </div>
-</div>
+{{ define "content" }}
+{{ template "services-display-main" . }}
 {{ end }}
 
 {{ define "styles" }}
