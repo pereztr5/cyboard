@@ -36,8 +36,7 @@ const (
 
 // ChallengeGuess is a blueteam's attempt to captured a flag. Only the Flag field
 // is required to be set. Leaving Name empty causes the guess to checked against
-// all flags, which is obviously much easier for the blueteams. This was a conscious
-// event design decision.
+// all hidden flags. The Category ane Name are filled in on a successful guess.
 type ChallengeGuess struct {
 	Name     string `json:"name"`     // name
 	Category string `json:"category"` // category
@@ -73,12 +72,12 @@ func CheckFlagSubmission(db TXer, ctx context.Context, team *Team, chal *Challen
 	WHERE `
 
 	// If the flag guess is for a specific flag, only check if that one is correct.
-	// Otherwise, check if any flag has the guessed string value.
+	// Otherwise, check if any hidden/anonymous flags have the guessed string value.
 	if len(chal.Name) > 0 {
 		sqlwhere = `c.hidden = false AND c.flag = $2 AND c.Name = $3`
 		err = tx.QueryRow(sqlstr+sqlwhere, team.ID, chal.Flag, chal.Name).Scan(&challengeID, &chal.Name, &chal.Category, &points, &solverID)
 	} else {
-		sqlwhere = `c.hidden = false AND c.flag = $2`
+		sqlwhere = `c.hidden = true AND c.flag = $2`
 		err = tx.QueryRow(sqlstr+sqlwhere, team.ID, chal.Flag).Scan(&challengeID, &chal.Name, &chal.Category, &points, &solverID)
 	}
 
@@ -114,7 +113,6 @@ func GetTeamCTFProgress(db DB, teamID int) ([]CTFProgress, error) {
 	const sqlstr = `SELECT category, COUNT(solve.team_id) AS amount, COUNT(*) AS max ` +
 		`FROM challenge ` +
 		`LEFT JOIN ctf_solve AS solve ON solve.challenge_id = id AND solve.team_id = $1 ` +
-		`WHERE hidden = false ` +
 		`GROUP BY category`
 
 	rows, err := db.Query(sqlstr, teamID)

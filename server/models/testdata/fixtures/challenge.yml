@@ -10,3 +10,14 @@
   created_at: 2018-06-23 10:09:26.000-04
   modified_at: 2018-06-23 10:09:26.000-04
 
+- id: 2
+  name: No challenge here
+  category: RAD
+  flag: "how am I supposed to know that!"
+  total: 8
+  body: ""
+  hidden: true
+  designer: test_master
+  created_at: 2018-06-23 11:01:00.000-04
+  modified_at: 2018-06-23 11:01:00.000-04
+

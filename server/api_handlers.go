@@ -173,20 +173,30 @@ func SubmitFlag(w http.ResponseWriter, r *http.Request) {
 		render.Render(w, r, ErrInvalidBecause(`Missing form field: 'flag'`))
 		return
 	}
+	anon := guess.Name == ""
 
 	team := getCtxTeam(r)
+	logFields := logrus.Fields{"challenge": guess.Name, "guess": guess.Flag, "team": team.Name}
+	if anon {
+		logFields["challenge"] = "<anonymous>"
+	}
+
 	flagState, err := models.CheckFlagSubmission(db, r.Context(), team, guess)
 	if err != nil {
 		if err == pgx.ErrNoRows {
-			CaptFlagsLogger.WithFields(logrus.Fields{"team": team.Name, "guess": guess.Flag, "challenge": guess.Name}).Println("Bad guess")
+			CaptFlagsLogger.WithFields(logFields).Println("Bad guess")
 		} else {
-			saveCtxErrMsgFields(r, M{"challenge_name": guess.Name, "team": team.Name})
+			saveCtxErrMsgFields(r, M(logFields))
 			render.Render(w, r, ErrInternal(err))
 			return
 		}
 	}
 	if flagState == models.ValidFlag {
-		CaptFlagsLogger.WithFields(logrus.Fields{"team": team.Name, "challenge": guess.Name, "category": guess.Category}).Println("Score!!")
+		logFields["challenge"] = guess.Name    // guess.Name is filled by models.CheckFlagSubmission on success
+		logFields["category"] = guess.Category // Same deal with guess.Category
+		logFields["anon"] = anon               // Mark whether this was an anonymous challenge
+		delete(logFields, "guess")             // But don't need the correct guesses in the log file
+		CaptFlagsLogger.WithFields(logFields).Println("Score!!")
 	}
 	render.JSON(w, r, flagState)
 }

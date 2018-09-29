@@ -8,15 +8,20 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
-/* For these tests, the DB will be loaded with 3 teams and 1 challenge.
-Only one team (team1, id=1) has 'solved' the one challenge.
-Team2 (id=2) has made no progress in the CTF.
-Team3 (id=3) is a disabled team.
+/* For these tests, the DB will be loaded with 3 teams and 2 challenges.
+Challenge 1 (id=1) is public/named/not hidden.
+Challenge 2 (id=2) is anonymous/unnamed/hidden.
+`team1, id=1` has solved challenge 1.
+`team2, id=2` has solved challenge 2.
+`team3, id=3` is a disabled team.
 */
 
 func Test_CheckFlagSubmission(t *testing.T) {
-	teams_already_capped := func() *Team { return &Team{ID: 1, Name: "team1"} }
-	teams_not_capped := func() *Team { return &Team{ID: 2, Name: "team2"} }
+	team_already_capped_named := func() *Team { return &Team{ID: 1, Name: "team1"} }
+	team_not_capped_anon := team_already_capped_named
+
+	team_not_capped_named := func() *Team { return &Team{ID: 2, Name: "team2"} }
+	team_already_capped_anon := team_not_capped_named
 
 	guess_named_valid := func() *ChallengeGuess {
 		return &ChallengeGuess{Name: "Totally Rad Challenge", Flag: "flag{its_ok_tobe_rad_sometimes}"}
@@ -24,9 +29,12 @@ func Test_CheckFlagSubmission(t *testing.T) {
 	guess_named_bad := func() *ChallengeGuess {
 		return &ChallengeGuess{Name: "Totally Rad Challenge", Flag: "flag{Im_just_guessing_because_Im_a_dumbdumb}"}
 	}
+	guess_named_anon_valid := func() *ChallengeGuess {
+		return &ChallengeGuess{Flag: "flag{its_ok_tobe_rad_sometimes}"}
+	}
 
 	guess_anon_valid := func() *ChallengeGuess {
-		return &ChallengeGuess{Flag: "flag{its_ok_tobe_rad_sometimes}"}
+		return &ChallengeGuess{Flag: "how am I supposed to know that!"}
 	}
 	guess_anon_bad := func() *ChallengeGuess {
 		return &ChallengeGuess{Flag: "flag{Im_just_guessing_because_Im_a_dumbdumb"}
@@ -38,14 +46,16 @@ func Test_CheckFlagSubmission(t *testing.T) {
 		fs   FlagState
 		err  error
 	}{
-		"New capture":    {team: teams_not_capped(), cg: guess_named_valid(), fs: ValidFlag, err: nil},
-		"Failed capture": {team: teams_not_capped(), cg: guess_named_bad(), fs: InvalidFlag, err: pgx.ErrNoRows},
-		"Already capped": {team: teams_already_capped(), cg: guess_named_valid(), fs: AlreadyCaptured, err: nil},
-		"Failed+Already": {team: teams_already_capped(), cg: guess_named_bad(), fs: InvalidFlag, err: pgx.ErrNoRows},
+		"Named New capture":    {team: team_not_capped_named(), cg: guess_named_valid(), fs: ValidFlag, err: nil},
+		"Named Failed capture": {team: team_not_capped_named(), cg: guess_named_bad(), fs: InvalidFlag, err: pgx.ErrNoRows},
+		"Named Already capped": {team: team_already_capped_named(), cg: guess_named_valid(), fs: AlreadyCaptured, err: nil},
+		"Named Failed+Already": {team: team_already_capped_named(), cg: guess_named_bad(), fs: InvalidFlag, err: pgx.ErrNoRows},
 
-		"Anon new capture":    {team: teams_not_capped(), cg: guess_anon_valid(), fs: ValidFlag, err: nil},
-		"Anon fail capture":   {team: teams_not_capped(), cg: guess_anon_bad(), fs: InvalidFlag, err: pgx.ErrNoRows},
-		"Anon already capped": {team: teams_already_capped(), cg: guess_anon_valid(), fs: AlreadyCaptured, err: nil},
+		"Can't cap named anonymously": {team: team_not_capped_named(), cg: guess_named_anon_valid(), fs: InvalidFlag, err: pgx.ErrNoRows},
+
+		"Anon new capture":    {team: team_not_capped_anon(), cg: guess_anon_valid(), fs: ValidFlag, err: nil},
+		"Anon fail capture":   {team: team_not_capped_anon(), cg: guess_anon_bad(), fs: InvalidFlag, err: pgx.ErrNoRows},
+		"Anon already capped": {team: team_already_capped_anon(), cg: guess_anon_valid(), fs: AlreadyCaptured, err: nil},
 	}
 
 	for name, tt := range cases {
@@ -70,20 +80,23 @@ func Test_GetTeamCTFProgress(t *testing.T) {
 
 	ctf_prog, err = GetTeamCTFProgress(db, 1)
 	if assert.Nil(t, err) {
-		expected := []CTFProgress{{Category: "RAD", Amount: 1, Max: 1}}
+		expected := []CTFProgress{{Category: "RAD", Amount: 1, Max: 2}}
 		assert.Equal(t, expected, ctf_prog, "Team 1 did not have the right ctf progress")
 	}
 
 	ctf_prog, err = GetTeamCTFProgress(db, 2)
 	if assert.Nil(t, err) {
-		expected := []CTFProgress{{Category: "RAD", Amount: 0, Max: 1}}
+		expected := []CTFProgress{{Category: "RAD", Amount: 1, Max: 2}}
 		assert.Equal(t, expected, ctf_prog, "Team 2 did not have the right ctf progress")
 	}
 }
 
 func Test_ChallengeCapturesPerFlag(t *testing.T) {
 	prepareTestDatabase(t)
-	expected := []ChallengeCaptureCount{{Designer: "test_master", Category: "RAD", Name: "Totally Rad Challenge", Count: 1}}
+	expected := []ChallengeCaptureCount{
+		{Designer: "test_master", Category: "RAD", Name: "No challenge here", Count: 1},
+		{Designer: "test_master", Category: "RAD", Name: "Totally Rad Challenge", Count: 1},
+	}
 
 	challenge_captures, err := ChallengeCapturesPerFlag(db)
 	if assert.Nil(t, err) {
@@ -93,7 +106,10 @@ func Test_ChallengeCapturesPerFlag(t *testing.T) {
 
 func Test_ChallengeCapturesPerTeam(t *testing.T) {
 	prepareTestDatabase(t)
-	expected := []TeamChallengeCaptures{{Team: "team1", Designer: "test_master", Category: "RAD", Challenge: "Totally Rad Challenge"}}
+	expected := []TeamChallengeCaptures{
+		{Team: "team1", Designer: "test_master", Category: "RAD", Challenge: "Totally Rad Challenge"},
+		{Team: "team2", Designer: "test_master", Category: "RAD", Challenge: "No challenge here"},
+	}
 
 	per_team_captures, err := ChallengeCapturesPerTeam(db)
 	if assert.Nil(t, err) {
