@@ -132,6 +132,7 @@ func SubmitLogin(w http.ResponseWriter, r *http.Request) {
 	if r.FormValue(formCredsTeam) == "" || r.FormValue(formCredsPass) == "" {
 		render.Render(w, r, ErrInvalidBecause(fmt.Sprintf("Missing form fields: "+
 			"requires both '%s' and '%s'", formCredsTeam, formCredsPass)))
+		return
 	}
 
 	loggedIn := CheckCreds(w, r)

@@ -48,6 +48,11 @@ func initConfig(v *viper.Viper, configName string) {
 	// Env var may be used for sensitive connection strings (alternative to .pgpass file)
 	v.BindEnv("database.postgres_uri", "CY_POSTRES_URI")
 
+	// Set defaults
+	v.SetDefault("server.rate_limit", true)
+	v.SetDefault("server.ctf_file_dir", "data/ctf")
+	v.SetDefault("service_monitor.checks_dir", "data/scripts")
+
 	path := v.GetString("configPath")
 	if path != "" {
 		v.SetConfigFile(path)

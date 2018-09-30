@@ -10,7 +10,7 @@ import (
 	"github.com/jackc/pgx/log/logrusadapter"
 	_ "github.com/jackc/pgx/stdlib" // Sql driver
 	"github.com/sirupsen/logrus"
-	testfixtures "gopkg.in/testfixtures.v2"
+	testfixtures "github.com/tbutts/testfixtures"
 )
 
 // connString enables connecting to Postgres as a regular user. Used to init `DB`, which
