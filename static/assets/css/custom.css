@@ -103,3 +103,29 @@ table.scores-table {
     table-layout: fixed;
 }
 
+.challenge-list,
+.flag-file-list {
+    display: flex;
+    flex-flow: row wrap;
+    justify-content: space-evenly;
+}
+
+.challenge-list > div > button,
+.flag-file-list > a > div {
+    margin: .8em auto;
+}
+
+.flag-file-list .fa {
+    margin-right: .3em;
+}
+
+.challenge-list .btn .fa {
+    position: absolute;
+    left: .1em;
+    top: .2em;
+    font-size: 1.4em;
+}
+
+.negate {
+    filter: hue-rotate(180deg) invert(100%);
+}

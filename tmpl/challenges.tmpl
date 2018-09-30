@@ -1,24 +1,52 @@
 {{ define "content" }}
-<h3 class="page-header">{{ title .Title }}</h3>
-<div class="row">
-    <div class="col-md-4 col-xs-6">
-        <div id="challenge-list">
-            {{ range $idx, $chal := .Data.Challenges -}}
-                <button
-                    type='button'
-                    class='btn btn-default btn-block'
-                    data-toggle='modal'
-                    data-target='#currentChallenge'
-                    onclick='makeModal(challenges[$idx])'>
-                {{- $chal.Name -}}
-                </button>
-            {{- end }}
+<h3 class="page-header">Challenges</h3>
+<div class="challenge-list">
+  {{ range .Data.Challenges }}
+  <div class="col-md-3 col-sm-6 col-xs-10">
+    <button type='button' class='btn btn-default btn-block {{if .Captured}}negate{{end}}'
+              data-target='#flag-modal' data-flag-id='{{.ID}}'>
+        {{if .Captured}}<span class="fa fa-check-square"></span>{{end}}
+        <p>{{ .Name }}</p>
+        <p>{{ .Category }}</p>
+        <p>{{ .Points }}</p>
+    </button>
+  </div>
+  {{- end }}
+</div>
+{{ template "bs-challenge-modal" }}
+{{ end }}
+
+{{ define "bs-challenge-modal" }}
+<div class="modal fade" id="flag-modal" tabindex="-1" role="dialog">
+  <div class="modal-dialog" role="document">
+    <div class="modal-content text-center">
+      <div class="modal-body">
+        <button type="button" class="close" data-dismiss="modal"><span>&times;</span></button>
+        <h4 class="flag-modal-title">Challenge</h4>
+        <h6 class="flag-modal-points">Points</h6>
+        <span class="flag-description">Marked Description</span>
+        <div class="flag-file-list"></div>
+        <div class="row">
+          <form>
+            <div class="form-group col-md-9">
+              <input name="flag" type="text" placeholder="Flag" class="form-control" required>
+              <input name="name" type="hidden" value="">
+              <input name="id" type="hidden" value="">
+            </div>
+            <div class="form-group col-md-3">
+              <button type="submit" class="btn btn-default btn-block">Submit</button>
+            </div>
+          </form>
         </div>
-        <div id="hiddenModal"></div>
+        <div class="text-center">
+          <p class="alert hidden" role="alert"></p>
+        </div>
     </div>
+  </div>
 </div>
 {{ end }}
 
 {{ define "scripts" }}
-<script src="/assets/js/flag.js"></script>
+<script src="/assets/lib/marked/marked.min.js"></script>
+<script src="/assets/js/challenges.js"></script>
 {{ end }}

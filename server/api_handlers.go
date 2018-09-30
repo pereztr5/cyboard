@@ -163,8 +163,20 @@ func GetServicesStatuses(w http.ResponseWriter, r *http.Request) {
 // Blueteam API methods (view & submit challenges)
 
 func GetPublicChallenges(w http.ResponseWriter, r *http.Request) {
-	chals, err := models.AllPublicChallenges(db)
+	team := getCtxTeam(r)
+	chals, err := models.AllPublicChallenges(db, team.ID)
 	ApiQuery(w, r, chals, err)
+}
+
+func GetChallengeDescription(w http.ResponseWriter, r *http.Request) {
+	flagID := getCtxIdParam(r)
+	desc, err := models.GetPublicChallengeDescription(db, flagID)
+
+	if err != nil {
+		RenderQueryErr(w, r, err)
+		return
+	}
+	render.PlainText(w, r, desc)
 }
 
 func SubmitFlag(w http.ResponseWriter, r *http.Request) {

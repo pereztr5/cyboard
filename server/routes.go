@@ -56,10 +56,11 @@ func CreateWebRouter(teamScoreUpdater, servicesUpdater *broadcastHub) chi.Router
 		blue.Get("/challenges", GetPublicChallenges)
 		blue.Post("/challenges", SubmitFlag)
 
-		blue.Route("/challenges/{id}/files", func(r chi.Router) {
+		blue.Route("/challenges/{id}", func(r chi.Router) {
 			r.Use(RequireIdParam)
-			r.Get("/", CtfFileMgr.GetFileList)
-			r.Get("/{name}", CtfFileMgr.GetFile)
+			r.Get("/", GetChallengeDescription)
+			r.Get("/files", CtfFileMgr.GetFileList)
+			r.Get("/files/{name}", CtfFileMgr.GetFile)
 		})
 	})
 

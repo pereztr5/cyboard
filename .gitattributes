@@ -1,3 +1,4 @@
 static/assets/highcharts/highcharts.js filter=lfs diff=lfs merge=lfs -text
 static/assets/highcharts/highcharts.js.map filter=lfs diff=lfs merge=lfs -text
 static/assets/highcharts/themes/* filter=lfs diff=lfs merge=lfs -text
+static/assets/lib/** filter=lfs diff=lfs merge=lfs -text

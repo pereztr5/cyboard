@@ -112,7 +112,8 @@ func ShowTeamDashboard(w http.ResponseWriter, r *http.Request) {
 func ShowChallenges(w http.ResponseWriter, r *http.Request) {
 	page := getPage(r, "challenges")
 
-	chals, err := models.AllPublicChallenges(db)
+	team := getCtxTeam(r)
+	chals, err := models.AllPublicChallenges(db, team.ID)
 	page.checkErr(err, "public challenges")
 	page.Data = M{"Challenges": chals}
 	renderTemplate(w, page)

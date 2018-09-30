@@ -159,16 +159,23 @@ func (cs ChallengeSlice) Insert(db TXer) error {
 type ChallengeView struct {
 	ID       int    `json:"id"`       // id
 	Name     string `json:"name"`     // name
+	Points   int    `json:"points"`   // points (rounded down to nearest int)
 	Category string `json:"category"` // category
-	Body     string `json:"body"`     // body
+	// Body     string `json:"body"`     // body
+
+	Captured bool `json:"captured"` // Whether the viewing team has already got this flag
 }
 
 // AllPublicChallenges fetches all non-hidden ctf challenges from the database,
 // to be displayed to constestants.
-func AllPublicChallenges(db DB) ([]ChallengeView, error) {
-	const sqlstr = `SELECT id, name, category, body FROM challenge WHERE hidden = false`
+func AllPublicChallenges(db DB, teamID int) ([]ChallengeView, error) {
+	const sqlstr = `SELECT id, name, category, total, (cs.team_id IS NOT NULL) AS captured
+	FROM challenge
+		LEFT JOIN ctf_solve AS cs ON cs.challenge_id = id AND cs.team_id = $1
+	WHERE hidden = false
+	ORDER BY category, total, id`
 
-	rows, err := db.Query(sqlstr)
+	rows, err := db.Query(sqlstr, teamID)
 	if err != nil {
 		return nil, err
 	}
@@ -177,7 +184,7 @@ func AllPublicChallenges(db DB) ([]ChallengeView, error) {
 	xs := []ChallengeView{}
 	for rows.Next() {
 		x := ChallengeView{}
-		if err = rows.Scan(&x.ID, &x.Name, &x.Category, &x.Body); err != nil {
+		if err = rows.Scan(&x.ID, &x.Name, &x.Category, &x.Points, &x.Captured); err != nil {
 			return nil, err
 		}
 		xs = append(xs, x)
@@ -187,4 +194,12 @@ func AllPublicChallenges(db DB) ([]ChallengeView, error) {
 	}
 
 	return xs, nil
+}
+
+// GetPublicChallengeDescription fetches a non-hidden challenge's description/body column.
+// This field has a separate call due to how long it may get.
+func GetPublicChallengeDescription(db DB, flagID int) (string, error) {
+	const sqlstr = `SELECT body FROM challenge WHERE hidden = false AND id = $1`
+	var desc string
+	return desc, db.QueryRow(sqlstr, flagID).Scan(&desc)
 }
