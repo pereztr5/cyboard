@@ -7,6 +7,13 @@ import (
 	"github.com/urfave/negroni"
 )
 
+// MaxReqsPerSec caps the requests per IP for rate-limited endpoints
+// (if limiting is enabled w/ the config `service_monitor.rate_limit = "true"`).
+//
+// Currently, rate limiting is fixed to just a few endpoints where
+// a blueteam can hit that endpoint at most once per second, full-stop.
+const MaxReqsPerSec = 1
+
 func CreateWebRouter(teamScoreUpdater, servicesUpdater *broadcastHub) chi.Router {
 	router := chi.NewRouter()
 	// Split off static asset handler, so that none of the other standard middleware gets run for static assets.
@@ -28,7 +35,7 @@ func CreateWebRouter(teamScoreUpdater, servicesUpdater *broadcastHub) chi.Router
 	// Public Template Pages
 	root.Get("/", ShowHome)
 	root.Get("/login", ShowLogin)
-	root.Post("/login", SubmitLogin)
+	MaybeRateLimit(root, MaxReqsPerSec).Post("/login", SubmitLogin)
 	root.Get("/logout", Logout)
 	root.Get("/scoreboard", ShowScoreboard)
 	root.Get("/services", ShowServices)
@@ -54,7 +61,7 @@ func CreateWebRouter(teamScoreUpdater, servicesUpdater *broadcastHub) chi.Router
 	api.Route("/blue", func(blue chi.Router) {
 		blue.Use(RequireLogin)
 		blue.Get("/challenges", GetPublicChallenges)
-		blue.Post("/challenges", SubmitFlag)
+		MaybeRateLimit(blue, MaxReqsPerSec).Post("/challenges", SubmitFlag)
 
 		blue.Route("/challenges/{id}", func(r chi.Router) {
 			r.Use(RequireIdParam)

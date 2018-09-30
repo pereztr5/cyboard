@@ -4,7 +4,10 @@ import (
 	"fmt"
 	"net/http"
 	"strconv"
+	"time"
 
+	"github.com/didip/tollbooth"
+	"github.com/didip/tollbooth/limiter"
 	"github.com/go-chi/chi"
 	"github.com/go-chi/render"
 	"github.com/pereztr5/cyboard/server/models"
@@ -77,6 +80,42 @@ func RequireUrlParamInt(name string) func(http.Handler) http.Handler {
 }
 
 var RequireIdParam = RequireUrlParamInt("id")
+
+func RequireNoSpeeding(lmt *limiter.Limiter) func(http.Handler) http.Handler {
+	return func(next http.Handler) http.Handler {
+		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+			select {
+			case <-r.Context().Done():
+				http.Error(w, "Context was canceled", http.StatusServiceUnavailable)
+				return
+			default:
+				httpError := tollbooth.LimitByRequest(lmt, w, r)
+				if httpError != nil {
+					w.Header().Add("Content-Type", lmt.GetMessageContentType())
+					w.WriteHeader(httpError.StatusCode)
+					w.Write([]byte(httpError.Message))
+					return
+				}
+
+				next.ServeHTTP(w, r)
+			}
+		})
+	}
+}
+
+func NewRateLimiter(rate float64) *limiter.Limiter {
+	opts := &limiter.ExpirableOptions{DefaultExpirationTTL: time.Hour}
+	lmt := tollbooth.NewLimiter(rate, opts).
+		SetMessage("Slow down there, tiger")
+	return lmt
+}
+
+func MaybeRateLimit(r chi.Router, ratePerSec float64) chi.Router {
+	if appCfg.Server.RateLimit {
+		return r.With(RequireNoSpeeding(NewRateLimiter(ratePerSec)))
+	}
+	return r
+}
 
 func UnwrapNegroniMiddleware(nh negroni.Handler) func(http.Handler) http.Handler {
 	return func(next http.Handler) http.Handler {
