@@ -106,8 +106,9 @@ func ChallengeByID(db DB, id int) (*Challenge, error) {
 // to be displayed to staff.
 func AllChallenges(db DB) ([]Challenge, error) {
 	const sqlstr = `SELECT ` +
-		`id, name, category, designer, flag, total, body, hidden, created_at, modified_at ` +
-		`FROM challenge`
+		`id, name, category, designer, flag, total, hidden, created_at, modified_at ` +
+		`FROM challenge ` +
+		`ORDER BY designer, category, id`
 
 	rows, err := db.Query(sqlstr)
 	if err != nil {
@@ -118,7 +119,7 @@ func AllChallenges(db DB) ([]Challenge, error) {
 	xs := []Challenge{}
 	for rows.Next() {
 		x := Challenge{}
-		err = rows.Scan(&x.ID, &x.Name, &x.Category, &x.Designer, &x.Flag, &x.Total, &x.Body,
+		err = rows.Scan(&x.ID, &x.Name, &x.Category, &x.Designer, &x.Flag, &x.Total,
 			&x.Hidden, &x.CreatedAt, &x.ModifiedAt)
 		if err != nil {
 			return nil, err

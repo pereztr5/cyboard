@@ -32,11 +32,11 @@
 */}}
 {{ define "blueteam_dash" }}
 <div class="row">
-    <div class="col-md-6">
+    <div class="col-md-6 col-sm-12">
         <h5>Team #{{ .T.Number }}</h5>
         {{/* <h5>Points: {{ teamScore .T.Name }}</h5> */}}
     </div>
-    <div class="col-md-6">
+    <div class="col-md-6 col-sm-12">
         <div class="row">
             {{- range $progress := .Data.ctfProgress }}
             <div class="col-lg-5 col-md-6">
@@ -56,6 +56,7 @@
             </div>
             {{- end }}
         </div>
+        <!-- TODO: Update hidden flag entry -->
         <div class="row">
             <div class="col-md-12">
                 <form id="flag-form" class="form" role="search">
@@ -238,104 +239,6 @@
 
 {{ define "challenge-configuration-panel" }}
 <div class="flag-configuration-panel config-panel col-md-12">
-
-    {{- if eq .T.Group "admin" "blackteam" }}
-    <div class="bonus-display">
-        <h4>Add or Subtract Bonus Points</h4>
-
-        <div class="row">
-            <form class="form-horizontal" id="bonus-points-form">
-                <div class="form-group col-md-3">
-                    <label class="col-xs-3 control-label" for="teams">Teams</label>
-                    <div class="col-xs-9">
-                        <input class="form-control" type="text" name="teams" required placeholder="team1, team4">
-                    </div>
-                </div>
-                <div class="form-group col-md-3">
-                    <label class="col-xs-3 control-label" for="points">Points</label>
-                    <div class="col-xs-9">
-                        <input class="form-control" type="number" name="points" required placeholder="50">
-                    </div>
-                </div>
-                <div class="form-group col-md-3">
-                    <label class="col-xs-3 control-label" for="details">Reason</label>
-                    <div class="col-xs-9">
-                        <input class="form-control" type="text" name="details" placeholder="Pointed out a bug!">
-                    </div>
-                </div>
-                {{/* Somewhere, I managed to break Bootstrap. So now there are 13 columns in this row. */}}
-                <div class="form-group col-md-4 col-sm-12 col-xs-12" style="margin-left:0;">
-                    <button class="btn btn-default form-control"
-                        type="submit"><i class="fa fa-trophy" aria-hidden="true"></i> Award/Deduct Points</button>
-                </div>
-            </form>
-        </div>
-
-        <div class="status-region">
-            <p class="status"></p>
-        </div>
-    </div>
-    {{- end }}
-
-    <div class="guidelines">
-        {{/*
-        <h4>Challenge Editing Guidelines:</h4>
-        <ul>
-            <li>The challenge <b>name</b> and <b>group</b> act as the unique keys when
-                blue teams score flags. Do not update them after the competition has started.</li>
-            <li>You can only add flags in your group (show below), unless you are an "admin".</li>
-            <li>Points must be whole numbers.</li>
-        </ul>
-        */}}
-    </div>
-
-    <div class="edit-flag-controls">
-        <h5>Challenges</h5>
-        <div class="status-region">
-            <p class="status"></p>
-        </div>
-        <div class="table-responsive">
-            <table class="table table-striped table-hover flag-config-table config-table">
-                <thead>
-                <tr>
-                    <th>Name</th>
-                    <th>Group</th>
-                    <th>Flag</th>
-                    <th>Points</th>
-                    <th>Description</th>
-                </tr>
-                </thead>
-                <tbody>
-                {{- /* Filled with Js: admin-dashboard.js */ -}}
-                </tbody>
-            </table>
-        </div>
-    </div>
-
-    <div class="csv-upload flag-config-csv-upload form-group">
-        <div class="guidelines">
-            <h4>Add Flags via CSV</h4>
-            <ul>
-                <li>The header line is ignored. Columns must be in the order
-                    shown in the placeholder text.</li>
-                <li>All leading spaces are trimmed, unless quotes ("") are used.</li>
-            </ul>
-        </div>
-        <form>
-            <textarea class="form-control" rows="10"></textarea>
-            <div class="row">
-                <div class="col-md-10 status-region">
-                    <span class="status"></span>
-                </div>
-                <div class="col-md-2">
-                    <button class="btn btn-default" type="submit">
-                        <i class="fa fa-upload" aria-hidden="true"></i> Submit
-                    </button>
-                </div>
-            </div>
-        </form>
-    </div>
-
 </div>
 {{ end }}
 

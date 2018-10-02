@@ -38,19 +38,31 @@
                         <li role="presentation"><a href="/challenges">Challenges</a></li>
                     </ul>
                     <ul class="nav navbar-nav navbar-right">
-                        {{- if .T }}
+                        {{ if .T }}
                         <li role="presentation" class="dropdown">
-                            <a class="dropdown-toggle" data-toggle="dropdown" href="#" aria-expanded="flase">
-                                {{- .T.Name }}<span class="caret"></span>
+                            <a class="dropdown-toggle" data-toggle="dropdown" href="#" aria-expanded="false">
+                                {{ .T.Name }}<span class="caret"></span>
                             </a>
-                            <ul class="dropdown-menu" aria-labelledy="download">
-                                <li><a href="/dashboard">Dashboard</a></li>
+                            <ul class="dropdown-menu" aria-labelledby="download">
+                                {{ if isCtfStaff .T}}
+                                    <li><a href="/staff/ctf_dashboard"><i class="fa fa-tachometer"></i> CTF Dashboard</a></li>
+                                    <li><a href="/staff/ctf"><i class="fa fa-flag"></i> Edit CTF Challenges</a></li>
+                                {{ end }}
+                                {{ if isAdmin .T}}
+                                    <li><a href="/admin/teams"><i class="fa fa-user-plus"></i> Edit Teams</a></li>
+                                    <li><a href="/admin/services"><i class="fa fa-server"></i> Edit Checks</a></li>
+                                    <li><a href="/admin/bonuses"><i class="fa fa-star"></i> Award/Dock Points</a></li>
+                                    <li><a href="/admin/logs"><i class="fa fa-tree"></i> Logs</a></li>
+                                {{ end }}
+                                {{ if isBlueteam .T}}
+                                    <li><a href="/dashboard">Dashboard</a></li>
+                                {{ end }}
                                 <li><a href="/logout">Logout</a></li>
                             </ul>
                         </li>
-                        {{- else }}
+                        {{ else }}
                         <li role="presentation"><a href="/login">Login </a></li>
-                        {{- end }}
+                        {{ end }}
                     </ul>
                 </div>
             </div>

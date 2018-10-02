@@ -47,6 +47,16 @@ func CreateWebRouter(teamScoreUpdater, servicesUpdater *broadcastHub) chi.Router
 		authed.Get("/challenges", ShowChallenges)
 	})
 
+	// Pages for admins (configuration, analytic dashboards)
+	root.Route("/admin", func(admin chi.Router) {
+		admin.Get("/bonuses", ShowBonusPage)
+	})
+
+	root.Route("/staff", func(staff chi.Router) {
+		staff.Get("/ctf", ShowCtfConfig)
+		staff.Get("/ctf_dashboard", ShowCtfDashboard)
+	})
+
 	api := chi.NewRouter()
 
 	// Public API

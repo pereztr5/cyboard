@@ -98,13 +98,8 @@ func ShowTeamDashboard(w http.ResponseWriter, r *http.Request) {
 	page.Data = make(map[string]interface{})
 
 	var err error
-	if team.RoleName == models.TeamRoleBlueteam {
-		page.Data["ctfProgress"], err = models.GetTeamCTFProgress(db, team.ID)
-		page.checkErr(err, "ctf progress")
-	} else {
-		// TODO: Admin panel.
-		// build up admin dashboard model data
-	}
+	page.Data["ctfProgress"], err = models.GetTeamCTFProgress(db, team.ID)
+	page.checkErr(err, "ctf progress")
 
 	renderTemplate(w, page)
 }
@@ -153,5 +148,22 @@ func ShowServices(w http.ResponseWriter, r *http.Request) {
 	page.Data["Statuses"], err = models.TeamServiceStatuses(db)
 	page.checkErr(err, "all teams' service statuses")
 
+	renderTemplate(w, page)
+}
+
+func ShowCtfConfig(w http.ResponseWriter, r *http.Request) {
+	page := getPage(r, "staff_ctf_cfg")
+
+	chals, err := models.AllChallenges(db)
+	page.checkErr(err, "all challenges")
+	page.Data = M{"Challenges": chals}
+	renderTemplate(w, page)
+}
+
+func ShowCtfDashboard(w http.ResponseWriter, r *http.Request) {
+}
+
+func ShowBonusPage(w http.ResponseWriter, r *http.Request) {
+	page := getPage(r, "staff_bonus")
 	renderTemplate(w, page)
 }

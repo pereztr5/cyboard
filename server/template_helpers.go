@@ -3,20 +3,27 @@ package server
 import (
 	"html/template"
 	"strings"
+	"time"
 
 	"github.com/pereztr5/cyboard/server/models"
 )
 
 func buildHelperMap() template.FuncMap {
 	return template.FuncMap{
-		// Generic string methods
+		// Generic helper methods
 		"title":       strings.Title,
 		"StringsJoin": strings.Join,
+		"timestamp":   fmtTimestamp,
 
+		// App-specific helpers
 		"isAdmin":    isAdmin,
 		"isCtfStaff": isCtfStaff,
 		"isBlueteam": isBlueteam,
 	}
+}
+
+func fmtTimestamp(t time.Time) string {
+	return t.Format(time.Stamp)
 }
 
 func isAdmin(t *models.Team) bool {
