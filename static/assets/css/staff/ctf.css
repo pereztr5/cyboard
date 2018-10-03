@@ -1,0 +1,13 @@
+.config-table tbody th:last-child,
+.filelist tbody th:last-child {
+    padding: 0 4px;
+    vertical-align: middle;
+}
+.config-table .btn {
+    color: white;
+}
+
+.csv-upload textarea {
+    font-family: monospace;
+}
+

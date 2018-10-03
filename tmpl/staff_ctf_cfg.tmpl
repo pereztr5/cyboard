@@ -3,18 +3,12 @@
 <hr/>
 {{ template "staff-ctf-csv-upload" . }}
 
-{{ template "bs-ctf-config-markdown-modal" }}
+{{ template "bs-ctf-edit-modal" }}
+{{ template "bs-ctf-file-modal" }}
 {{ end }}
 
 {{ define "staff-ctf-table" }}
 <h5>All Challenges</h5>
-<div class="guidelines">
-  {{/*
-  <h4>Challenge Editing Guidelines:</h4>
-  <ul>
-  </ul>
-  */}}
-</div>
 <div class="ctf-controls">
   <!-- TODO: Inputs for sorting, filtering, etc. -->
 </div>
@@ -26,9 +20,9 @@
       <th>Category</th>
       <th>Designer</th>
       <th>Points</th>
-      <th>Hidden?</th>
+      <th>Hidden</th>
       <th>Modified</th>
-      <th>Flag/Body/Files/Edit/Delete</th>
+      <th>Controls</th>
     </tr></thead>
     <tbody>
       {{ range .Data.Challenges }}
@@ -38,16 +32,14 @@
         <td>{{.Category}}</td>
         <td>{{.Designer}}</td>
         <td>{{.Total}}</td>
-        <td>{{.Hidden}}</td>
+        <td>{{if .Hidden}}<i class="fa fa-lg fa-user-secret" title="Hidden"></i>{{end}}</td>
         <td>{{ timestamp .ModifiedAt }}</td>
         <th><div class="btn-group btn-group-sm">
-          <button type="button" class="btn btn-default" data-flag='{{.Flag}}'><i class="fa fa-flag"></i></button>
-          <button {{/* type="button" */}}class="btn btn-success" data-target="#bs-ctf-config-markdown-modal">
-            <i class="fa fa-sticky-note-o"></i>
+          <button type="button" class="btn btn-default btn-flag" title='{{.Flag}}'>
+            <i class="fa fa-flag"></i>
           </button>
-          <button class="btn btn-primary"><i class="fa fa-files-o"></i></button>
-          <button type="button" class="btn btn-warning"><i class="fa fa-pencil"></i></button>
-          <button type="button" class="btn btn-danger"><i class="fa fa-trash"></i></button>
+          <button class="btn btn-primary btn-files"><i class="fa fa-folder"></i></button>
+          <button type="button" class="btn btn-warning btn-edit"><i class="fa fa-pencil"></i></button>
         </div></th>
       </tr>
       {{ end }}
@@ -61,54 +53,109 @@
   <div class="guidelines">
     <h4>Add Flags via CSV</h4>
     <ul>
-      <li>The header line is ignored. Columns must be in the order
-        shown in the placeholder text.</li>
-      <li>All leading spaces are trimmed, unless quotes ("") are used.</li>
+      <li>Leading spaces are trimmed, <b>unless</b> quotes ("") are used.</li>
+      <li>Most columns can be left out, and a simple default will be set ("", 0, or false).</li>
+      <li>Descriptions can be full markdown:</li>
+      <ul>
+        <li>That includes "# headings", <code>`code snips`</code>, <b>**bold**</b>, ![images](/my/url), etc</li>
+        <li>For anything too complex to put in a CSV, leave it empty, then edit the individual challenge afterwards.</li>
+        <li>You can upload an image file and display it in the description by using the API URL: <code>/api/blue/challenges/{challenge_id}/files/{filename}</code></li>
+        <li>Finally, HTML can be added. Hide stuff in &lt;!-- comments --&gt; or add css classes to text or tables.</li>
+      </ul>
     </ul>
   </div>
   <form>
     <textarea class="form-control" rows="10"></textarea>
-    <div class="row">
-      <div class="col-md-10 status-region">
-        <span class="status"></span>
-      </div>
-      <div class="col-md-2">
-        <button class="btn btn-default" type="submit">
-          <i class="fa fa-upload" aria-hidden="true"></i> Submit
-        </button>
-      </div>
+    <div class="col-md-offset-10 col-md-2 col-sm-12">
+      <button class="btn btn-default btn-block" type="submit">
+        <i class="fa fa-upload"></i> Submit
+      </button>
     </div>
   </form>
 </div>
 {{end}}
 
-{{ define "bs-ctf-config-markdown-modal" }}
-<div class="modal fade" id="ctf-config-markdown-modal" tabindex="-1" role="dialog">
-  <div class="modal-dialog modal-lg" role="document">
-    <div class="modal-content text-center">
-      <div class="modal-body">
+{{ define "bs-ctf-edit-modal" }}
+<div class="modal fade" id="ctf-edit-modal" tabindex="-1" role="dialog">
+  <div class="modal-dialog" role="document">
+    <div class="modal-content">
+      <div class="modal-header">
         <button type="button" class="close" data-dismiss="modal"><span>&times;</span></button>
-        <div class="row">
-          <div class="col-md-6 col-sm-12">
-            <textarea></textarea>
+        <h4 class="modal-title">Edit [Flag]</h4>
+      </div>
+      <form>
+        <div class="modal-body">
+          <input name="id" type="hidden" value=-1>
+          <div class="form-group">
+            <label for="name" class="control-label">Name:</label>
+            <input name="name" class="form-control" type="text" required>
           </div>
-          <div class="col-md-6 col-sm-12">
-            <div class="preview text-center"></div>
+          <div class="form-group">
+            <label for="category" class="control-label">Category:</label>
+            <input name="category" class="form-control" type="text" required>
+          </div>
+          <div class="form-group">
+            <label for="designer" class="control-label">Designer:</label>
+            <input name="designer" class="form-control" type="text" required>
+          </div>
+          <div class="flag-body-panel">
+            <label>Description:</label>
+            <ul class="nav nav-tabs" role="tablist">
+              <li role="presentation" class="active">
+                <a href="#mkdn-body" role="tab" data-toggle="tab">Markdown</a>
+              </li>
+              <li role="presentation">
+                <a href="#mkdn-preview" role="tab" data-toggle="tab">Preview</a>
+              </li>
+            </ul>
+            <div class="tab-content editor">
+              <div role="tabpanel" class="tab-pane active" id="mkdn-body">
+                <textarea class="form-control" rows=4></textarea>
+              </div>
+              <div role="tabpanel" class="tab-pane" id="mkdn-preview">
+                <div class="preview text-center"></div>
+              </div>
+            </div>
+          </div>
+          <div class="form-group">
+            <label for="flag" class="control-label">Flag:</label>
+            <input name="flag" class="form-control" type="text" required>
+          </div>
+          <div class="form-group">
+            <label for="total" class="control-label">Points:</label>
+            <input name="total" class="form-control" type="number" required>
+          </div>
+          <div class="form-group">
+            <label for="hidden" class="control-label">Hidden:</label>
+            <input name="hidden" type="checkbox">
           </div>
         </div>
-        <div class="btn-group">
-          <button type="button" class="btn btn-default">Cancel</button>
-          <button type="submit" class="btn btn-primary">Update</button>
+        <div class="modal-footer">
+          <button type="button" class="btn btn-danger delete-challenge">Delete</button>
+          <button type="button" class="btn btn-default" data-dismiss="modal">Cancel</button>
+          <button type="submit" class="btn btn-primary">Save</button>
         </div>
+      </form>
     </div>
   </div>
 </div>
 {{ end }}
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+{{ end }}
+
 
 {{ define "styles" }}
   <link rel="stylesheet" href="/assets/css/staff/ctf.css">
 {{ end }}
 
 {{ define "scripts" }}
+  <script src="/assets/bootstrap-dialog/bootstrap-dialog.min.js"></script>
+  <script src="/assets/js/jquery.csv.min.js"></script>
+  <script src="/assets/lib/marked/marked.min.js"></script>
+  <script src="/assets/js/staff/admin-utils.js"></script>
   <script src="/assets/js/staff/ctf.js"></script>
 {{ end }}
