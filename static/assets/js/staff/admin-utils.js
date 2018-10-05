@@ -32,3 +32,12 @@ function niceBytes(x){
     return(n.toFixed(n >= 10 || l < 1 ? 1 : 2) + ' ' + units[l]);
 }
 
+// During a long request, disable a submit button and give it a spinner icon.
+// First call creates a function on the associated btn node, which
+// can then be called with true/false to enable/disable the loading effect.
+function toggleLoadingButton($btn) {
+    return state => {
+        $btn.prop('disabled', state)
+            .find('i').toggleClass('fa-spin fa-spinner', state);
+    };
+}
