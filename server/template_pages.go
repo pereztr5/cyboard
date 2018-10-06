@@ -151,6 +151,8 @@ func ShowServices(w http.ResponseWriter, r *http.Request) {
 	renderTemplate(w, page)
 }
 
+/* CTF Creator pages */
+
 func ShowCtfConfig(w http.ResponseWriter, r *http.Request) {
 	page := getPage(r, "staff_ctf_cfg")
 
@@ -174,7 +176,15 @@ func ShowCtfDashboard(w http.ResponseWriter, r *http.Request) {
 	renderTemplate(w, page)
 }
 
+/* Admin Pages */
+
 func ShowBonusPage(w http.ResponseWriter, r *http.Request) {
+	var err error
 	page := getPage(r, "staff_bonus")
+	page.Data = make(map[string]interface{})
+
+	page.Data["Blueteams"], err = models.AllBlueteams(db)
+	page.checkErr(err, "all blue teams")
+
 	renderTemplate(w, page)
 }
