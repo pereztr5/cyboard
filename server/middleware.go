@@ -64,6 +64,26 @@ func RequireCtfStaff(next http.Handler) http.Handler {
 	})
 }
 
+func RequireEventStarted(next http.Handler) http.Handler {
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if isCtfStaff(getCtxTeam(r)) || time.Now().After(appCfg.Event.Start) {
+			next.ServeHTTP(w, r)
+			return
+		}
+		render.Render(w, r, ErrForbiddenBecause("The competition has not started yet"))
+	})
+}
+
+func RequireEventNotOver(next http.Handler) http.Handler {
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if isCtfStaff(getCtxTeam(r)) || time.Now().Before(appCfg.Event.End) {
+			next.ServeHTTP(w, r)
+			return
+		}
+		render.Render(w, r, ErrForbiddenBecause("The competition is over, go home"))
+	})
+}
+
 func RequireUrlParamInt(name string) func(http.Handler) http.Handler {
 	return func(next http.Handler) http.Handler {
 		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {

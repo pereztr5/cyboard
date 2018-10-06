@@ -42,7 +42,7 @@ func CreateWebRouter(teamScoreUpdater, servicesUpdater *broadcastHub) chi.Router
 
 	// Authenticated Pages for Blue Teams
 	root.Group(func(authed chi.Router) {
-		authed.Use(RequireLogin)
+		authed.Use(RequireLogin, RequireEventStarted)
 		authed.Get("/dashboard", ShowTeamDashboard)
 		authed.Get("/challenges", ShowChallenges)
 	})
@@ -72,9 +72,10 @@ func CreateWebRouter(teamScoreUpdater, servicesUpdater *broadcastHub) chi.Router
 
 	// Blue Team API
 	api.Route("/blue", func(blue chi.Router) {
-		blue.Use(RequireLogin)
+		blue.Use(RequireLogin, RequireEventStarted)
 		blue.Get("/challenges", GetPublicChallenges)
-		MaybeRateLimit(blue, MaxReqsPerSec).Post("/challenges", SubmitFlag)
+		MaybeRateLimit(blue, MaxReqsPerSec).With(RequireEventNotOver).
+			Post("/challenges", SubmitFlag)
 
 		blue.Route("/challenges/{id}", func(r chi.Router) {
 			r.Use(RequireIdParam)

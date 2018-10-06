@@ -105,3 +105,7 @@ var (
 	ErrNotFound  = &ErrResponse{HTTPStatusCode: 404, StatusText: "Resource not found"}
 	ErrForbidden = &ErrResponse{HTTPStatusCode: 403, StatusText: "Forbidden"}
 )
+
+func ErrForbiddenBecause(reason string) render.Renderer {
+	return &ErrResponse{HTTPStatusCode: 403, StatusText: reason}
+}
