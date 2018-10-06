@@ -161,6 +161,17 @@ func ShowCtfConfig(w http.ResponseWriter, r *http.Request) {
 }
 
 func ShowCtfDashboard(w http.ResponseWriter, r *http.Request) {
+	var err error
+	page := getPage(r, "staff_ctf_dash")
+	page.Data = make(map[string]interface{})
+
+	page.Data["ChallengeCapturesPerFlag"], err = models.ChallengeCapturesPerFlag(db)
+	page.checkErr(err, "challenge captures per flag")
+
+	page.Data["ChallengeCapturesPerTeam"], err = models.ChallengeCapturesPerTeam(db)
+	page.checkErr(err, "challenge captures per team")
+
+	renderTemplate(w, page)
 }
 
 func ShowBonusPage(w http.ResponseWriter, r *http.Request) {

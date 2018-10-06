@@ -106,13 +106,15 @@ func Test_ChallengeCapturesPerFlag(t *testing.T) {
 
 func Test_ChallengeCapturesPerTeam(t *testing.T) {
 	prepareTestDatabase(t)
-	expected := []TeamChallengeCaptures{
-		{Team: "team1", Designer: "test_master", Category: "RAD", Challenge: "Totally Rad Challenge"},
-		{Team: "team2", Designer: "test_master", Category: "RAD", Challenge: "No challenge here"},
+	expected := []TeamCapturedChallenges{
+		{Team: "team1", Challenges: []CapturedChallenge{{Designer: "test_master", Category: "RAD", Name: "Totally Rad Challenge"}}},
+		{Team: "team2", Challenges: []CapturedChallenge{{Designer: "test_master", Category: "RAD", Name: "No challenge here"}}},
 	}
 
 	per_team_captures, err := ChallengeCapturesPerTeam(db)
 	if assert.Nil(t, err) {
-		assert.Equal(t, expected, per_team_captures, "team1 should have the Totally Rad Challenge. No other ctf captures should exist.")
+		assert.Equal(t, expected, per_team_captures,
+			"team1 should have the 'Totally Rad Challenge'."+
+				"team2 should have 'No challenge here'.")
 	}
 }

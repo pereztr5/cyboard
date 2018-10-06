@@ -174,16 +174,21 @@ func ChallengeCapturesPerFlag(db DB) ([]ChallengeCaptureCount, error) {
 	return ccs, nil
 }
 
-// TeamChallengeCaptures holds the flags a team has captured.
-type TeamChallengeCaptures struct {
-	Team      string `json:"team"`      // team.name
-	Designer  string `json:"designer"`  // challenge.designer
-	Category  string `json:"category"`  // challenge.category
-	Challenge string `json:"challenge"` // challenge.name
+// CapturedChallenge contains enough to identify a solved challenge.
+type CapturedChallenge struct {
+	Designer string `json:"designer"` // challenge.designer
+	Category string `json:"category"` // challenge.category
+	Name     string `json:"name"`     // challenge.name
+}
+
+// TeamCapturedChallenges holds the flags a team has captured.
+type TeamCapturedChallenges struct {
+	Team       string              `json:"team"` // team.name
+	Challenges []CapturedChallenge `json:"challenges"`
 }
 
 // ChallengeCapturesPerTeam retrieves each team with the flags they've captured.
-func ChallengeCapturesPerTeam(db DB) ([]TeamChallengeCaptures, error) {
+func ChallengeCapturesPerTeam(db DB) ([]TeamCapturedChallenges, error) {
 	const sqlstr = `SELECT team.name, ch.designer, ch.category, ch.name
 	FROM team
 	  JOIN ctf_solve ON team.id = ctf_solve.team_id
@@ -196,13 +201,26 @@ func ChallengeCapturesPerTeam(db DB) ([]TeamChallengeCaptures, error) {
 	}
 	defer rows.Close()
 
-	tccs := []TeamChallengeCaptures{}
+	tccs := []TeamCapturedChallenges{}
+
+	// Have to do the groupby team's name in golang, because with Go's type system
+	// it is much more ceremony (and not type-safe) to decode the nested JSON object.
+	var tname string
 	for rows.Next() {
-		tcc := TeamChallengeCaptures{}
-		if err = rows.Scan(&tcc.Team, &tcc.Designer, &tcc.Category, &tcc.Challenge); err != nil {
+		cc := CapturedChallenge{}
+		if err = rows.Scan(&tname, &cc.Designer, &cc.Category, &cc.Name); err != nil {
 			return nil, err
 		}
-		tccs = append(tccs, tcc)
+
+		// Postgres guarantees everything is sorted neatly, so just keep appending
+		// to the team's solves list until the team name doesn't match up.
+		if len(tccs) == 0 || tccs[len(tccs)-1].Team != tname {
+			tmp := &TeamCapturedChallenges{}
+			tmp.Team = tname
+			tccs = append(tccs, *tmp)
+		}
+		teamSolves := &tccs[len(tccs)-1]
+		teamSolves.Challenges = append(teamSolves.Challenges, cc)
 	}
 	if err = rows.Err(); err != nil {
 		return nil, err
