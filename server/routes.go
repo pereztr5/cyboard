@@ -49,10 +49,13 @@ func CreateWebRouter(teamScoreUpdater, servicesUpdater *broadcastHub) chi.Router
 
 	// Pages for admins (configuration, analytic dashboards)
 	root.Route("/admin", func(admin chi.Router) {
+		admin.Use(RequireLogin, RequireAdmin)
 		admin.Get("/bonuses", ShowBonusPage)
 	})
 
+	// Pages for ctf creators
 	root.Route("/staff", func(staff chi.Router) {
+		staff.Use(RequireLogin, RequireCtfStaff)
 		staff.Get("/ctf", ShowCtfConfig)
 		staff.Get("/ctf_dashboard", ShowCtfDashboard)
 	})
