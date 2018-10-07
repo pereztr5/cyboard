@@ -178,6 +178,15 @@ func ShowCtfDashboard(w http.ResponseWriter, r *http.Request) {
 
 /* Admin Pages */
 
+func ShowTeamsConfig(w http.ResponseWriter, r *http.Request) {
+	page := getPage(r, "admin_teams_cfg")
+
+	teams, err := models.AllTeams(db)
+	page.checkErr(err, "all teams")
+	page.Data = M{"Teams": teams}
+	renderTemplate(w, page)
+}
+
 func ShowBonusPage(w http.ResponseWriter, r *http.Request) {
 	var err error
 	page := getPage(r, "staff_bonus")

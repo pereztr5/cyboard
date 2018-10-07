@@ -34,6 +34,10 @@ button.list-group-item {
     color: #64CB2D;
 }
 
+select {
+    color: #454545;
+}
+
 .btn-default {
     color: #64CB2D;
     background-color: #424242;
@@ -73,8 +77,9 @@ body {
 }
 
 .badge {
-    color: #060606;
-    background-color: #64CB2D;
+    padding: .25rem .4rem;
+    font-size: 75%;
+    border-radius: .25rem;
 }
 
 #flag-panel {

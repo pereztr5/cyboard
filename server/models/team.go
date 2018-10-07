@@ -83,7 +83,8 @@ func TeamByID(db DB, id int) (*Team, error) {
 // AllTeams fetches all teams (users) from the database.
 // Used by the admin dashboard to view & modify all added users.
 func AllTeams(db DB) ([]Team, error) {
-	const sqlstr = `SELECT id, name, role_name, disabled, blueteam_ip FROM cyboard.team`
+	const sqlstr = `SELECT id, name, role_name, disabled, blueteam_ip FROM cyboard.team ` +
+		`ORDER BY role_name DESC, id`
 
 	rows, err := db.Query(sqlstr)
 	if err != nil {

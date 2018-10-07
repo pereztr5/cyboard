@@ -51,6 +51,7 @@ func CreateWebRouter(teamScoreUpdater, servicesUpdater *broadcastHub) chi.Router
 	root.Route("/admin", func(admin chi.Router) {
 		admin.Use(RequireLogin, RequireAdmin)
 		admin.Get("/bonuses", ShowBonusPage)
+		admin.Get("/teams", ShowTeamsConfig)
 	})
 
 	// Pages for ctf creators
