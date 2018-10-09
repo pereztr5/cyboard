@@ -85,7 +85,8 @@ func ServiceByID(db DB, id int) (*Service, error) {
 func AllServices(db DB) ([]Service, error) {
 	const sqlstr = `
 	SELECT id, name, category, description, total_points, points, script, args, disabled, starts_at, created_at, modified_at
-	FROM cyboard.service`
+	FROM cyboard.service
+	ORDER BY starts_at, id`
 
 	rows, err := db.Query(sqlstr)
 	if err != nil {

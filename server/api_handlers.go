@@ -497,11 +497,10 @@ type FSContentManager struct {
 	pathBuilder func(*http.Request) string
 }
 
-func (cm FSContentManager) GetFileList(w http.ResponseWriter, r *http.Request) {
-	fis, err := ioutil.ReadDir(cm.pathBuilder(r))
+func getFileList(path string) ([]FileInfo, error) {
+	fis, err := ioutil.ReadDir(path)
 	if err != nil {
-		render.Render(w, r, ErrInvalidRequest(err))
-		return
+		return nil, err
 	}
 
 	infos := make([]FileInfo, len(fis), len(fis))
@@ -509,6 +508,15 @@ func (cm FSContentManager) GetFileList(w http.ResponseWriter, r *http.Request) {
 		infos[i] = FileInfo{Name: fi.Name(), Size: fi.Size(), ModTime: fi.ModTime()}
 	}
 
+	return infos, nil
+}
+
+func (cm FSContentManager) GetFileList(w http.ResponseWriter, r *http.Request) {
+	infos, err := getFileList(cm.pathBuilder(r))
+	if err != nil {
+		render.Render(w, r, ErrInvalidRequest(err))
+		return
+	}
 	render.JSON(w, r, infos)
 }
 

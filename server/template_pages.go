@@ -188,6 +188,22 @@ func ShowTeamsConfig(w http.ResponseWriter, r *http.Request) {
 	renderTemplate(w, page)
 }
 
+func ShowServicesConfig(w http.ResponseWriter, r *http.Request) {
+	var err error
+	page := getPage(r, "admin_services_cfg", "Admin Services")
+	page.Data = make(map[string]interface{})
+
+	page.Data["Services"], err = models.AllServices(db)
+	page.checkErr(err, "all services")
+	page.Data["ScriptFiles"], err = getFileList(ScriptMgr.pathBuilder(r))
+	page.checkErr(err, "script files")
+
+	page.Data["Event"] = appCfg.Event
+	page.Data["ServiceMonitor"] = appCfg.ServiceMonitor
+
+	renderTemplate(w, page)
+}
+
 func ShowBonusPage(w http.ResponseWriter, r *http.Request) {
 	var err error
 	page := getPage(r, "staff_bonus", "Bonuses")
