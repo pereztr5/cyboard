@@ -11,7 +11,9 @@
         <p>{{ .Points }}</p>
     </button>
   </div>
-  {{- end }}
+  {{ else }}
+  <p>No challenges available, yet!</p>
+  {{ end }}
 </div>
 {{ template "bs-challenge-modal" }}
 {{ end }}
@@ -24,7 +26,7 @@
         <button type="button" class="close" data-dismiss="modal"><span>&times;</span></button>
         <h4 class="flag-modal-title">Challenge</h4>
         <h6 class="flag-modal-points">Points</h6>
-        <span class="flag-description">Marked Description</span>
+        <span class="flag-description">Description</span>
         <div class="flag-file-list"></div>
         <div class="row">
           <form>

@@ -50,6 +50,10 @@ select {
     border-color: #232323;
 }
 
+div.jumbotron video {
+    max-width: 100%;
+}
+
 h1,
 h2,
 h3,
@@ -133,4 +137,10 @@ table.scores-table {
 
 .negate {
     filter: hue-rotate(180deg) invert(100%);
+}
+
+.text-overflow {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }

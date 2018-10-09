@@ -1,8 +1,10 @@
 {{ define "content" }}
-<div class="jumbotron">
-    <h1>Welcome to the CNY Hackathon</h1>
-    <div class="row text-center">
-    <iframe src="//giphy.com/embed/eCqFYAVjjDksg?html5=true&hideSocial=true" width="480" height="270" frameborder="0" class="giphy-embed" allowfullscreen=""></iframe>
-    </div>
+<div class="jumbotron text-center">
+  <h1>Welcome to the CNY Hackathon</h1>
+  <div>
+    <video autoplay loop muted playsinline>
+      <source src="{{.Data.Video}}" type='video/webm;codecs="vp8, vorbis"' />
+    </video>
+  </div>
 </div>
 {{ end }}

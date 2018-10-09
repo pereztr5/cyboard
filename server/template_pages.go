@@ -11,15 +11,17 @@ import (
 )
 
 type Page struct {
-	Title string
-	T     *models.Team
-	Error error
-	Data  map[string]interface{}
+	File  string       // Template file (with suffix trimmed)
+	Title string       // Visible page name
+	T     *models.Team // Viewer Context
+	Error error        // Cause, if any, of rendering failure
+
+	Data map[string]interface{} // Page-specific data
 }
 
-func getPage(r *http.Request, title string) *Page {
+func getPage(r *http.Request, templateFile, title string) *Page {
 	team := getCtxTeam(r)
-	page := &Page{Title: title}
+	page := &Page{File: templateFile, Title: title}
 	if team != nil {
 		page.T = team
 	}
@@ -30,7 +32,7 @@ func (p *Page) checkErr(err error, target string) {
 	if err != nil {
 		Logger.WithError(err).WithFields(logrus.Fields{
 			"team":   p.T.Name,
-			"title":  p.Title,
+			"file":   p.File,
 			"target": target,
 		}).Error("unable to get data to render page")
 
@@ -43,9 +45,9 @@ func (p *Page) checkErr(err error, target string) {
 var templates map[string]*template.Template
 
 func renderTemplate(w http.ResponseWriter, p *Page) {
-	tmpl, ok := templates[p.Title]
+	tmpl, ok := templates[p.File]
 	if !ok {
-		Logger.Errorln("Template does not exist:", p.Title)
+		Logger.Errorln("Template does not exist:", p.File)
 		http.Error(w, http.StatusText(500), 500)
 		return
 	}
@@ -53,7 +55,7 @@ func renderTemplate(w http.ResponseWriter, p *Page) {
 	w.Header().Set("Content-Type", "text/html; charset=utf-8")
 	err := tmpl.ExecuteTemplate(w, "base", &p)
 	if err != nil {
-		Logger.WithError(err).WithField("name", p.Title).Error("Failed to execute template")
+		Logger.WithError(err).WithField("name", p.File).Error("Failed to execute template")
 	}
 }
 
@@ -77,15 +79,14 @@ func ensureAppTemplates() {
 }
 
 func ShowHome(w http.ResponseWriter, r *http.Request) {
-	page := getPage(r, "homepage")
+	page := getPage(r, "homepage", "Homepage")
+	page.Data = M{"Video": getHomepageVid()}
 	renderTemplate(w, page)
 }
 
 func ShowLogin(w http.ResponseWriter, r *http.Request) {
 	if getCtxTeam(r) == nil {
-		page := &Page{
-			Title: "login",
-		}
+		page := &Page{File: "login", Title: "Login"}
 		renderTemplate(w, page)
 	} else {
 		http.Redirect(w, r, "/dashboard", 302)
@@ -93,7 +94,7 @@ func ShowLogin(w http.ResponseWriter, r *http.Request) {
 }
 
 func ShowTeamDashboard(w http.ResponseWriter, r *http.Request) {
-	page := getPage(r, "dashboard")
+	page := getPage(r, "dashboard", "Dashboard")
 	team := page.T
 	page.Data = make(map[string]interface{})
 
@@ -105,7 +106,7 @@ func ShowTeamDashboard(w http.ResponseWriter, r *http.Request) {
 }
 
 func ShowChallenges(w http.ResponseWriter, r *http.Request) {
-	page := getPage(r, "challenges")
+	page := getPage(r, "challenges", "Challenges")
 
 	team := getCtxTeam(r)
 	chals, err := models.AllPublicChallenges(db, team.ID)
@@ -118,10 +119,10 @@ func ShowScoreboard(w http.ResponseWriter, r *http.Request) {
 	var err error
 	var page *Page
 	if _, ok := r.URL.Query()["noscript"]; !ok {
-		page = getPage(r, "scoreboard")
+		page = getPage(r, "scoreboard", "Scoreboard")
 		page.Data = make(map[string]interface{})
 	} else {
-		page = getPage(r, "noscript_scoreboard")
+		page = getPage(r, "noscript_scoreboard", "Scoreboard")
 		page.Data = make(map[string]interface{})
 
 		page.Data["TeamsScores"], err = models.TeamsScores(db)
@@ -139,7 +140,7 @@ func ShowScoreboard(w http.ResponseWriter, r *http.Request) {
 
 func ShowServices(w http.ResponseWriter, r *http.Request) {
 	var err error
-	page := getPage(r, "services")
+	page := getPage(r, "services", "Services")
 	page.Data = make(map[string]interface{})
 
 	page.Data["Teams"], err = models.AllBlueteams(db)
@@ -154,7 +155,7 @@ func ShowServices(w http.ResponseWriter, r *http.Request) {
 /* CTF Creator pages */
 
 func ShowCtfConfig(w http.ResponseWriter, r *http.Request) {
-	page := getPage(r, "staff_ctf_cfg")
+	page := getPage(r, "staff_ctf_cfg", "Admin CTF")
 
 	chals, err := models.AllChallenges(db)
 	page.checkErr(err, "all challenges")
@@ -164,7 +165,7 @@ func ShowCtfConfig(w http.ResponseWriter, r *http.Request) {
 
 func ShowCtfDashboard(w http.ResponseWriter, r *http.Request) {
 	var err error
-	page := getPage(r, "staff_ctf_dash")
+	page := getPage(r, "staff_ctf_dash", "CTF Statistics")
 	page.Data = make(map[string]interface{})
 
 	page.Data["ChallengeCapturesPerFlag"], err = models.ChallengeCapturesPerFlag(db)
@@ -179,7 +180,7 @@ func ShowCtfDashboard(w http.ResponseWriter, r *http.Request) {
 /* Admin Pages */
 
 func ShowTeamsConfig(w http.ResponseWriter, r *http.Request) {
-	page := getPage(r, "admin_teams_cfg")
+	page := getPage(r, "admin_teams_cfg", "Admin Teams")
 
 	teams, err := models.AllTeams(db)
 	page.checkErr(err, "all teams")
@@ -189,7 +190,7 @@ func ShowTeamsConfig(w http.ResponseWriter, r *http.Request) {
 
 func ShowBonusPage(w http.ResponseWriter, r *http.Request) {
 	var err error
-	page := getPage(r, "staff_bonus")
+	page := getPage(r, "staff_bonus", "Bonuses")
 	page.Data = make(map[string]interface{})
 
 	page.Data["Blueteams"], err = models.AllBlueteams(db)

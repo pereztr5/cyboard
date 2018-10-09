@@ -2,6 +2,8 @@ package server
 
 import (
 	"html/template"
+	"math/rand"
+	"path/filepath"
 	"strings"
 	"time"
 
@@ -45,4 +47,22 @@ func isCtfStaff(t *models.Team) bool {
 
 func isBlueteam(t *models.Team) bool {
 	return t != nil && t.RoleName == models.TeamRoleBlueteam
+}
+
+var homepageVideos []string
+
+func getHomepageVid() string {
+	// Cache webm files on first run
+	if len(homepageVideos) == 0 {
+		files, _ := filepath.Glob("static/assets/media/madhacks/*.webm")
+		// uh oh, no videos!
+		if len(files) == 0 {
+			return ""
+		}
+
+		for _, f := range files {
+			homepageVideos = append(homepageVideos, strings.TrimPrefix(f, "static/"))
+		}
+	}
+	return homepageVideos[rand.Intn(len(homepageVideos))]
 }

@@ -42,7 +42,7 @@ $('.challenge-list').on('click', 'button', function(event) {
         $.getJSON(fileURL).then(fileList => {
             $files.empty().append(fileList.map(f =>
                 $(`<a class="col-md-4 col-sm-6 col-xs-12 text-truncate" />`).attr('href', `${fileURL}/${f.name}`)
-                    .append($(`<div class="btn btn-block btn-primary" />`)
+                    .append($(`<div class="btn btn-block btn-primary text-overflow" />`)
                         .append(`<span class="fa fa-download" />`)
                         .append($(`<small />`).text(f.name)))
             ));
@@ -54,6 +54,11 @@ $('.challenge-list').on('click', 'button', function(event) {
 
     $.when(...qs).always(() => { $modal.modal('show'); });
 });
+
+// When the modal shows up, focus the submission box
+$modal.on('shown.bs.modal', function(event) {
+    $('input:visible:enabled:first', this).focus();
+})
 
 // When the modal goes away, clean up
 $modal.on('hidden.bs.modal', function(event) {
@@ -97,6 +102,10 @@ $modal.find('form').on('submit', function(event) {
         setStatus('alert-danger', msg);
     }).always(() => {
         $alert.slideDown(300).delay(1400).slideUp(300);
+
+        const $submit = $form.find('button[type=submit]');
+        $submit.prop('disabled', true);
+        setTimeout(() => $submit.prop('disabled', false), 1000);
     });
 });
 

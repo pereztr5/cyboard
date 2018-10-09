@@ -4,7 +4,7 @@
 <head>
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>CNYHackathon</title>
+    <title>{{.Title}} - CNYHackathon</title>
     <link rel="icon" href="data:,"> {{/* empty favicon */}}
     <link rel="stylesheet" href="/assets/bootstrap/css/bootstrap.min.css">
     <link rel="stylesheet" href="/assets/css/font-awesome.min.css">
@@ -52,7 +52,7 @@
                                     <li><a href="/admin/teams"><i class="fa fa-user-plus"></i> Edit Teams</a></li>
                                     <li><a href="/admin/services"><i class="fa fa-server"></i> Edit Checks</a></li>
                                     <li><a href="/admin/bonuses"><i class="fa fa-star"></i> Award/Dock Points</a></li>
-                                    <li><a href="/admin/logs"><i class="fa fa-tree"></i> Logs</a></li>
+                                    <!-- <li><a href="/admin/logs"><i class="fa fa-tree"></i> Logs</a></li> -->
                                 {{ end }}
                                 {{ if isBlueteam .T}}
                                     <li><a href="/dashboard">Dashboard</a></li>
