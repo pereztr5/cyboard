@@ -53,6 +53,7 @@ func CreateWebRouter(teamScoreUpdater, servicesUpdater *broadcastHub) chi.Router
 		admin.Get("/bonuses", ShowBonusPage)
 		admin.Get("/teams", ShowTeamsConfig)
 		admin.Get("/services", ShowServicesConfig)
+		admin.Get("/services/scripts", ShowServiceScriptsConfig)
 	})
 
 	// Pages for ctf creators

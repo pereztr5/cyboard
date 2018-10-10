@@ -204,6 +204,17 @@ func ShowServicesConfig(w http.ResponseWriter, r *http.Request) {
 	renderTemplate(w, page)
 }
 
+func ShowServiceScriptsConfig(w http.ResponseWriter, r *http.Request) {
+	var err error
+	page := getPage(r, "admin_services_scripts", "Check Scripts")
+	page.Data = make(map[string]interface{})
+
+	page.Data["ScriptFiles"], err = getFileList(ScriptMgr.pathBuilder(r))
+	page.checkErr(err, "script files")
+
+	renderTemplate(w, page)
+}
+
 func ShowBonusPage(w http.ResponseWriter, r *http.Request) {
 	var err error
 	page := getPage(r, "staff_bonus", "Bonuses")

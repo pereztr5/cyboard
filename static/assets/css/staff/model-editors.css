@@ -7,7 +7,8 @@
     color: white;
 }
 
-.csv-upload textarea {
+.csv-upload textarea,
+.monospace {
     font-family: monospace;
 }
 

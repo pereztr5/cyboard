@@ -61,11 +61,20 @@
     </tbody>
   </table>
 </div>
-<button type="button" class="btn btn-default btn-add-service"
-  data-toggle="modal" data-target="#service-edit-modal">
-    <!-- TODO: I think fa can stack plus and server icon. -->
-  <i class="fa fa-server"></i> Add New Service Check
-</button>
+<div class="row">
+  <p class="col-md-3">
+    <button type="button" class="btn btn-default btn-block btn-add-service"
+      data-toggle="modal" data-target="#service-edit-modal">
+        <!-- TODO: I think fa can stack plus and server icon. -->
+      <i class="fa fa-server"></i> Add New Service Check
+    </button>
+  </p>
+  <p class="col-md-offset-7 col-md-2">
+    <a href="/admin/services/scripts" class="btn btn-default btn-block">
+      <i class="fa fa-file"></i> View Scripts
+    </a>
+  </p>
+</div>
 
 <datalist id="service-scripts-list">
   {{range .Data.ScriptFiles}}

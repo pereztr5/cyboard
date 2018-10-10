@@ -41,3 +41,35 @@ function toggleLoadingButton($btn) {
             .find('i').toggleClass('fa-spin fa-spinner', state);
     };
 }
+
+// Primitive string parser for converting:
+//     `--attempts 2 -f "/home/costas/Monty Python.mp4" {IP}`
+// into an array of strings:
+//     ["--atempts", "2", "-f", "/home/costas/Monty Python.mp4", "{IP}"]
+//
+// CAVEATS: This only handles one level of quotes, and no escaping rules.
+// TODO: Should replace with something less fragile (maybe parse server-side, instead?)
+function splitArgs(str) {
+    const args = [];
+    let inQuotes = false;
+    let arg = '';
+    for(let i = 0; i < str.length; i++) {
+        // Split on spaces, unless within quotes
+        if(str.charAt(i) === ' ' && !inQuotes) {
+            args.push(arg);
+            arg = ''; // Reset
+        } else {
+            if(str.charAt(i) === '\"') {
+                inQuotes = !inQuotes;
+            } else {
+                arg += str.charAt(i);
+            }
+        }
+    }
+    if(inQuotes) {
+        throw new Error("Args had dangling quotes!");
+    }
+    args.push(arg);
+    return args;
+};
+

@@ -9,7 +9,7 @@
     <link rel="stylesheet" href="/assets/bootstrap/css/bootstrap.min.css">
     <link rel="stylesheet" href="/assets/css/font-awesome.min.css">
     <link rel="stylesheet" href="/assets/css/custom.css">
-    {{- block "styles" . -}}{{ end }}
+    {{ block "styles" . }}{{ end }}
 </head>
 <body>
     {{- template "navbar"  . -}}
@@ -51,6 +51,7 @@
                                 {{ if isAdmin .T}}
                                     <li><a href="/admin/teams"><i class="fa fa-user-plus"></i> Edit Teams</a></li>
                                     <li><a href="/admin/services"><i class="fa fa-server"></i> Edit Checks</a></li>
+                                    <li><a href="/admin/services/scripts"><i class="fa fa-code"></i> View/Run Check Scripts</a></li>
                                     <li><a href="/admin/bonuses"><i class="fa fa-star"></i> Award/Dock Points</a></li>
                                     <!-- <li><a href="/admin/logs"><i class="fa fa-tree"></i> Logs</a></li> -->
                                 {{ end }}
@@ -68,7 +69,7 @@
             </div>
         </nav>
 {{/* container div is left dangling for convenience */}}
-{{- end }}
+{{ end }}
 
 {{ define "oopsie" }}
 <div class="jumbotron">
@@ -76,15 +77,15 @@
     <div class="row text-center">
         <p>💀 Something went wrong... 💀</p>
         <p>Pinch yourself to make sure you're still breathing.</p>
-        {{- if isAdmin .T }}<p class="error">Error: {{ .Error }}</p>{{ end }}
+        {{ if isAdmin .T }}<p class="error">Error: {{ .Error }}</p>{{ end }}
     </div>
 </div>
-{{- end }}
+{{ end }}
 
 {{ define "footer" }}
     </div>
 
     <script src="/assets/js/jquery.min.js"></script>
     <script src="/assets/bootstrap/js/bootstrap.min.js"></script>
-    {{- block "scripts" . -}}{{ end }}
-{{- end }}
+    {{ block "scripts" . }}{{ end }}
+{{ end }}
