@@ -77,7 +77,7 @@ type TeamServiceStatusesView struct {
 }
 
 // TeamServiceStatuses gets the current service status (pass, fail, timeout)
-// for each team, for each non-disabled service.
+// for each team, for each service that has started and isn't disabled.
 func TeamServiceStatuses(db DB) ([]TeamServiceStatusesView, error) {
 	const sqlstr = `
 	SELECT ss.service, ss.service_name, jsonb_agg(ss.status) AS statuses
@@ -85,7 +85,7 @@ func TeamServiceStatuses(db DB) ([]TeamServiceStatusesView, error) {
 	LATERAL (SELECT id AS service, name AS service_name, COALESCE(last(sc.status, sc.created_at), 'timeout') AS status
 		FROM service
 			LEFT JOIN service_check AS sc ON id = sc.service_id AND team.id = sc.team_id
-		WHERE service.disabled = false
+		WHERE service.disabled = false AND service.starts_at < current_timestamp
 		GROUP BY service.id, team.name) AS ss
 		ORDER BY ss.service, team.id) AS ss
 	GROUP BY ss.service, ss.service_name`
