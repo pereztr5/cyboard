@@ -57,6 +57,12 @@ $ctfConfig.on('click', '.btn-edit', function showFlagEditorModal(event) {
     .always(() => { $modal.modal('show'); });
 });
 
+/* When showing the modal, hide the "Delete" button if the modal is being used to create. */
+$modal.on('show.bs.modal', function(event) {
+    const isNewChallenge = $(event.relatedTarget).hasClass("btn-add-challenge");
+    $modal.find('form').find('.delete-challenge').toggleClass("hidden", isNewChallenge);
+});
+
 /* Live preview of markdown description */
 $mkdnTabs.eq(1).on("show.bs.tab", function(event) {
     const desc = $editor.val();
@@ -79,8 +85,29 @@ $modal.find('form').on('submit', function updateChallenge(event) {
     data.id = parseInt(data.id, 10);
     data.total = parseFloat(data.total, 10);
 
-    const url = `/api/ctf/flags/${data.id}`;
-    ajaxAndReload('PUT', url, data, `${data.name} updated!`);
+    const isNewChallenge = data.id === -1;
+    if(isNewChallenge) {
+        delete data.id;
+        const url = `/api/ctf/new_flag`;
+        ajaxAndReload('POSt', url, data, `${data.name} created!`);
+    } else {
+        const url = `/api/ctf/flags/${data.id}`;
+        ajaxAndReload('PUT', url, data, `${data.name} updated!`);
+    }
+});
+
+/* Add new challenge, button below the table */
+$('.btn-add-challenge').on('click', function showChallengeAddModal(event) {
+    const $form = $modal.find('form');
+    $form.trigger('reset');
+    $mkdnTabs.eq(0).tab('show');
+
+    $modal.find('.modal-title').text("Add new challenge");
+    $modal.find('input[name=id]').val("-1");
+
+    // Modal show is wired up in the HTML, which then exposes the "relatedTarget"
+    // on the event (part of bootstrap's API), which is used to hide/show a Delete button.
+    //$modal.modal('show');
 });
 
 /* Delete challenge */

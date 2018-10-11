@@ -396,6 +396,11 @@ func GetAllFlags(w http.ResponseWriter, r *http.Request) {
 	ApiQuery(w, r, challenges, err)
 }
 
+func AddFlag(w http.ResponseWriter, r *http.Request) {
+	chal := &models.Challenge{}
+	ApiCreate(w, r, chal)
+}
+
 func AddFlags(w http.ResponseWriter, r *http.Request) {
 	newChallenges := &models.ChallengeSlice{}
 	ApiCreate(w, r, newChallenges)

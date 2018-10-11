@@ -46,6 +46,10 @@
     </tbody>
   </table>
 </div>
+<button type="button" class="btn btn-default btn-add-challenge"
+  data-toggle="modal" data-target="#ctf-edit-modal">
+  <i class="fa fa-flag"></i> Add New Challenge
+</button>
 {{ end }}
 
 {{ define "staff-ctf-csv-upload" }}
@@ -85,7 +89,7 @@
       </div>
       <form>
         <div class="modal-body">
-          <input name="id" type="hidden" value=-1>
+          <input name="id" type="hidden" value="-1">
           <div class="form-group">
             <label for="name" class="control-label">Name:</label>
             <input name="name" class="form-control" type="text" required>
