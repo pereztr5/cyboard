@@ -39,27 +39,22 @@ $ctfConfig.on('click', '.btn-edit', function showFlagEditorModal(event) {
     findInput("flag").val($cells.eq(7).find('.btn-flag').attr('title'));
     $modal.find('.modal-title').text(`Edit ${cellText(1)}`);
 
-    const isHidden = $cells.eq(5).children().size() > 0;
+    const isHidden = $cells.eq(5).children().length > 0;
     findInput("hidden").prop('checked', isHidden);
 
-    const $mkdnPanel = $form.find(".flag-body-panel");
-    $mkdnPanel.toggleClass("hidden", isHidden);
+    // TODO: This fetches the entire challenge again, just
+    // to get the description. This is a minor waste.
+    $.getJSON(`/api/ctf/flags/${flagID}`).then(chal => {
+        $editor.val(chal.body);
+        $mkdnTabs.eq(0).tab('show');
+    }, (xhr) => {
+        $editor.val("");
+        $mkdnTabs.eq(1).tab('show');
 
-    if(isHidden) {
-        $modal.modal('show');
-    } else {
-        $.get(`/api/blue/challenges/${flagID}`).then(desc => {
-            $editor.val(desc);
-            $mkdnTabs.eq(0).tab('show');
-        }, (xhr) => {
-            $editor.val("");
-            $mkdnTabs.eq(1).tab('show');
-
-            $preview.html($(`<p class="text-danger" />`)
-                           .text(`!! Couldn't fetch description: ${getXhrErr(xhr)}`));
-        })
-        .always(() => { $modal.modal('show'); });
-    }
+        $preview.html($(`<p class="text-danger" />`)
+                       .text(`!! Couldn't fetch description: ${getXhrErr(xhr)}`));
+    })
+    .always(() => { $modal.modal('show'); });
 });
 
 /* Live preview of markdown description */
