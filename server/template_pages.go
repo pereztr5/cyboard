@@ -5,6 +5,7 @@ import (
 	"net/http"
 	"path/filepath"
 	"strings"
+	"time"
 
 	"github.com/pereztr5/cyboard/server/models"
 	"github.com/sirupsen/logrus"
@@ -79,9 +80,22 @@ func ensureAppTemplates() {
 }
 
 func ShowHome(w http.ResponseWriter, r *http.Request) {
-	page := getPage(r, "homepage", "Homepage")
-	page.Data = M{"Video": getHomepageVid()}
-	renderTemplate(w, page)
+	if time.Now().After(appCfg.Event.Start) {
+		page := getPage(r, "homepage", "Homepage")
+		page.Data = M{"Video": getHomepageVid()}
+		renderTemplate(w, page)
+	} else {
+		// Before the event has started, show a timer counting down
+		countdownTmpl := templates["countdown"]
+		w.Header().Set("Content-Type", "text/html; charset=utf-8")
+
+		// Don't trust the user's browser to have time configured correctly. Use a duration
+		// instead of a datetime, to act as a monotonic time keeping method.
+		err := countdownTmpl.ExecuteTemplate(w, "countdown", time.Until(appCfg.Event.Start))
+		if err != nil {
+			Logger.WithError(err).WithField("name", "countdown").Error("Failed to execute template")
+		}
+	}
 }
 
 func ShowLogin(w http.ResponseWriter, r *http.Request) {

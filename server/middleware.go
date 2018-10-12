@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"net/http"
 	"strconv"
+	"strings"
 	"time"
 
 	"github.com/didip/tollbooth"
@@ -70,7 +71,15 @@ func RequireEventStarted(next http.Handler) http.Handler {
 			next.ServeHTTP(w, r)
 			return
 		}
-		render.Render(w, r, ErrForbiddenBecause("The competition has not started yet"))
+
+		// TODO: This is my first try at selecting responses based on browser req vs ajax.
+		// You could look at the "Accept" http header, but it can often have */* wildcards from
+		// both the browser and cli tools, so that doesn't identify reliably. Look into further.
+		if strings.HasPrefix(r.URL.Path, "/api") {
+			render.Render(w, r, ErrForbiddenBecause("The competition has not started yet"))
+		} else {
+			http.Redirect(w, r, "/", 301)
+		}
 	})
 }
 

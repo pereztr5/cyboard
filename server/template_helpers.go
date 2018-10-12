@@ -16,6 +16,7 @@ func buildHelperMap() template.FuncMap {
 		"title":       strings.Title,
 		"StringsJoin": strings.Join,
 		"timestamp":   fmtTimestamp,
+		"fmtDuration": fmtDuration,
 
 		// App-specific helpers
 		"isAdmin":    isAdmin,
@@ -26,6 +27,10 @@ func buildHelperMap() template.FuncMap {
 
 func fmtTimestamp(t time.Time) string {
 	return t.Format(time.Stamp)
+}
+
+func fmtDuration(d time.Duration) string {
+	return d.Truncate(time.Second).String()
 }
 
 func isAdmin(t *models.Team) bool {

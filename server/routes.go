@@ -37,8 +37,12 @@ func CreateWebRouter(teamScoreUpdater, servicesUpdater *broadcastHub) chi.Router
 	root.Get("/login", ShowLogin)
 	MaybeRateLimit(root, MaxReqsPerSec).Post("/login", SubmitLogin)
 	root.Get("/logout", Logout)
-	root.Get("/scoreboard", ShowScoreboard)
-	root.Get("/services", ShowServices)
+
+	root.Group(func(r chi.Router) {
+		r.Use(RequireEventStarted)
+		r.Get("/scoreboard", ShowScoreboard)
+		r.Get("/services", ShowServices)
+	})
 
 	// Authenticated Pages for Blue Teams
 	root.Group(func(authed chi.Router) {
