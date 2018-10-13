@@ -64,7 +64,7 @@ func prepareChecks(teamsAndServices []models.MonitorTeamService, scriptsDir, bas
 
 		// Set args with team's IP, Name, and ID using simple string replace on each argument
 		var s string
-		script.Args = make([]string, 0, len(tas.Service.Args))
+		script.Args = []string{script.Path}
 		for _, arg := range tas.Service.Args {
 			switch arg {
 			case "{IP}":
