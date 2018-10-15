@@ -69,8 +69,8 @@ func ensureAppTemplates() {
 	templates = make(map[string]*template.Template)
 
 	funcMap := buildHelperMap()
-	includes := template.Must(template.New("base").Funcs(funcMap).ParseGlob("tmpl/includes/*.tmpl"))
-	layouts := mustGlobFiles("tmpl/*.tmpl")
+	includes := template.Must(template.New("base").Funcs(funcMap).ParseGlob("ui/tmpl/includes/*.tmpl"))
+	layouts := mustGlobFiles("ui/tmpl/*.tmpl")
 
 	for _, layout := range layouts {
 		title := strings.TrimSuffix(filepath.Base(layout), ".tmpl")
