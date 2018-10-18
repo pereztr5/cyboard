@@ -2,90 +2,95 @@
 <!DOCTYPE html>
 <html>
 <head>
-    <meta charset="utf-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>{{.Title}} - CNYHackathon</title>
-    <link rel="icon" href="data:,"> {{/* empty favicon */}}
-    <link rel="stylesheet" href="/assets/bootstrap/css/bootstrap.min.css">
-    <link rel="stylesheet" href="/assets/css/font-awesome.min.css">
-    <link rel="stylesheet" href="/assets/css/custom.css">
-    {{ block "styles" . }}{{ end }}
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
+  <title>{{.Title}} - CNYHackathon</title>
+  <link rel="icon" href="data:,"> {{/* empty favicon */}}
+
+  <link href="https://stackpath.bootstrapcdn.com/bootswatch/4.1.3/cyborg/bootstrap.min.css" rel="stylesheet" integrity="sha384-4DAPMwiyOJv/C/LvTiUsW5ueiD7EsaAhwUKO0Llp+fWzT40XrmAbayhVP00bAJVa" crossorigin="anonymous">
+
+  <link rel="stylesheet" href="/assets/lib/font-awesome/css/font-awesome.min.css">
+  <link rel="stylesheet" href="/assets/css/custom.css">
+  {{ block "styles" . }}{{ end }}
 </head>
 <body>
-    {{- template "navbar"  . -}}
-    {{- if .Error }}
-        {{- template "oopsie" . }}
-    {{- else }}
-        {{-    block "content" . -}}{{ end }}
-    {{- end }}
-    {{- template "footer"  . -}}
+  {{- template "header"  . -}}
+  {{- if .Error }}
+    {{- template "oopsie" . }}
+  {{- else }}
+    {{-    block "content" . -}}{{ end }}
+  {{- end }}
+  {{- template "footer"  . -}}
 </body>
 </html>
 {{ end }}
 
-{{ define "navbar" }}
-    <div class="container">
-        <nav class="navbar navbar-inverse">
-            <div class="container-fluid">
-                <div class="navbar-header"><a class="navbar-brand navbar-link" href="https://www.cnyhackathon.org/">CNY Hackathon</a>
-                    <button class="navbar-toggle collapsed" data-toggle="collapse" data-target="#navcol-1"><span class="sr-only">Toggle navigation</span><span class="icon-bar"></span><span class="icon-bar"></span><span class="icon-bar"></span></button>
-                </div>
-                <div class="collapse navbar-collapse" id="navcol-1">
-                    <ul class="nav navbar-nav navbar-left">
-                        <li role="presentation"><a href="/">Home </a></li>
-                        <li role="presentation"><a href="/scoreboard">Scoreboard</a></li>
-                        <!-- <li role="presentation"><a href="/services">Services</a></li> -->
-                        <li role="presentation"><a href="/challenges">Challenges</a></li>
-                    </ul>
-                    <ul class="nav navbar-nav navbar-right">
-                        {{ if .T }}
-                        <li role="presentation" class="dropdown">
-                            <a class="dropdown-toggle" data-toggle="dropdown" href="#" aria-expanded="false">
-                                {{ .T.Name }}<span class="caret"></span>
-                            </a>
-                            <ul class="dropdown-menu" aria-labelledby="download">
-                                {{ if isCtfStaff .T}}
-                                    <li><a href="/staff/ctf_dashboard"><i class="fa fa-tachometer"></i> CTF Dashboard</a></li>
-                                    <li><a href="/staff/ctf"><i class="fa fa-flag"></i> Edit CTF Challenges</a></li>
-                                {{ end }}
-                                {{ if isAdmin .T}}
-                                    <li><a href="/admin/teams"><i class="fa fa-user-plus"></i> Edit Teams</a></li>
-                                    <li><a href="/admin/services"><i class="fa fa-server"></i> Edit Checks</a></li>
-                                    <li><a href="/admin/services/scripts"><i class="fa fa-code"></i> View/Run Check Scripts</a></li>
-                                    <li><a href="/admin/bonuses"><i class="fa fa-star"></i> Award/Dock Points</a></li>
-                                    <!-- <li><a href="/admin/logs"><i class="fa fa-tree"></i> Logs</a></li> -->
-                                {{ end }}
-                                {{ if isBlueteam .T}}
-                                    <li><a href="/dashboard">Dashboard</a></li>
-                                {{ end }}
-                                <li><a href="/logout">Logout</a></li>
-                            </ul>
-                        </li>
-                        {{ else }}
-                        <li role="presentation"><a href="/login">Login </a></li>
-                        {{ end }}
-                    </ul>
-                </div>
-            </div>
-        </nav>
-{{/* container div is left dangling for convenience */}}
+{{ define "header" }}
+<div class="container">
+  <nav class="navbar custom-navbar navbar-expand-md mb-md-4 mb-3 p-0 rounded-bottom">
+    <a class="navbar-brand nav-link mr-2" href="https://www.cnyhackathon.org/">CNY Hackathon</a>
+    <button class="navbar-toggler mr-2" type="button" data-toggle="collapse" data-target="#navcol-1">
+      <span class="navbar-toggler-icon"></span>
+    </button>
+
+    <div class="collapse navbar-collapse" id="navcol-1">
+      <ul class="navbar-nav mr-auto">
+        <li class="nav-item"><a class="nav-link" href="/">Home </a></li>
+        <li class="nav-item"><a class="nav-link" href="/scoreboard">Scoreboard</a></li>
+        <li class="nav-item"><a class="nav-link" href="/challenges">Challenges</a></li>
+      </ul>
+      <ul class="navbar-nav">
+        {{ if .T }}
+        <li class="nav-item dropdown mr-md-2">
+          <a class="nav-link dropdown-toggle" data-toggle="dropdown" href="#">
+            {{ .T.Name }}<span class="caret"></span>
+          </a>
+          <ul class="dropdown-menu dropdown-menu-right m-md-0">
+            {{ if isCtfStaff .T}}
+            <a class="dropdown-item" href="/staff/ctf_dashboard"><i class="fa fa-tachometer"></i> CTF Dashboard</a>
+            <a class="dropdown-item" href="/staff/ctf"><i class="fa fa-flag"></i> Edit CTF Challenges</a>
+            {{ end }}
+            {{ if isAdmin .T}}
+            <a class="dropdown-item" href="/admin/teams"><i class="fa fa-user-plus"></i> Edit Teams</a>
+            <a class="dropdown-item" href="/admin/services"><i class="fa fa-server"></i> Edit Checks</a>
+            <a class="dropdown-item" href="/admin/services/scripts"><i class="fa fa-code"></i> View/Run Check Scripts</a>
+            <a class="dropdown-item" href="/admin/bonuses"><i class="fa fa-star"></i> Award/Dock Points</a>
+            <!-- <a class="dropdown-item" href="/admin/logs"><i class="fa fa-tree"></i> Logs</a> -->
+            {{ end }}
+            {{ if isBlueteam .T}}
+            <a class="dropdown-item" href="/dashboard">Dashboard</a>
+            {{ end }}
+            <a class="dropdown-item" href="/logout">Logout</a>
+          </ul>
+        </li>
+        {{ else }}
+        <li class="nav-item mr-md-2"><a class="nav-link" href="/login">Login</a></li>
+        {{ end }}
+      </ul>
+    </div>
+  </nav>
+  {{/* container div is left dangling for convenience */}}
 {{ end }}
 
 {{ define "oopsie" }}
 <div class="jumbotron">
-    <h2>Oh no...</h2>
-    <div class="row text-center">
-        <p>💀 Something went wrong... 💀</p>
-        <p>Pinch yourself to make sure you're still breathing.</p>
-        {{ if isAdmin .T }}<p class="error">Error: {{ .Error }}</p>{{ end }}
+  <h2>Oh no...</h2>
+  <div class="row text-center">
+    <p>💀 Something went wrong... 💀</p>
+    <p>Pinch yourself to make sure you're still breathing.</p>
+    {{ if isAdmin .T }}<p class="error text-danger">Error: {{ .Error }}</p>{{ end }}
     </div>
 </div>
 {{ end }}
 
 {{ define "footer" }}
-    </div>
+  </div>
 
-    <script src="/assets/js/jquery.min.js"></script>
-    <script src="/assets/bootstrap/js/bootstrap.min.js"></script>
-    {{ block "scripts" . }}{{ end }}
+  <script src="https://code.jquery.com/jquery-3.3.1.min.js" integrity="sha256-FgpCb/KJQlLNfOu91ta32o/NMZxltwRo8QtmkMRdAu8=" crossorigin="anonymous"></script>
+
+  <script src="https://code.jquery.com/jquery-migrate-3.0.1.js" integrity="sha256-VvnF+Zgpd00LL73P2XULYXEn6ROvoFaa/vbfoiFlZZ4=" crossorigin="anonymous"></script>
+
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/popper.js/1.14.3/umd/popper.min.js" integrity="sha384-ZMP7rVo3mIykV+2+9J3UJ46jBk0WLaUAdn689aCwoqbBJiSnjAK/l8WvCWPIPm49" crossorigin="anonymous"></script>
+  <script src="https://stackpath.bootstrapcdn.com/bootstrap/4.1.3/js/bootstrap.min.js" integrity="sha384-ChfqqxuZUCnJSK3+MXmPNIyE6ZbWh2IMqE241rYiqJxyMiZ6OW/JmZQ5stwEULTy" crossorigin="anonymous"></script>
+  {{ block "scripts" . }}{{ end }}
 {{ end }}

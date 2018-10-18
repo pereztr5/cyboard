@@ -25,13 +25,13 @@ $cfgTable.on('click', '.btn-edit', function showTeamEditorModal(event) {
     // Plug in the role name to the combo box, and fire a change event to enable/disable
     // the blueteam_ip field, if editing a blueteam.
     const role_name = cellText(2);
-    $form.find("select[name=role_name]").val(role_name).change();
+    $form.find("select[name=role_name]").val(role_name).trigger('change');
 
     findInput("id").val(cellText(0));
     findInput("name").val(cellText(1));
     findInput("blueteam_ip").val(cellText(3));
 
-    const isDisabled = $cells.eq(4).children().size() > 0;
+    const isDisabled = $cells.eq(4).children().length > 0;
     findInput("disabled").prop('checked', isDisabled);
 
     // Always reset the password field.
@@ -48,13 +48,13 @@ $modal.find('form').on('change', 'select[name=role_name]', function(event) {
     const enable = isBlueteam(role_name);
     $form.find("input[name=blueteam_ip]")
         .prop("required", enable)
-        .parent(".form-group").toggleClass("hidden", !enable);
+        .parent(".form-group").toggle(enable);
 });
 
 /* When showing the modal, hide the "Delete" button if the modal is being used to create. */
 $modal.on('show.bs.modal', function(event) {
     const isNewTeam = $(event.relatedTarget).hasClass("btn-add-team");
-    $modal.find('form').find('.delete-team').toggleClass("hidden", isNewTeam);
+    $modal.find('form').find('.delete-team').toggle(!isNewTeam);
 });
 
 
@@ -110,17 +110,15 @@ $modal.find('form').on('click', '.delete-team', function deleteTeam(event) {
     const id = $form.find("input[name=id]").val();
     const name = $form.find("input[name=name]").val();
 
-    BootstrapDialog.confirm(`Are you sure you want to delete "${name}"`, yes => {
-        if(!yes) { return; }
-
+    if(confirm(`Are you sure you want to delete "${name}"`)) {
         const url = `/api/admin/teams/${id}`;
-        ajaxJSON('DELETE', url).done(() => {
+        ajaxJSON('DELETE', url).then(() => {
             $('.team-config-table > tbody').find(`[data-team-id=${id}]`).remove();
             $modal.modal('hide');
-        }).fail((xhr) => {
+        }).catch((xhr) => {
             alert(getXhrErr(xhr));
         });
-    });
+    };
 });
 
 
@@ -128,7 +126,7 @@ $modal.find('form').on('click', '.delete-team', function deleteTeam(event) {
 $('.btn-add-team').on('click', function showTeamAddModal(event) {
     const $form = $modal.find('form');
     $form.trigger('reset');
-    $form.find("select[name=role_name]").change();
+    $form.find("select[name=role_name]").trigger("change");
 
     $modal.find('.modal-title').text("Add new team");
     $modal.find('input[name=id]').val("-1");
@@ -154,7 +152,7 @@ const $csvUploadForm = $('.csv-upload form');
     $csvUploadForm.find('textarea').val(placeholderCsv);
 })();
 
-$csvUploadForm.submit(function addTeamsViaCSV(event) {
+$csvUploadForm.on('submit', function addTeamsViaCSV(event) {
     event.preventDefault();
     const rawCSV = $csvUploadForm.find('textarea').val();
 
@@ -187,10 +185,10 @@ $csvUploadForm.submit(function addTeamsViaCSV(event) {
     loading(true);
 
     const url = `/api/admin/blueteams`;
-    ajaxJSON("POST", url, data).done(() => {
+    ajaxJSON("POST", url, data).then(() => {
         alert(`${data.length} teams created! Page will reload.`);
         window.location.reload();
-    }).fail((xhr) => {
+    }).catch((xhr) => {
         alert(getXhrErr(xhr));
     }).always(() => {
         loading(false);

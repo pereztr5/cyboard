@@ -5,6 +5,7 @@ const $modal = $('#flag-modal')
     , $desc   = $modal.find('.flag-description')
     , $files  = $modal.find('.flag-file-list')
 
+    , $form   = $modal.find('form')
     , $flag   = $modal.find('input[name=flag]')
     , $name   = $modal.find('input[name=name]')
     , $id     = $modal.find('input[name=id]');
@@ -24,6 +25,8 @@ $('.challenge-list').on('click', 'button', function(event) {
         return;
     }
 
+    $form.trigger('reset');
+
     $title.text(name);
     $points.text(points);
 
@@ -41,9 +44,9 @@ $('.challenge-list').on('click', 'button', function(event) {
 
         $.getJSON(fileURL).then(fileList => {
             $files.empty().append(fileList.map(f =>
-                $(`<a class="col-md-4 col-sm-6 col-xs-12 text-truncate" />`).attr('href', `${fileURL}/${f.name}`)
-                    .append($(`<div class="btn btn-block btn-primary text-overflow" />`)
-                        .append(`<span class="fa fa-download" />`)
+                $(`<a class="col-md-4 col-sm-6 text-truncate" />`).attr('href', `${fileURL}/${f.name}`)
+                    .append($(`<div class="btn btn-block btn-primary text-truncate" />`)
+                        .append(`<span class="fa fa-download mr-1" />`)
                         .append($(`<small />`).text(f.name)))
             ));
         }, () => {
@@ -57,12 +60,11 @@ $('.challenge-list').on('click', 'button', function(event) {
 
 // When the modal shows up, focus the submission box
 $modal.on('shown.bs.modal', function(event) {
-    $('input:visible:enabled:first', this).focus();
+    $('input:visible:enabled:first', this).trigger('focus');
 })
 
 // When the modal goes away, clean up
 $modal.on('hidden.bs.modal', function(event) {
-    $flag.val('');
     $modal.find('.alert').finish().hide();
 });
 
@@ -90,14 +92,14 @@ $modal.find('form').on('submit', function(event) {
     $.post('/api/blue/challenges', {
         challenge: inputVal('name'),
         flag: inputVal('flag'),
-    }).done(flagState => {
+    }).then(flagState => {
         switch(flagState) {
         case 0:  setStatus('alert-success', 'You got it!'); markAsSolved($btn); break;
         case 1:  setStatus('alert-danger', 'Incorrect'); break;
         case 2:  setStatus('alert-warning', 'You already solved this'); break;
         default: setStatus('alert-danger', '...Something weird happened'); break;
         }
-    }).fail(r => {
+    }).catch(r => {
         const msg = r.status === 0 ? 'Failed to connect to server. Is your internet working?' : r.responseText;
         setStatus('alert-danger', msg);
     }).always(() => {
@@ -105,7 +107,7 @@ $modal.find('form').on('submit', function(event) {
 
         const $submit = $form.find('button[type=submit]');
         $submit.prop('disabled', true);
-        setTimeout(() => $submit.prop('disabled', false), 1000);
+        setTimeout(() => $submit.prop('disabled', false), 1700);
     });
 });
 

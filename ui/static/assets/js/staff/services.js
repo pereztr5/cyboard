@@ -51,7 +51,7 @@ $cfgTable.on('click', '.btn-edit', function showServiceEditorModal(event) {
 /* When showing the modal, hide the "Delete" button if the modal is being used to create. */
 $modal.on('show.bs.modal', function(event) {
     const isNewService = $(event.relatedTarget).hasClass("btn-add-service");
-    $modal.find('form').find('.delete-service').toggleClass("hidden", isNewService);
+    $modal.find('form').find('.delete-service').toggle(!isNewService);
 });
 
 
@@ -105,9 +105,7 @@ $modal.find('form').on('click', '.delete-service', function deleteService(event)
     const id = $form.find("input[name=id]").val();
     const name = $form.find("input[name=name]").val();
 
-    BootstrapDialog.confirm(`Are you sure you want to delete "${name}"`, yes => {
-        if(!yes) { return; }
-
+    if(confirm(`Are you sure you want to delete "${name}"`)) {
         const url = `/api/admin/services/${id}`;
         ajaxJSON('DELETE', url).done(() => {
             $cfgTable.children('tbody').find(`[data-service-id=${id}]`).remove();
@@ -115,7 +113,7 @@ $modal.find('form').on('click', '.delete-service', function deleteService(event)
         }).fail((xhr) => {
             alert(getXhrErr(xhr));
         });
-    });
+    };
 });
 
 

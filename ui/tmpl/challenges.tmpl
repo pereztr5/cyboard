@@ -1,9 +1,9 @@
 {{ define "content" }}
-<h3 class="page-header">Challenges</h3>
+<h4 class="page-header">Challenges</h4>
 <div class="challenge-list">
   {{ range .Data.Challenges }}
-  <div class="col-md-3 col-sm-6 col-xs-10">
-    <button type='button' class='btn btn-default btn-block {{if .Captured}}negate{{end}}'
+  <div class="col-lg-3 col-md-6 col-10">
+    <button type='button' class='btn btn-secondary btn-block {{if .Captured}}negate{{end}}'
               data-target='#flag-modal' data-flag-id='{{.ID}}'>
         {{if .Captured}}<span class="fa fa-check-square"></span>{{end}}
         <p>{{ .Name }}</p>
@@ -23,25 +23,25 @@
   <div class="modal-dialog" role="document">
     <div class="modal-content text-center">
       <div class="modal-body">
-        <button type="button" class="close" data-dismiss="modal"><span>&times;</span></button>
-        <h4 class="flag-modal-title">Challenge</h4>
-        <h6 class="flag-modal-points">Points</h6>
-        <span class="flag-description">Description</span>
-        <div class="flag-file-list"></div>
-        <div class="row">
-          <form>
+        <div class="container-fluid">
+          <button type="button" class="close" data-dismiss="modal"><span>&times;</span></button>
+          <h5 class="flag-modal-title mt-3">Challenge</h5>
+          <h6 class="flag-modal-points mb-2">Points</h6>
+          <span class="flag-description">Description</span>
+          <div class="flag-file-list mb-2"></div>
+          <form class="row">
             <div class="form-group col-md-9">
               <input name="flag" type="text" placeholder="Flag" class="form-control" required>
               <input name="name" type="hidden" value="">
               <input name="id" type="hidden" value="">
             </div>
             <div class="form-group col-md-3">
-              <button type="submit" class="btn btn-default btn-block">Submit</button>
+              <button type="submit" class="btn btn-secondary btn-block">Submit</button>
             </div>
           </form>
-        </div>
-        <div class="text-center">
-          <p class="alert" role="alert" style="display: none;"></p>
+          <div class="text-center">
+            <p class="alert" role="alert" style="display: none;"></p>
+          </div>
         </div>
     </div>
   </div>

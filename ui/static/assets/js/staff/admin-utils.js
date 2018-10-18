@@ -14,10 +14,10 @@ const getXhrErr = xhr => xhr.status === 0 ? "Network error!" : xhr.responseText;
 
 // Send JSON via POST/PUT to the API, prompt with the response, and on success reload the page.
 function ajaxAndReload(method, url, data, successMsg) {
-    return ajaxJSON(method, url, data).done(() => {
+    return ajaxJSON(method, url, data).then(() => {
         alert(successMsg + " Page will reload.");
         window.location.reload();
-    }).fail((xhr) => {
+    }).catch((xhr) => {
         alert(getXhrErr(xhr));
     });
 }

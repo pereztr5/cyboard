@@ -1,31 +1,31 @@
 {{ define "content" }}
 <div class="bonus-award-panel">
-  <h4>Award or Dock Bonus Points</h4>
+  <h5>Award or Dock Bonus Points</h5>
 
   <form class="row">
-    <div class="form-group col-md-offset-1 col-md-3">
-      <label class="control-label" for="teams">Select Teams:</label>
+    <div class="form-group offset-md-1 col-md-3">
+      <label for="teams">Select Teams:</label>
       <select class="form-control" name="teams" multiple size="5" required>
         {{ range .Data.Blueteams }}
         <option value="{{.ID}}">{{.Name}}</option>
         {{ end }}
       </select>
     </div>
-    <div class="col-md-7 form-group form-horizontal">
-      <div class="form-group">
-        <label class="control-label col-md-2" for="points">Points:</label>
+    <div class="col-md-7 text-right">
+      <div class="form-group form-row">
+        <label class="col-form-label col-md-2" for="points">Points:</label>
         <div class="col-md-10">
           <input class="form-control" type="number" name="points" required placeholder="50">
         </div>
       </div>
-      <div class="form-group">
-        <label class="control-label col-md-2" for="reason">Reason:</label>
+      <div class="form-group form-row">
+        <label class="col-form-label col-md-2" for="reason">Reason:</label>
         <div class="col-md-10">
           <input class="form-control" type="text" name="reason" placeholder="Pointed out a bug!">
         </div>
       </div>
-      <div class="col-md-offset-2 col-md-10">
-        <button class="btn btn-default btn-block" type="submit">
+      <div class="offset-md-2 col-md-10">
+        <button class="btn btn-secondary btn-block" type="submit">
           <i class="fa fa-trophy"></i> Award/Dock Points
         </button>
       </div>

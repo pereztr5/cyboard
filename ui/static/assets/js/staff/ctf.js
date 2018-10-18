@@ -60,7 +60,7 @@ $ctfConfig.on('click', '.btn-edit', function showFlagEditorModal(event) {
 /* When showing the modal, hide the "Delete" button if the modal is being used to create. */
 $modal.on('show.bs.modal', function(event) {
     const isNewChallenge = $(event.relatedTarget).hasClass("btn-add-challenge");
-    $modal.find('form').find('.delete-challenge').toggleClass("hidden", isNewChallenge);
+    $modal.find('form').find('.delete-challenge').toggle(!isNewChallenge);
 });
 
 /* Live preview of markdown description */
@@ -116,9 +116,7 @@ $modal.find('form').on('click', '.delete-challenge', function deleteChallenge(ev
     const flagID = $form.find("input[name=id]").val();
     const flagName = $form.find("input[name=name]").val();
 
-    BootstrapDialog.confirm(`Are you sure you want to delete "${flagName}"`, yes => {
-        if(!yes) { return; }
-
+    if(confirm(`Are you sure you want to delete "${flagName}"`)) {
         const url = `/api/ctf/flags/${flagID}`;
         ajaxJSON('DELETE', url).done(() => {
             $('.flag-config-table > tbody').find(`[data-flag-id=${flagID}]`).remove();
@@ -126,7 +124,7 @@ $modal.find('form').on('click', '.delete-challenge', function deleteChallenge(ev
         }).fail((xhr) => {
             alert(getXhrErr(xhr));
         });
-    });
+    };
 });
 
 
@@ -145,7 +143,7 @@ const $csvUploadForm = $('.flag-config-csv-upload form');
     $csvUploadForm.find('textarea').val(placeholderFlagCsv);
 })();
 
-$csvUploadForm.submit(function addChallengesViaCSV(event) {
+$csvUploadForm.on('submit', function addChallengesViaCSV(event) {
     event.preventDefault();
     const rawCSV = $csvUploadForm.find('textarea').val();
 

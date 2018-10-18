@@ -1,21 +1,16 @@
 {{ define "content" }}
-<div class="container">
-    <div class="row">
-        <div class="col-lg-4 col-lg-offset-4 col-md-4 col-md-offset-4 col-sm-6 col-sm-offset-3">
-            <form action="/login" method="POST">
-                <h4 class="text-center">Login</h4>
-                <hr>
-                <div class="form-group">
-                    <label class="control-label" for="teamName">Team Name:</label>
-                    <input class="form-control input-sm" type="text" name="teamname" required="" placeholder="HAC3Rz" minlength="1" autofocus="" autocomplete="off">
-                </div>
-                <div class="form-group">
-                    <label class="control-label" for="password">Password: </label>
-                    <input class="form-control input-sm" type="password" name="password" required="" placeholder="superSecret123" minlength="1" autocomplete="off">
-                </div>
-                <button class="btn btn-default btn-block" type="submit">Submit </button>
-            </form>
-        </div>
+<div class="row">
+  <form class="offset-sm-4 col-sm-4" action="/login" method="POST">
+    <h5 class="page-header text-center">Login</h5>
+    <div class="form-group">
+      <label class="col-form-label" for="teamName">Team Name:</label>
+      <input class="form-control form-control-sm" type="text" name="teamname" placeholder="team#1" required autofocus>
     </div>
+    <div class="form-group">
+      <label class="col-form-label" for="password">Password: </label>
+      <input class="form-control form-control-sm" type="password" name="password" placeholder="st0l3n cR3dz" required>
+    </div>
+    <button class="btn btn-secondary btn-block" type="submit">Sign in</button>
+  </form>
 </div>
 {{ end }}

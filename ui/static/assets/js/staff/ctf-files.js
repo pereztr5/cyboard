@@ -49,7 +49,7 @@ $ctfConfig.on('click', '.btn-files', function showFlagEditorModal(event) {
 });
 
 /* Add files */
-$filesModal.find('form').submit(function uploadFlagFiles(event) {
+$filesModal.find('form').on('submit', function uploadFlagFiles(event) {
     event.preventDefault();
     const $form = $(this);
     const data = new FormData(this);
@@ -97,14 +97,12 @@ $filelist.on('click', '.btn-file-delete', function deleteFlagFile(event) {
     const url = $row.find('a').attr('href');
     const filename = $row.data('name');
 
-    BootstrapDialog.confirm(`Are you sure you want to delete "${filename}"`, yes => {
-        if(!yes) { return; }
-
+    if(confirm(`Are you sure you want to delete "${filename}"`)) {
         ajaxJSON('DELETE', url).done(() => {
             $row.remove();
         }).fail((xhr) => {
             alert(getXhrErr(xhr));
         });
-    });
+    };
 });
 

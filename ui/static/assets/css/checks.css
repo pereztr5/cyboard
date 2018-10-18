@@ -46,10 +46,6 @@
     filter: contrast(200%);
 }
 
-.invisible {
-    opacity: 0;
-}
-
 
 @media (max-width: 768px) {
     /* Transpose services display matrix */
@@ -131,6 +127,7 @@
 }
 .sv-help-content .explain {
     font-size: 1.5em;
+    font-weight: 700;
     padding: .4em;
 }
 
