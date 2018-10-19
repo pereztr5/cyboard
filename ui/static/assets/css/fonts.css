@@ -1,0 +1,15 @@
+@font-face {
+ font-family: 'Unica One';
+ src: local('Unica One'), local('UnicaOne-Regular'), url('../lib/fonts/unica-one-v5-latin-regular.woff2') format('woff2'), url('../lib/fonts/unica-one-v5-latin-regular.woff') format('woff');
+}
+@font-face {
+ font-family: 'Roboto';
+ font-weight: 400;
+ src: local('Roboto'), local('Roboto-Regular'), url('../lib/fonts/roboto-v18-latin-regular.woff2') format('woff2'), url('../lib/fonts/roboto-v18-latin-regular.woff') format('woff');
+}
+@font-face {
+ font-family: 'Roboto';
+ font-weight: 700;
+ src: local('Roboto Bold'), local('Roboto-Bold'), url('../lib/fonts/roboto-v18-latin-700.woff2') format('woff2'), url('../lib/fonts/roboto-v18-latin-700.woff') format('woff');
+}
+
