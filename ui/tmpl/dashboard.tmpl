@@ -8,6 +8,7 @@
 
 {{ define "scripts" }}
     {{- if isBlueteam .T }}
+    <script src="/assets/js/ctf-submission.js"></script>
     <script src="/assets/js/dashboard.js"></script>
     {{- end }}
 {{ end }}
@@ -18,25 +19,46 @@
 {{ define "blueteam_dash" }}
 <h4 class="page-header">CTF Progress <small class="text-muted">{{ .T.Name }}</small></h4>
 <div class="row">
-  <div class="col-md-6 row justify-content-around">
-    {{- range .Data.ctfProgress }}
-    <div class="col-md-6">
-      <div class="card flag-card {{if eq .Amount .Max}}negate{{end}}">
-        <div class="row">
-          <div class="col-3">
-            <i class="fa fa-flag fa-4x"></i>
-          </div>
-          <div class="col-9 text-right">
-            <div class="h4">{{ .Amount }}/{{ .Max }}</div>
-            <div>{{ .Category }}</div>
+  <div class="col-md-6">
+    <div class="row justify-content-around">
+      {{- range .Data.ctfProgress }}
+      <div class="col-md-6">
+        <div class="card flag-card {{if eq .Amount .Max}}negate{{end}}">
+          <div class="row">
+            <div class="col-3">
+              <i class="fa fa-flag fa-4x"></i>
+            </div>
+            <div class="col-9 text-right">
+              <div class="h4">{{ .Amount }}/{{ .Max }}</div>
+              <div>{{ .Category }}</div>
+            </div>
           </div>
         </div>
       </div>
+      {{- end }}
     </div>
-    {{- end }}
   </div>
-  {{/* TODO: Add back in hidden flag submission */}}
-</div>
+  <div class="col-md-6">
+
+    <form class="card m-2 hidden-flag-form">
+      <div class="form-group col-md-12">
+        <label for="flag" class="col-form-label">
+          <i class="fa fa-lg fa-user-secret mx-1"></i>Guess at a hidden challenge:</label>
+        <input name="flag" type="text" placeholder="Flag" class="form-control" tabindex="-1" required>
+      </div>
+      <div class="col-md-12">
+        <div class="form-row">
+          <div class="text-center col-md-8">
+            <p class="alert" role="alert" style="display: none;"></p>
+          </div>
+          <div class="form-group col-md-4">
+            <button type="submit" class="btn btn-block btn-secondary">Submit</button>
+          </div>
+        </div>
+      </div>
+    </form>
+
+  </div>
 </div>
 {{ end }}
 
