@@ -154,6 +154,14 @@ func (cs ChallengeSlice) Insert(db TXer) error {
 	return tx.Commit()
 }
 
+func (cs ChallengeSlice) Sum() float32 {
+	var x float32
+	for _, c := range cs {
+		x += c.Total
+	}
+	return x
+}
+
 // func ChallengesInGroups(db DB, groups []string) ([]Challenge, error) {}
 
 // ChallengeView is a safe-for-public-display subset of fields over a CTF challenge.

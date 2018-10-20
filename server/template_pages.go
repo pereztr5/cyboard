@@ -173,7 +173,7 @@ func ShowCtfConfig(w http.ResponseWriter, r *http.Request) {
 
 	chals, err := models.AllChallenges(db)
 	page.checkErr(err, "all challenges")
-	page.Data = M{"Challenges": chals}
+	page.Data = M{"Challenges": chals, "TotalPoints": models.ChallengeSlice(chals).Sum()}
 	renderTemplate(w, page)
 }
 
@@ -207,8 +207,10 @@ func ShowServicesConfig(w http.ResponseWriter, r *http.Request) {
 	page := getPage(r, "admin_services_cfg", "Admin Services")
 	page.Data = make(map[string]interface{})
 
-	page.Data["Services"], err = models.AllServices(db)
+	services, err := models.AllServices(db)
 	page.checkErr(err, "all services")
+	page.Data["Services"] = services
+	page.Data["TotalPoints"] = models.ServiceSlice(services).Sum()
 	page.Data["ScriptFiles"], err = getFileList(ScriptMgr.pathBuilder(r))
 	page.checkErr(err, "script files")
 

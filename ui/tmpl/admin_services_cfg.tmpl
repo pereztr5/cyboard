@@ -20,7 +20,7 @@
 {{ end }}
 
 {{ define "services-table" }}
-<h5>All Service Checks</h5>
+<h5>All Service Checks <small class="text-muted">- {{.Data.TotalPoints}} total points</small></h5>
 <div class="services-controls">
   <!-- TODO: Inputs for sorting, filtering, etc. -->
 </div>

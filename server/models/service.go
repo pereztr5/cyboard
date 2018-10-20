@@ -136,3 +136,13 @@ func AllActiveServices(db DB) ([]Service, error) {
 
 	return ss, nil
 }
+
+type ServiceSlice []Service
+
+func (ss ServiceSlice) Sum() float32 {
+	var x float32
+	for _, s := range ss {
+		x += s.TotalPoints
+	}
+	return x
+}
