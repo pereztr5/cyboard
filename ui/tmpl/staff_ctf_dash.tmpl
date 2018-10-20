@@ -36,27 +36,47 @@
 
 {{ define "ctf-solves-per-team" }}
 <h6>Solves per team</h6>
-<table class="table table-sm teams-captured-flags">
-  <thead><tr>
-      <th>Team</th>
-      <th>Flags Captured</th>
-    </tr></thead>
-    <tbody>
-      {{ range . }}
-        <tr>
-          <td>{{.Team}}</td>
-          <td>
-            {{ range .Challenges }}
-              <span>&quot;{{.Name}}&quot; </span>
-            {{ end }}
-          </td>
-        </tr>
-      {{ end }}
-    </tbody>
-</table>
+<div class="teams-captured-flags">
+  {{/* See javascript */}}
+  <ul class="nav nav-tabs text-center" role="tablist">
+  </ul>
+  <div class="tab-content">
+  {{ range $idx, $ccpt := . }}
+    <li class="nav-item">
+      <a class="nav-link" href="#tab-team{{$idx}}">{{$ccpt.Team}}</a>
+    </li>
+    <div class="tab-pane" id="tab-team{{$idx}}">
+      <h6 class="text-primary text-center">{{ len $ccpt.Challenges }} Solves!</h6>
+      <table class="table table-sm table-bordered">
+        <thead><tr>
+            <th>Designer</th>
+            <th>Category</th>
+            <th>Name</th>
+            <th>Timestamp</th>
+          </tr></thead>
+          <tbody>
+          {{ range $ccpt.Challenges }}
+            <tr>
+              <td>{{.Designer}}</td>
+              <td>{{.Category}}</td>
+              <td>{{.Name}}</td>
+              <td>{{kitchentime .Timestamp}}</td>
+            </tr>
+          {{ else }}
+            <p class="text-secondary">Nothing solved, yet</p>
+          {{ end }}
+          </tbody>
+      </table>
+    </div>
+  {{ end }}
+  </div>
+</div>
 {{ end }}
 
 {{ define "styles" }}
-  <!-- Improve legibility by spacing flag names in breakdown -->
-  <style> .teams-captured-flags tbody *:last-child { word-spacing: 1em; } </style>
+  <link rel="stylesheet" href="/assets/css/staff/ctf-dash.css">
+{{ end }}
+
+{{ define "scripts" }}
+  <script src="/assets/js/staff/ctf-dash.js"></script>
 {{ end }}

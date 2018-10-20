@@ -1,0 +1,9 @@
+.teams-captured-flags .nav-tabs {
+  justify-content: space-evenly;
+}
+.teams-captured-flags .nav-tabs > li {
+  flex-grow: 1;
+}
+.teams-captured-flags .nav-tabs > li > a {
+  padding: .5rem .2rem;
+}

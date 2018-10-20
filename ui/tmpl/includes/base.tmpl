@@ -75,13 +75,11 @@
 {{ end }}
 
 {{ define "oopsie" }}
-<div class="jumbotron">
+<div class="jumbotron text-center h6">
   <h2>Oh no...</h2>
-  <div class="row text-center">
-    <p>💀 Something went wrong... 💀</p>
-    <p>Pinch yourself to make sure you're still breathing.</p>
-    {{ if isAdmin .T }}<p class="error text-danger">Error: {{ .Error }}</p>{{ end }}
-    </div>
+  <p>💀 Something went wrong... 💀</p>
+  <p>Pinch yourself to make sure you're still breathing.</p>
+  {{ if isAdmin .T }}<p class="error text-danger">Error: {{ .Error }}</p>{{ end }}
 </div>
 {{ end }}
 

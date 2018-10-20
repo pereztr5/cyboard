@@ -16,6 +16,7 @@ func buildHelperMap() template.FuncMap {
 		"title":       strings.Title,
 		"StringsJoin": strings.Join,
 		"timestamp":   fmtTimestamp,
+		"kitchentime": fmtKitchenTime,
 		"fmtDuration": fmtDuration,
 
 		// App-specific helpers
@@ -27,6 +28,10 @@ func buildHelperMap() template.FuncMap {
 
 func fmtTimestamp(t time.Time) string {
 	return t.Format(time.Stamp)
+}
+
+func fmtKitchenTime(t time.Time) string {
+	return t.Format(time.Kitchen)
 }
 
 func fmtDuration(d time.Duration) string {

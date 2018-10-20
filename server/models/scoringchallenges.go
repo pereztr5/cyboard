@@ -176,9 +176,10 @@ func ChallengeCapturesPerFlag(db DB) ([]ChallengeCaptureCount, error) {
 
 // CapturedChallenge contains enough to identify a solved challenge.
 type CapturedChallenge struct {
-	Designer string `json:"designer"` // challenge.designer
-	Category string `json:"category"` // challenge.category
-	Name     string `json:"name"`     // challenge.name
+	Designer  string    `json:"designer"` // challenge.designer
+	Category  string    `json:"category"` // challenge.category
+	Name      string    `json:"name"`     // challenge.name
+	Timestamp time.Time `json:"time"`     // ctf_solve.created_at
 }
 
 // TeamCapturedChallenges holds the flags a team has captured.
@@ -189,10 +190,10 @@ type TeamCapturedChallenges struct {
 
 // ChallengeCapturesPerTeam retrieves each team with the flags they've captured.
 func ChallengeCapturesPerTeam(db DB) ([]TeamCapturedChallenges, error) {
-	const sqlstr = `SELECT team.name, ch.designer, ch.category, ch.name
+	const sqlstr = `SELECT team.name, ch.designer, ch.category, ch.name, cs.created_at
 	FROM team
-	  JOIN ctf_solve ON team.id = ctf_solve.team_id
-	  JOIN challenge AS ch ON ctf_solve.challenge_id = ch.id
+	  JOIN ctf_solve AS cs ON team.id = cs.team_id
+	  JOIN challenge AS ch ON cs.challenge_id = ch.id
 	ORDER BY team.id, ch.designer, ch.category, ch.name`
 
 	rows, err := db.Query(sqlstr)
@@ -208,7 +209,7 @@ func ChallengeCapturesPerTeam(db DB) ([]TeamCapturedChallenges, error) {
 	var tname string
 	for rows.Next() {
 		cc := CapturedChallenge{}
-		if err = rows.Scan(&tname, &cc.Designer, &cc.Category, &cc.Name); err != nil {
+		if err = rows.Scan(&tname, &cc.Designer, &cc.Category, &cc.Name, &cc.Timestamp); err != nil {
 			return nil, err
 		}
 
