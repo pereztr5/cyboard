@@ -26,18 +26,18 @@
 {{ end }}
 
 {{ define "header" }}
-<div class="container">
-  <nav class="navbar custom-navbar navbar-expand-md mb-md-4 mb-3 p-0 rounded-bottom">
-    <a class="navbar-brand nav-link mr-2" href="https://www.cnyhackathon.org/">CNY Hackathon</a>
+<nav class="navbar custom-navbar navbar-expand-md mb-md-4 mb-3 p-0">
+  <div class="container">
+    <a class="navbar-brand nav-link mr-2" href="https://www.cnyhackathon.org/"><div>CNY Hackathon</div></a>
     <button class="navbar-toggler mr-2" type="button" data-toggle="collapse" data-target="#navcol-1">
       <span class="navbar-toggler-icon"></span>
     </button>
 
     <div class="collapse navbar-collapse" id="navcol-1">
       <ul class="navbar-nav mr-auto">
-        <li class="nav-item"><a class="nav-link" href="/">Home </a></li>
-        <li class="nav-item"><a class="nav-link" href="/scoreboard">Scoreboard</a></li>
-        <li class="nav-item"><a class="nav-link" href="/challenges">Challenges</a></li>
+        <li class="nav-item"><a class="nav-link" href="/"><div>Home</div></a></li>
+        <li class="nav-item"><a class="nav-link" href="/scoreboard"><div>Scoreboard</div></a></li>
+        <li class="nav-item"><a class="nav-link" href="/challenges"><div>Challenges</div></a></li>
       </ul>
       <ul class="navbar-nav">
         {{ if .T }}
@@ -64,12 +64,14 @@
           </ul>
         </li>
         {{ else }}
-        <li class="nav-item mr-md-2"><a class="nav-link" href="/login">Login</a></li>
+        <li class="nav-item mr-md-2"><a class="nav-link" href="/login"><div>Login</div></a></li>
         {{ end }}
       </ul>
     </div>
-  </nav>
+  </div>
+</nav>
   {{/* container div is left dangling for convenience */}}
+  <div class="container">
 {{ end }}
 
 {{ define "oopsie" }}
