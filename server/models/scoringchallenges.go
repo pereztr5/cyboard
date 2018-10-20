@@ -136,21 +136,30 @@ func GetTeamCTFProgress(db DB, teamID int) ([]CTFProgress, error) {
 	return ccs, nil
 }
 
-// ChallengeCaptureCount holds the number of teams that have beaten a CTF challenge.
+// ChallengeCaptureCount holds the number of teams that have beaten a CTF challenge,
+// and the first team w/ timestamp to solve it.
 type ChallengeCaptureCount struct {
-	Designer string `json:"designer"` // designer
-	Category string `json:"category"` // category
-	Name     string `json:"name"`     // name
-	Count    int    `json:"count"`    // --- (calculated column)
+	Designer  string     `json:"designer"`             // challenge.designer
+	Category  string     `json:"category"`             // challenge.category
+	Name      string     `json:"name"`                 // challenge.name
+	Count     int        `json:"count"`                // --- (calculated column)
+	FirstTeam *string    `json:"first_team,omitempty"` // team.name
+	Timestamp *time.Time `json:"timestamp,omitempty"`  // ctf_solve.created_at
 }
 
 // ChallengeCapturesPerFlag gets the number of times each flag was captured,
-// sorted by designer, then category, then name.
+// sorted by designer, then category, then name. This includes flags that remain
+// unsolved, which will have a Count of 0, and team/timestamp of nil.
 func ChallengeCapturesPerFlag(db DB) ([]ChallengeCaptureCount, error) {
-	const sqlstr = `SELECT designer, category, name, COUNT(*)
-	FROM challenge
-	JOIN ctf_solve AS solve ON solve.challenge_id = id
-	GROUP BY name, category, designer
+	// NOTE: This query is pretty unoptimized, with misuse of timescale's `first` aggregate,
+	// which is a sequential scan.
+	// But the volume of data (a few hundred rows?) is so low it doesn't matter.
+	const sqlstr = `SELECT designer, category, c.name, COUNT(t.id),
+		first(t.name, solve.created_at), first(solve.created_at, solve.created_at)
+	FROM challenge AS c
+	LEFT JOIN ctf_solve AS solve ON solve.challenge_id = id
+	LEFT JOIN team AS t ON solve.team_id = t.id
+	GROUP BY c.name, category, designer
 	ORDER BY designer, category, name`
 
 	rows, err := db.Query(sqlstr)
@@ -162,7 +171,8 @@ func ChallengeCapturesPerFlag(db DB) ([]ChallengeCaptureCount, error) {
 	ccs := []ChallengeCaptureCount{}
 	for rows.Next() {
 		cc := ChallengeCaptureCount{}
-		if err = rows.Scan(&cc.Designer, &cc.Category, &cc.Name, &cc.Count); err != nil {
+		if err = rows.Scan(&cc.Designer, &cc.Category, &cc.Name, &cc.Count,
+			&cc.FirstTeam, &cc.Timestamp); err != nil {
 			return nil, err
 		}
 		ccs = append(ccs, cc)

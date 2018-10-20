@@ -1,25 +1,31 @@
 {{ define "content" }}
-<h4>CTF Dashboard</h4>
+</div>
+<div class="container-fluid">
+  <h4 class="text-center">CTF Dashboard</h4>
 
-<div class="row">
-  <!-- TODO: Add controls for sorting, filtering, etc -->
-  <div class="col-md-6">
-    {{ template "ctf-solves-per-challenge" .Data.ChallengeCapturesPerFlag }}
-  </div>
-  <div class="col-md-6">
-    {{ template "ctf-solves-per-team" .Data.ChallengeCapturesPerTeam }}
+  <div class="row">
+    <!-- TODO: Add controls for sorting, filtering, etc -->
+    <div class="col-md-6 pr-4">
+      {{ template "ctf-solves-per-challenge" .Data.ChallengeCapturesPerFlag }}
+    </div>
+    <div class="col-md-6 pl-4">
+      {{ template "ctf-solves-per-team" .Data.ChallengeCapturesPerTeam }}
+    </div>
   </div>
 </div>
+<div class="container">
 {{ end }}
 
 {{ define "ctf-solves-per-challenge" }}
-<h6>Solves per challenge</h6>
-<table class="table table-sm most-submitted-flag">
+<h6>Solves per challenge </h6>
+<table class="table table-sm table-bordered most-submitted-flag">
   <thead><tr>
       <th>Designer</th>
       <th>Category</th>
       <th>Name</th>
       <th>Solves</th>
+      <th>First</th>
+      <th>Time</th>
     </tr></thead>
     <tbody>
       {{ range . }}
@@ -28,6 +34,8 @@
           <td>{{.Category}}</td>
           <td>{{.Name}}</td>
           <td>{{.Count}}</td>
+          <td>{{if .FirstTeam}}{{.FirstTeam}}{{end}}</td>
+          <td>{{if .Timestamp}}{{kitchentime .Timestamp}}{{end}}</td>
         </tr>
       {{ end }}
     </tbody>
@@ -43,7 +51,8 @@
   <div class="tab-content">
   {{ range $idx, $ccpt := . }}
     <li class="nav-item">
-      <a class="nav-link" href="#tab-team{{$idx}}">{{$ccpt.Team}}</a>
+      <a class="nav-link" href="#tab-team{{$idx}}">{{$ccpt.Team}}
+        {{- if len $ccpt.Challenges | eq 0 }}<sup>∅</sup>{{end}}</a>
     </li>
     <div class="tab-pane" id="tab-team{{$idx}}">
       <h6 class="text-primary text-center">{{ len $ccpt.Challenges }} Solves!</h6>

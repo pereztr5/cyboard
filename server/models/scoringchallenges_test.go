@@ -3,8 +3,10 @@ package models
 import (
 	"context"
 	"testing"
+	"time"
 
 	"github.com/jackc/pgx"
+	"github.com/pereztr5/cyboard/server/apptest"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -15,6 +17,16 @@ Challenge 2 (id=2) is anonymous/unnamed/hidden.
 `team2, id=2` has solved challenge 2.
 `team3, id=3` is a disabled team.
 */
+
+var (
+	team1, team2 string
+	time1, time2 time.Time
+)
+
+func init() {
+	team1, team2 = "team1", "team2"
+	time1, time2 = apptest.MustParseTime("2018-07-29T09:00:00.000-04:00"), apptest.MustParseTime("2018-07-29T09:05:00.000-04:00")
+}
 
 func Test_CheckFlagSubmission(t *testing.T) {
 	team_already_capped_named := func() *Team { return &Team{ID: 1, Name: "team1"} }
@@ -93,9 +105,10 @@ func Test_GetTeamCTFProgress(t *testing.T) {
 
 func Test_ChallengeCapturesPerFlag(t *testing.T) {
 	prepareTestDatabase(t)
+
 	expected := []ChallengeCaptureCount{
-		{Designer: "test_master", Category: "RAD", Name: "No challenge here", Count: 1},
-		{Designer: "test_master", Category: "RAD", Name: "Totally Rad Challenge", Count: 1},
+		{Designer: "test_master", Category: "RAD", Name: "No challenge here", Count: 1, FirstTeam: &team2, Timestamp: &time2},
+		{Designer: "test_master", Category: "RAD", Name: "Totally Rad Challenge", Count: 1, FirstTeam: &team1, Timestamp: &time1},
 	}
 
 	challenge_captures, err := ChallengeCapturesPerFlag(db)
@@ -107,14 +120,14 @@ func Test_ChallengeCapturesPerFlag(t *testing.T) {
 func Test_ChallengeCapturesPerTeam(t *testing.T) {
 	prepareTestDatabase(t)
 	expected := []TeamCapturedChallenges{
-		{Team: "team1", Challenges: []CapturedChallenge{{Designer: "test_master", Category: "RAD", Name: "Totally Rad Challenge"}}},
-		{Team: "team2", Challenges: []CapturedChallenge{{Designer: "test_master", Category: "RAD", Name: "No challenge here"}}},
+		{Team: "team1", Challenges: []CapturedChallenge{{Designer: "test_master", Category: "RAD", Name: "Totally Rad Challenge", Timestamp: time1}}},
+		{Team: "team2", Challenges: []CapturedChallenge{{Designer: "test_master", Category: "RAD", Name: "No challenge here", Timestamp: time2}}},
 	}
 
 	per_team_captures, err := ChallengeCapturesPerTeam(db)
 	if assert.Nil(t, err) {
 		assert.Equal(t, expected, per_team_captures,
-			"team1 should have the 'Totally Rad Challenge'."+
+			"team1 should have the 'Totally Rad Challenge'. "+
 				"team2 should have 'No challenge here'.")
 	}
 }

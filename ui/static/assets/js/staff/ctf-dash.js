@@ -12,3 +12,12 @@ $tabs.on('click', 'a', function(e) {
 
 $tabs.find('li:first-child a').tab('show');
 
+// Count the total number of solves.
+// 100% reliable.
+function sumIntColumn(acc, td) {
+    return acc + parseInt(td.textContent, 10);
+}
+const $flagSubCounts = $('table.most-submitted-flag');
+const totalSolves = $flagSubCounts.find('td:nth-child(4)').toArray().reduce(sumIntColumn, 0);
+$flagSubCounts.siblings('h6').append(
+    $(`<small class="text-muted">`).text(`- ${totalSolves} total solves`));
