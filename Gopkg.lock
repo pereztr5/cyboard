@@ -199,6 +199,12 @@
 
 [[projects]]
   branch = "master"
+  name = "github.com/tevino/abool"
+  packages = ["."]
+  revision = "9b9efcf221b50905aab9bbabd3daed56dc10f339"
+
+[[projects]]
+  branch = "master"
   name = "github.com/urfave/negroni"
   packages = ["."]
   revision = "22c5532ea862c34fdad414e90f8cc00b4f6f4cab"
@@ -265,6 +271,6 @@
 [solve-meta]
   analyzer-name = "dep"
   analyzer-version = 1
-  inputs-digest = "9d479155d575cf56de61b7e45985e23ef080fce6172e5a21c5b454a077289c64"
+  inputs-digest = "fa4ec72330ab363aa121d76347f03c37471b3468d902ba353784fc96ede33154"
   solver-name = "gps-cdcl"
   solver-version = 1

@@ -81,7 +81,7 @@ func CreateWebRouter(teamScoreUpdater, servicesUpdater *broadcastHub) chi.Router
 	api.Route("/blue", func(blue chi.Router) {
 		blue.Use(RequireLogin, RequireEventStarted)
 		blue.Get("/challenges", GetPublicChallenges)
-		MaybeRateLimit(blue, MaxReqsPerSec).With(RequireEventNotOver).
+		MaybeRateLimit(blue, MaxReqsPerSec).With(RequireNotOnBreak(), RequireEventNotOver).
 			Post("/challenges", SubmitFlag)
 
 		blue.Route("/challenges/{id}", func(r chi.Router) {

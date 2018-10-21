@@ -13,6 +13,7 @@ import (
 	"github.com/go-chi/render"
 	"github.com/pereztr5/cyboard/server/models"
 	"github.com/pkg/errors"
+	"github.com/tevino/abool"
 	"github.com/urfave/negroni"
 )
 
@@ -91,6 +92,52 @@ func RequireEventNotOver(next http.Handler) http.Handler {
 		}
 		render.Render(w, r, ErrForbiddenBecause("The competition is over, go home"))
 	})
+}
+
+func RequireNotOnBreak() func(http.Handler) http.Handler {
+	onBreak := abool.New()
+
+	go func() {
+		for {
+			// get next, unfinished break
+			var nextbreak *ScheduledBreak
+			now := time.Now()
+			for _, br := range appCfg.Event.Breaks {
+				if now.Before(br.StartsAt) {
+					nextbreak = &br
+				} else if now.After(br.StartsAt) && now.Before(br.End()) {
+					nextbreak = &br
+				}
+			}
+			if nextbreak == nil {
+				// No more breaks left, we're done here
+				onBreak.UnSet()
+				return
+			}
+
+			// Wait till break, then flag the break has begun
+			wait := time.Until(nextbreak.StartsAt)
+			<-time.After(wait)
+
+			onBreak.Set()
+			endtime := nextbreak.End()
+			Logger.WithField("ends at", endtime).Info("Break started!")
+			<-time.After(time.Until(endtime))
+			Logger.Info("Break over, resuming event")
+
+			onBreak.UnSet()
+		}
+	}()
+
+	return func(next http.Handler) http.Handler {
+		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+			if isCtfStaff(getCtxTeam(r)) || !onBreak.IsSet() {
+				next.ServeHTTP(w, r)
+				return
+			}
+			render.Render(w, r, ErrForbiddenBecause("Competition is on break. Go eat or something!"))
+		})
+	}
 }
 
 func RequireUrlParamInt(name string) func(http.Handler) http.Handler {

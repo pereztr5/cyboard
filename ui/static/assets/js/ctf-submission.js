@@ -30,7 +30,12 @@ function handleFlagSubmission($form, $alert, opts) {
         default: setStatus('alert-danger', '...Something weird happened'); break;
         }
     }).catch(r => {
-        const msg = r.status === 0 ? 'Failed to connect to server. Is your internet working?' : r.responseText;
+        let msg = '';
+        if (r.status === 0) {
+            msg = 'Failed to connect to server. Is your internet working?';
+        } else {
+            msg = r.responseJSON ? r.responseJSON.status : r.responseText;
+        }
         setStatus('alert-danger', msg);
     }).always(() => {
         $alert.slideDown(300).delay(alert_delay).slideUp(300);
