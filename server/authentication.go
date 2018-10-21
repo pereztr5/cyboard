@@ -34,6 +34,7 @@ func CreateStore(secure bool) {
 	sessionManager.Persist(true)
 	sessionManager.Secure(secure)
 	sessionManager.HttpOnly(true)
+	sessionManager.SameSite("Lax")
 }
 
 // CheckCreds authenticates users based on username/password form values contained

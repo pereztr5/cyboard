@@ -7,8 +7,8 @@
     ".",
     "stores/cookiestore"
   ]
-  revision = "a01923edcb7f83c0c6ae7e70ad03f293e6ec9e26"
-  version = "v1.3.0"
+  revision = "cac921d76a577e6c80f3f6bc0857b8eeb650669e"
+  version = "v1.4.0"
 
 [[projects]]
   name = "github.com/davecgh/go-spew"
@@ -277,6 +277,6 @@
 [solve-meta]
   analyzer-name = "dep"
   analyzer-version = 1
-  inputs-digest = "20141432b73e4545c6e1b997f1250ff834a1c23d2381a8ed9dfa2db0f40be1a0"
+  inputs-digest = "386f6bf613ff6604935c565efb9defc8f32ddff2863bec279cf32894d37f9648"
   solver-name = "gps-cdcl"
   solver-version = 1
