@@ -29,7 +29,7 @@ var sessionManager *scs.Manager
 func CreateStore(secure bool) {
 	key := getSigningKey()
 	sessionManager = scs.NewManager(cookiestore.New(key))
-	sessionManager.Name("cyboard")
+	sessionManager.Name("session")
 	sessionManager.Lifetime(7 * 24 * time.Hour)
 	sessionManager.Persist(true)
 	sessionManager.Secure(secure)
