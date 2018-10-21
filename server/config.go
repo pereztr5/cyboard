@@ -60,6 +60,7 @@ type ServerSettings struct {
 	CertPath    string `mapstructure:"cert"`
 	CertKeyPath string `mapstructure:"key"`
 
+	Compress   bool
 	RateLimit  bool   `mapstructure:"rate_limit"`
 	CtfFileDir string `mapstructure:"ctf_file_dir"`
 }

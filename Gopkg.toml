@@ -85,3 +85,7 @@
 [[constraint]]
   branch = "master"
   name = "github.com/tevino/abool"
+
+[[constraint]]
+  branch = "master"
+  name = "github.com/phyber/negroni-gzip"

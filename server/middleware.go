@@ -12,6 +12,7 @@ import (
 	"github.com/go-chi/chi"
 	"github.com/go-chi/render"
 	"github.com/pereztr5/cyboard/server/models"
+	"github.com/phyber/negroni-gzip/gzip"
 	"github.com/pkg/errors"
 	"github.com/tevino/abool"
 	"github.com/urfave/negroni"
@@ -191,6 +192,38 @@ func MaybeRateLimit(r chi.Router, ratePerSec float64) chi.Router {
 		return r.With(RequireNoSpeeding(NewRateLimiter(ratePerSec)))
 	}
 	return r
+}
+
+var compressor func(http.Handler) http.Handler
+
+// Compress fetches a singleton gzip compressor middleware.
+//
+// If compression is disable in the app config, a dummy middleware is returned.
+//
+// Gzip encoders have a lot of overhead, so they get reused.
+// To ensure just one pool of encoders is created, a singleton is used.
+func Compress() func(http.Handler) http.Handler {
+	if compressor == nil {
+		if appCfg.Server.Compress == false {
+			compressor = stubMiddleware
+		} else {
+			// Choosing the right compression level is an exercise in hand-waving.
+			// From personal tests, the default (6) barely compresses more (but the speed
+			// hit is also negligible.) Any compression is significantly better than
+			// no compression, so I just picked 2, because 1 is a boring number.
+			const compressionLevel = 2
+			compressor = UnwrapNegroniMiddleware(gzip.Gzip(compressionLevel))
+		}
+	}
+	return compressor
+}
+
+// stubMiddleware is a stand-in for any middlewares that were otherwise disabled.
+// All it does is pass forward to the next middleware/handler
+var stubMiddleware = func(next http.Handler) http.Handler {
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		next.ServeHTTP(w, r)
+	})
 }
 
 func UnwrapNegroniMiddleware(nh negroni.Handler) func(http.Handler) http.Handler {

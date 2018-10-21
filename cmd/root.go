@@ -50,6 +50,7 @@ func initConfig(v *viper.Viper, configName string) {
 
 	// Set defaults
 	v.SetDefault("server.rate_limit", true)
+	v.SetDefault("server.compress", true)
 	v.SetDefault("server.ctf_file_dir", "data/ctf")
 	v.SetDefault("service_monitor.checks_dir", "data/scripts")
 

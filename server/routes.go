@@ -16,8 +16,9 @@ const MaxReqsPerSec = 1
 
 func CreateWebRouter(teamScoreUpdater, servicesUpdater *broadcastHub) chi.Router {
 	router := chi.NewRouter()
+
 	// Split off static asset handler, so that none of the other standard middleware gets run for static assets.
-	router.Handle("/assets/*", http.FileServer(http.Dir("./ui/static")))
+	router.With(Compress()).Handle("/assets/*", http.FileServer(http.Dir("./ui/static")))
 
 	// Health check
 	router.HandleFunc("/ping", PingHandler)
@@ -33,26 +34,29 @@ func CreateWebRouter(teamScoreUpdater, servicesUpdater *broadcastHub) chi.Router
 	)
 
 	// Public Template Pages
-	root.Get("/", ShowHome)
-	root.Get("/login", ShowLogin)
-	MaybeRateLimit(root, MaxReqsPerSec).Post("/login", SubmitLogin)
-	root.Get("/logout", Logout)
+	pages := chi.NewRouter()
+	pages.Use(Compress())
 
-	root.Group(func(r chi.Router) {
+	pages.Get("/", ShowHome)
+	pages.Get("/login", ShowLogin)
+	MaybeRateLimit(pages, MaxReqsPerSec).Post("/login", SubmitLogin)
+	pages.Get("/logout", Logout)
+
+	pages.Group(func(r chi.Router) {
 		r.Use(RequireEventStarted)
 		r.Get("/scoreboard", ShowScoreboard)
 		r.Get("/services", ShowServices)
 	})
 
 	// Authenticated Pages for Blue Teams
-	root.Group(func(authed chi.Router) {
+	pages.Group(func(authed chi.Router) {
 		authed.Use(RequireLogin, RequireEventStarted)
 		authed.Get("/dashboard", ShowTeamDashboard)
 		authed.Get("/challenges", ShowChallenges)
 	})
 
 	// Pages for admins (configuration, analytic dashboards)
-	root.Route("/admin", func(admin chi.Router) {
+	pages.Route("/admin", func(admin chi.Router) {
 		admin.Use(RequireLogin, RequireAdmin)
 		admin.Get("/bonuses", ShowBonusPage)
 		admin.Get("/teams", ShowTeamsConfig)
@@ -61,7 +65,7 @@ func CreateWebRouter(teamScoreUpdater, servicesUpdater *broadcastHub) chi.Router
 	})
 
 	// Pages for ctf creators
-	root.Route("/staff", func(staff chi.Router) {
+	pages.Route("/staff", func(staff chi.Router) {
 		staff.Use(RequireLogin, RequireCtfStaff)
 		staff.Get("/ctf", ShowCtfConfig)
 		staff.Get("/ctf_dashboard", ShowCtfDashboard)
@@ -171,6 +175,7 @@ func CreateWebRouter(teamScoreUpdater, servicesUpdater *broadcastHub) chi.Router
 	})
 
 	root.Mount("/api/", api)
+	root.Mount("/", pages)
 	router.Mount("/", root)
 
 	return router

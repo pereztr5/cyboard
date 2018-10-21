@@ -126,6 +126,12 @@
   version = "v1.1.0"
 
 [[projects]]
+  branch = "master"
+  name = "github.com/phyber/negroni-gzip"
+  packages = ["gzip"]
+  revision = "ef6356a5d02936b65ca8e60b604ed6b078aac8d3"
+
+[[projects]]
   name = "github.com/pkg/errors"
   packages = ["."]
   revision = "645ef00459ed84a119197bfb8d8205042c6df63d"
@@ -271,6 +277,6 @@
 [solve-meta]
   analyzer-name = "dep"
   analyzer-version = 1
-  inputs-digest = "fa4ec72330ab363aa121d76347f03c37471b3468d902ba353784fc96ede33154"
+  inputs-digest = "20141432b73e4545c6e1b997f1250ff834a1c23d2381a8ed9dfa2db0f40be1a0"
   solver-name = "gps-cdcl"
   solver-version = 1

@@ -36,6 +36,9 @@ https_port = "8081"
 #cert = "certs/cert.pem"
 #key = "certs/key.pem"
 
+# Enable compression
+#compress = "true"
+
 # Enable rate limiting
 #rate_limit = "true"
 
