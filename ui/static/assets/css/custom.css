@@ -111,6 +111,10 @@ label {
     border: 1px solid rgba(0,0,0,0.2);
     box-shadow: 0 5px 15px rgba(0,0,0,0.5);
 }
+.modal-content img,
+.modal-content video {
+    max-width: 100%;
+}
 
 .jumbotron {
     background-color: #151515;
@@ -176,8 +180,10 @@ label {
     transform: scaleX(0);
     transition: transform 250ms ease-in-out;
 }
-.custom-navbar .nav-link:hover div:after {
-    transform: scaleX(1);
+@media (min-width: 768px) {
+    .custom-navbar .nav-link:hover div:after {
+        transform: scaleX(1);
+    }
 }
 
 .flag-card {
