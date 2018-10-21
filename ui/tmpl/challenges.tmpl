@@ -1,16 +1,20 @@
 {{ define "content" }}
 <h4 class="page-header">Challenges</h4>
-<div class="challenge-list">
-  {{ range .Data.Challenges }}
-  <div class="col-lg-3 col-md-6 col-10">
-    <button type='button' class='btn btn-secondary btn-block {{if .Captured}}negate{{end}}'
-              data-target='#flag-modal' data-flag-id='{{.ID}}'>
-        {{if .Captured}}<span class="fa fa-check-square"></span>{{end}}
-        <p>{{ .Name }}</p>
-        <p>{{ .Category }}</p>
-        <p>{{ .Points }}</p>
-    </button>
-  </div>
+<div class="challenge-groups">
+  {{ range .Data.GroupsOfChallenges }}
+    <h5>{{.Category}}</h5>
+    <div class="challenge-list d-flex flex-wrap">
+      {{ range .Challenges }}
+      <div class="col-lg-3 col-md-6 col-12">
+        <button type='button' class='btn btn-secondary btn-block {{if .Captured}}negate{{end}}'
+                data-target='#flag-modal' data-flag-id='{{.ID}}'>
+            {{if .Captured}}<span class="fa fa-check-square"></span>{{end}}
+            <p>{{ .Name }}</p>
+            <p>{{ .Points }}</p>
+        </button>
+      </div>
+      {{ end }}
+    </div>
   {{ else }}
   <p>No challenges available, yet!</p>
   {{ end }}
@@ -27,8 +31,8 @@
           <button type="button" class="close" data-dismiss="modal"><span>&times;</span></button>
           <h5 class="flag-modal-title mt-3">Challenge</h5>
           <h6 class="flag-modal-points mb-2">Points</h6>
-          <span class="flag-description">Description</span>
-          <div class="flag-file-list mb-2"></div>
+          <div class="flag-description pt-3">Description</div>
+          <div class="flag-file-list d-flex mb-2"></div>
           <form class="row">
             <div class="form-group col-md-9">
               <input name="flag" type="text" placeholder="Flag" class="form-control" required>

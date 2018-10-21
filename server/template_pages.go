@@ -125,7 +125,7 @@ func ShowChallenges(w http.ResponseWriter, r *http.Request) {
 	team := getCtxTeam(r)
 	chals, err := models.AllPublicChallenges(db, team.ID)
 	page.checkErr(err, "public challenges")
-	page.Data = M{"Challenges": chals}
+	page.Data = M{"GroupsOfChallenges": chals}
 	renderTemplate(w, page)
 }
 

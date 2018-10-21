@@ -194,11 +194,15 @@ label {
   margin: 0 auto;
 }
 
-.challenge-list,
 .flag-file-list {
-    display: flex;
-    flex-flow: row wrap;
     justify-content: space-evenly;
+}
+
+.challenge-groups .btn p:first-of-type {
+    font-weight: bold;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
 }
 
 .challenge-list > div > button,
@@ -210,5 +214,5 @@ label {
     position: absolute;
     left: .1rem;
     top: .2rem;
-    font-size: 1.4rem;
+    font-size: 1.1rem;
 }

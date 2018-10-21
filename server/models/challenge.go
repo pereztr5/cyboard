@@ -166,18 +166,23 @@ func (cs ChallengeSlice) Sum() float32 {
 
 // ChallengeView is a safe-for-public-display subset of fields over a CTF challenge.
 type ChallengeView struct {
-	ID       int    `json:"id"`       // id
-	Name     string `json:"name"`     // name
-	Points   int    `json:"points"`   // points (rounded down to nearest int)
-	Category string `json:"category"` // category
+	ID     int    `json:"id"`     // id
+	Name   string `json:"name"`   // name
+	Points int    `json:"points"` // points (rounded down to nearest int)
 	// Body     string `json:"body"`     // body
 
 	Captured bool `json:"captured"` // Whether the viewing team has already got this flag
 }
 
+// ChallengeViewGroup wraps a set of ChallengeViews, by their category (crypto, web, etc.)
+type ChallengeViewGroup struct {
+	Category   string          `json:"category"`
+	Challenges []ChallengeView `json:"challenges"`
+}
+
 // AllPublicChallenges fetches all non-hidden ctf challenges from the database,
 // to be displayed to constestants.
-func AllPublicChallenges(db DB, teamID int) ([]ChallengeView, error) {
+func AllPublicChallenges(db DB, teamID int) ([]ChallengeViewGroup, error) {
 	const sqlstr = `SELECT id, name, category, total, (cs.team_id IS NOT NULL) AS captured
 	FROM challenge
 		LEFT JOIN ctf_solve AS cs ON cs.challenge_id = id AND cs.team_id = $1
@@ -190,19 +195,29 @@ func AllPublicChallenges(db DB, teamID int) ([]ChallengeView, error) {
 	}
 	defer rows.Close()
 
-	xs := []ChallengeView{}
+	cvg := []ChallengeViewGroup{}
+
+	// Have to do groupby challenge's category in golang, due to limitations of the type system.
+	var category string
 	for rows.Next() {
-		x := ChallengeView{}
-		if err = rows.Scan(&x.ID, &x.Name, &x.Category, &x.Points, &x.Captured); err != nil {
+		cv := ChallengeView{}
+		if err = rows.Scan(&cv.ID, &cv.Name, &category, &cv.Points, &cv.Captured); err != nil {
 			return nil, err
 		}
-		xs = append(xs, x)
+
+		if len(cvg) == 0 || cvg[len(cvg)-1].Category != category {
+			tmp := &ChallengeViewGroup{}
+			tmp.Category = category
+			cvg = append(cvg, *tmp)
+		}
+		chalView := &cvg[len(cvg)-1]
+		chalView.Challenges = append(chalView.Challenges, cv)
 	}
 	if err = rows.Err(); err != nil {
 		return nil, err
 	}
 
-	return xs, nil
+	return cvg, nil
 }
 
 // GetPublicChallengeDescription fetches a non-hidden challenge's description/body column.

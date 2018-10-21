@@ -17,7 +17,7 @@ let $btn;
 $('.challenge-list').on('click', 'button', function(event) {
     $btn = $(event.currentTarget);
     const flagID = $btn.data('flag-id');
-    const [name, category, points] = $btn.find('p').map(function() { return $(this).text(); }).get();
+    const [name, points] = $btn.find('p').map(function() { return $(this).text(); }).get();
 
     if (flagID === $id.val()) {
         // Minimal caching
