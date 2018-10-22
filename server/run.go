@@ -1,9 +1,13 @@
 package server
 
 import (
+	"context"
 	"fmt"
 	"net/http"
 	"net/url"
+	"os"
+	"os/signal"
+	"time"
 
 	"github.com/jackc/pgx"
 	"github.com/pereztr5/cyboard/server/models"
@@ -34,23 +38,38 @@ func Run(cfg *Configuration) {
 	EnsureAdmin(db)
 
 	teamScoreUpdater, servicesUpdater := TeamScoreWsServer(), ServiceStatusWsServer()
-	defer teamScoreUpdater.Stop()
-	defer servicesUpdater.Stop()
 	app := CreateWebRouter(teamScoreUpdater, servicesUpdater)
 
+	// Setup http(s) server
 	sc := &cfg.Server
 	httpAddr := sc.IP + ":" + sc.HTTPPort
 	httpsAddr := sc.IP + ":" + sc.HTTPSPort
 
+	server := &http.Server{Handler: app}
+	server.RegisterOnShutdown(teamScoreUpdater.Stop)
+	server.RegisterOnShutdown(servicesUpdater.Stop)
+	shutdownComplete := shutdownWatcher(server)
+
+	var serveErr error
+
 	if !isHTTPS {
 		Logger.Warn("SSL certs is not configured properly. Serving plain HTTP.")
 		Logger.Printf("Server running at: http://%s", httpAddr)
-		Logger.Fatal(http.ListenAndServe(httpAddr, app))
+		server.Addr = httpAddr
+		serveErr = server.ListenAndServe()
 	} else {
 		Logger.Printf("Server running at: http://%s | https://%s", httpAddr, httpsAddr)
 		go http.ListenAndServe(httpAddr, http.HandlerFunc(redirecter(sc.HTTPSPort)))
-		Logger.Fatal(http.ListenAndServeTLS(httpsAddr, sc.CertPath, sc.CertKeyPath, app))
+		server.Addr = httpsAddr
+		serveErr = server.ListenAndServeTLS(sc.CertPath, sc.CertKeyPath)
 	}
+
+	if serveErr != http.ErrServerClosed {
+		Logger.WithError(serveErr).Error("Server crash!")
+	}
+
+	<-shutdownComplete
+	Logger.Info("Server shutdown complete")
 }
 
 func redirecter(port string) func(w http.ResponseWriter, r *http.Request) {
@@ -59,6 +78,27 @@ func redirecter(port string) func(w http.ResponseWriter, r *http.Request) {
 		dest.Host = fmt.Sprintf("%s:%s", dest.Hostname(), port)
 		http.Redirect(w, r, dest.String(), http.StatusTemporaryRedirect)
 	}
+}
+
+// shutdownWatcher will stop the http server when a SIGINT is caught.
+// Up to 5 seconds are given for connections to finish up.
+func shutdownWatcher(srv *http.Server) chan struct{} {
+	idleConnsClosed := make(chan struct{})
+
+	go func() {
+		sigint := make(chan os.Signal, 1)
+		signal.Notify(sigint, os.Interrupt)
+		<-sigint
+		Logger.Info("Interrupt received - Server is shutting down")
+
+		ctx, _ := context.WithTimeout(context.Background(), 5*time.Second)
+		if err := srv.Shutdown(ctx); err != nil {
+			Logger.WithError(err).Error("HTTP server Shutdown")
+		}
+		close(idleConnsClosed)
+	}()
+
+	return idleConnsClosed
 }
 
 // EnsureAdmin helps bootstrap the app configuration by prompting & setting up
