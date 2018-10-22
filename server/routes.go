@@ -19,6 +19,8 @@ func CreateWebRouter(teamScoreUpdater, servicesUpdater *broadcastHub) chi.Router
 
 	// Split off static asset handler, so that none of the other standard middleware gets run for static assets.
 	router.With(Compress()).Handle("/assets/*", http.FileServer(http.Dir("./ui/static")))
+	serveFile := http.FileServer(http.Dir("./ui/static/assets"))
+	router.Handle("/robots.txt", serveFile)
 
 	// Health check
 	router.HandleFunc("/ping", PingHandler)
