@@ -21,6 +21,7 @@ func CreateWebRouter(teamScoreUpdater, servicesUpdater *broadcastHub) chi.Router
 	router.With(Compress()).Handle("/assets/*", http.FileServer(http.Dir("./ui/static")))
 	serveFile := http.FileServer(http.Dir("./ui/static/assets"))
 	router.Handle("/robots.txt", serveFile)
+	router.Handle("/favicon.ico", serveFile)
 
 	// Health check
 	router.HandleFunc("/ping", PingHandler)
