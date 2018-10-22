@@ -2,6 +2,7 @@ package server
 
 import (
 	"context"
+	"crypto/tls"
 	"fmt"
 	"net/http"
 	"net/url"
@@ -45,7 +46,13 @@ func Run(cfg *Configuration) {
 	httpAddr := sc.IP + ":" + sc.HTTPPort
 	httpsAddr := sc.IP + ":" + sc.HTTPSPort
 
-	server := &http.Server{Handler: app}
+	server := &http.Server{
+		Handler:      app,
+		ReadTimeout:  30 * time.Second,
+		WriteTimeout: 30 * time.Second,
+		IdleTimeout:  90 * time.Second,
+		TLSConfig:    tlsConfig(), // Ignored if only serving http
+	}
 	server.RegisterOnShutdown(teamScoreUpdater.Stop)
 	server.RegisterOnShutdown(servicesUpdater.Stop)
 	shutdownComplete := shutdownWatcher(server)
@@ -99,6 +106,30 @@ func shutdownWatcher(srv *http.Server) chan struct{} {
 	}()
 
 	return idleConnsClosed
+}
+
+// tlsConfig is the preferred, secure settings for web servers on the open web.
+// (Date: October 2018)
+func tlsConfig() *tls.Config {
+	// Thanks to Filippo for a being a helpful fella on this one:
+	// https://blog.cloudflare.com/exposing-go-on-the-internet/
+
+	return &tls.Config{
+		PreferServerCipherSuites: true,
+		CurvePreferences: []tls.CurveID{
+			tls.CurveP256,
+			tls.X25519,
+		},
+		MinVersion: tls.VersionTLS12,
+		CipherSuites: []uint16{
+			tls.TLS_ECDHE_ECDSA_WITH_AES_256_GCM_SHA384,
+			tls.TLS_ECDHE_RSA_WITH_AES_256_GCM_SHA384,
+			tls.TLS_ECDHE_ECDSA_WITH_CHACHA20_POLY1305,
+			tls.TLS_ECDHE_RSA_WITH_CHACHA20_POLY1305,
+			tls.TLS_ECDHE_ECDSA_WITH_AES_128_GCM_SHA256,
+			tls.TLS_ECDHE_RSA_WITH_AES_128_GCM_SHA256,
+		},
+	}
 }
 
 // EnsureAdmin helps bootstrap the app configuration by prompting & setting up
