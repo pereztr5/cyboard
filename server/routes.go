@@ -166,11 +166,11 @@ func CreateWebRouter(teamScoreUpdater, servicesUpdater *broadcastHub) chi.Router
 
 		admin.Route("/scripts", func(r chi.Router) {
 			r.Get("/", ScriptMgr.GetFileList)
-			r.Post("/", ScriptMgr.SaveFile)
+			//r.Post("/", ScriptMgr.SaveFile)
 
 			r.Route("/{name}", func(r chi.Router) {
 				r.Get("/", ScriptMgr.GetFile)
-				r.Delete("/", ScriptMgr.DeleteFile)
+				//r.Delete("/", ScriptMgr.DeleteFile)
 
 				r.Post("/run", RunScriptTest)
 			})
