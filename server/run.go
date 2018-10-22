@@ -39,31 +39,25 @@ func Run(cfg *Configuration) {
 	app := CreateWebRouter(teamScoreUpdater, servicesUpdater)
 
 	sc := &cfg.Server
+	httpAddr := sc.IP + ":" + sc.HTTPPort
+	httpsAddr := sc.IP + ":" + sc.HTTPSPort
 
 	if !isHTTPS {
 		Logger.Warn("SSL certs is not configured properly. Serving plain HTTP.")
-		Logger.Printf("Server running at: http://%s:%s", sc.IP, sc.HTTPPort)
-		Logger.Fatal(http.ListenAndServe(":"+sc.HTTPPort, app))
+		Logger.Printf("Server running at: http://%s", httpAddr)
+		Logger.Fatal(http.ListenAndServe(httpAddr, app))
 	} else {
-		Logger.Printf("Server running at: http://%s:%s", sc.IP, sc.HTTPPort)
-		Logger.Printf("Server running at: https://%s:%s", sc.IP, sc.HTTPSPort)
-		go http.ListenAndServe(":"+sc.HTTPPort, http.HandlerFunc(redirecter(sc.HTTPSPort)))
-		Logger.Fatal(http.ListenAndServeTLS(":"+sc.HTTPSPort, sc.CertPath, sc.CertKeyPath, app))
+		Logger.Printf("Server running at: http://%s | https://%s", httpAddr, httpsAddr)
+		go http.ListenAndServe(httpAddr, http.HandlerFunc(redirecter(sc.HTTPSPort)))
+		Logger.Fatal(http.ListenAndServeTLS(httpsAddr, sc.CertPath, sc.CertKeyPath, app))
 	}
 }
 
 func redirecter(port string) func(w http.ResponseWriter, r *http.Request) {
 	return func(w http.ResponseWriter, r *http.Request) {
-		u, err := url.Parse(fmt.Sprintf("http://%s", r.Host))
-		if err != nil {
-			Logger.Println("Error redirecting:", err)
-			errCode := http.StatusInternalServerError
-			http.Error(w, http.StatusText(errCode), errCode)
-			return
-		}
-
-		dest := fmt.Sprintf("https://%s:%s%s", u.Hostname(), port, r.URL.Path)
-		http.Redirect(w, r, dest, http.StatusMovedPermanently)
+		dest := url.URL{Scheme: "https", Host: r.Host, Path: r.URL.Path, RawQuery: r.URL.RawQuery}
+		dest.Host = fmt.Sprintf("%s:%s", dest.Hostname(), port)
+		http.Redirect(w, r, dest.String(), http.StatusTemporaryRedirect)
 	}
 }
 
