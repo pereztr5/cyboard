@@ -222,6 +222,12 @@ func SubmitFlag(w http.ResponseWriter, r *http.Request) {
 // * update/delete teams
 // JSON "password" fields will be saved as a hash+salt, and can never be retrieved.
 
+func GetTeamByName(w http.ResponseWriter, r *http.Request) {
+	name := chi.URLParam(r, "name")
+	team, err := models.TeamByName(db, name)
+	ApiQuery(w, r, team, err)
+}
+
 func GetAllTeams(w http.ResponseWriter, r *http.Request) {
 	teams, err := models.AllTeams(db)
 	ApiQuery(w, r, teams, err)
@@ -283,6 +289,11 @@ func (batch BlueTeamInsertRequestSlice) Insert(tx models.TXer) error {
 func AddBlueteams(w http.ResponseWriter, r *http.Request) {
 	batch := &BlueTeamInsertRequestSlice{}
 	ApiCreate(w, r, batch)
+}
+
+func GetBlueteams(w http.ResponseWriter, r *http.Request) {
+	blueteams, err := models.AllBlueteams(db)
+	ApiQuery(w, r, blueteams, err)
 }
 
 type TeamModRequest struct {

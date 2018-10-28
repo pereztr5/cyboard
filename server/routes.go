@@ -138,6 +138,8 @@ func CreateWebRouter(teamScoreUpdater, servicesUpdater *broadcastHub) chi.Router
 
 		admin.Post("/grant_bonus", GrantBonusPoints)
 
+		admin.Get("/team/{name}", GetTeamByName)
+
 		admin.Route("/teams", func(r chi.Router) {
 			r.Get("/", GetAllTeams)
 			r.Post("/", AddTeam)
@@ -150,7 +152,10 @@ func CreateWebRouter(teamScoreUpdater, servicesUpdater *broadcastHub) chi.Router
 			})
 		})
 
-		admin.Post("/blueteams", AddBlueteams) // Insert many blueteams
+		admin.Route("/blueteams", func(r chi.Router) {
+			r.Get("/", GetBlueteams)  // Get all non-disabled blueteams
+			r.Post("/", AddBlueteams) // Insert many blueteams
+		})
 
 		admin.Route("/services", func(r chi.Router) {
 			r.Get("/", GetAllServices)
