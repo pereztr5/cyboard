@@ -47,8 +47,16 @@ func getScript(path string) (*exec.Cmd, error) {
 	return exec.Command(abspath), nil
 }
 
+type checkArgKey struct {
+	teamID int
+	arg    string
+}
+
 func prepareChecks(teamsAndServices []models.MonitorTeamService, scriptsDir, baseIP string) []Check {
 	checks := []Check{}
+
+	// argCache saves a few cpu cycles doing the same argument variable substitution
+	argCache := map[checkArgKey]string{}
 
 	for i := range teamsAndServices {
 		tas := &teamsAndServices[i]
@@ -62,24 +70,26 @@ func prepareChecks(teamsAndServices []models.MonitorTeamService, scriptsDir, bas
 		}
 		script.Dir = scriptsDir
 
-		// Set args with team's IP, Name, and ID using simple string replace on each argument
-		var s string
-		script.Args = []string{script.Path}
+		// Substitute args with team's IP, Name, and ID using simple string replace on each argument
+		script.Args = make([]string, 1, len(tas.Service.Args)+1)
+		script.Args[0] = script.Path
 		for _, arg := range tas.Service.Args {
-			switch arg {
-			case "{IP}":
-				// BaseIP is a config.toml option that looks like "192.168.0." which we add
-				// the last octet to from the `cyboard.team` table, giving us the
-				// full ip. E.G. "192.168.0.7"
-				s = baseIP + strconv.FormatInt(int64(tas.Team.IP), 10)
-			case "{TEAM_4TH_OCTET}":
-				s = strconv.FormatInt(int64(tas.Team.IP), 10)
-			case "{TEAM_NAME}":
-				s = tas.Team.Name
-			case "{TEAM_ID}":
-				s = strconv.FormatInt(int64(tas.Team.ID), 10)
-			default:
+			cacheKey := checkArgKey{teamID: tas.Team.ID, arg: arg}
+			s, ok := argCache[cacheKey]
+			if !ok {
 				s = arg
+				if strings.IndexByte(s, '{') != -1 {
+					teamIDstr := strconv.FormatInt(int64(tas.Team.ID), 10)
+					teamSigIPOctet := strconv.FormatInt(int64(tas.Team.IP), 10)
+					// baseIP is a config.toml option that looks like "192.168.0." which
+					// gets the last octet from the `cyboard.team` table, giving the
+					// full ip. E.G. "192.168.0.7"
+					s = strings.Replace(s, "{IP}", baseIP+teamSigIPOctet, -1)
+					s = strings.Replace(s, "{TEAM_4TH_OCTET}", teamSigIPOctet, -1)
+					s = strings.Replace(s, "{TEAM_NAME}", tas.Team.Name, -1)
+					s = strings.Replace(s, "{TEAM_ID}", teamIDstr, -1)
+				}
+				argCache[cacheKey] = s
 			}
 			script.Args = append(script.Args, s)
 		}
