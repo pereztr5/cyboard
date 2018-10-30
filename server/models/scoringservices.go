@@ -156,3 +156,44 @@ func MonitorTeamsAndServices(db DBClient) ([]MonitorTeamService, error) {
 
 	return xs, nil
 }
+
+// MonitorService is the subset of data needed by the Distributed Service Monitor
+// to test each team's infrastructure availability.
+//
+// TODO: Clean up the copy+paste with the non-distributed Service Monitor types above.
+type MonitorService struct { // `cyboard.service` table
+	ID       int       `json:"id"`     // id
+	Name     string    `json:"-"`      // name
+	Script   string    `json:"script"` // script
+	Args     []string  `json:"args"`   // args
+	StartsAt time.Time `json:"-"`      // starts_at
+}
+
+// MonitorServices fetches every active service from the database.
+// Returns an empty array for no rows, or an error if there is a problem
+// fetching data from postgres.
+func MonitorServices(db DBClient) ([]MonitorService, error) {
+	const sqlstr = `SELECT s.id, s.name, s.script, s.args, s.starts_at
+	FROM service AS s
+	WHERE s.disabled = false`
+	rows, err := db.Query(sqlstr)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+
+	xs := []MonitorService{}
+	for rows.Next() {
+		x := MonitorService{}
+		err = rows.Scan(&x.ID, &x.Name, &x.Script, &x.Args, &x.StartsAt)
+		if err != nil {
+			return nil, err
+		}
+		xs = append(xs, x)
+	}
+	if err = rows.Err(); err != nil {
+		return nil, err
+	}
+
+	return xs, nil
+}

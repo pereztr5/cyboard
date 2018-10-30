@@ -1,5 +1,6 @@
 # Binaries
 cyboard
+agent
 *.exe
 
 # Dependency management

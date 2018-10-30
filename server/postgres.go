@@ -19,10 +19,10 @@ func SetGlobalPostgresDBs(pool *pgx.ConnPool) {
 	rawDB, db = pool, pool
 }
 
-func SetupPostgres(uri string) {
-	if db != nil {
+func SetupPostgres(uri string) *pgx.ConnPool {
+	if rawDB != nil {
 		// Database connection is already set up
-		return
+		return rawDB
 	}
 	if uri == "" {
 		Logger.Fatal("No postgres-uri specified.")
@@ -46,6 +46,7 @@ func SetupPostgres(uri string) {
 	SetGlobalPostgresDBs(pool)
 
 	Logger.Info("Connected to postgres: ", PgConfigAsString(&baseCfg))
+	return pool
 }
 
 func PingDB(ctx context.Context) error {

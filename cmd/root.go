@@ -31,7 +31,7 @@ func init() {
 		"Connection string for PostgreSQL. Also configured with the environment var: `CY_POSTGRES_URI`")
 	flags.BoolP("stdout", "s", false, "Log to standard out")
 
-	RootCmd.AddCommand(ServerCmd, CheckCmd)
+	RootCmd.AddCommand(ServerCmd, CheckCmd, DistributedCheckCmd)
 }
 
 // initConfig loads the config file from disk, searching in order:
