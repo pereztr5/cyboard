@@ -3,8 +3,8 @@ package coordination
 import "fmt"
 
 const (
-	SignalRun           = 1
-	SignalReloadThenRun = 2
+	SignalRun           = "1"
+	SignalReloadThenRun = "2"
 
 	RedisKeyTimeout  = "cy:check:timeout"
 	RedisKeyTeams    = "cy:check:teams"

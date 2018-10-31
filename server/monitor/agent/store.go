@@ -14,20 +14,22 @@ type store struct {
 	*redis.Pool
 }
 
-func (s store) getTimeout() time.Duration {
+func (s store) getTimeout() (time.Duration, error) {
 	c := s.Get()
 	defer c.Close()
 
 	timeout, err := redis.Int64(c.Do("GET", coordination.RedisKeyTimeout))
 	if err != nil {
-		log.Fatalln("unable to get timeout:", err)
+		err = fmt.Errorf("unable to get timeout: %v", err)
 	}
-	return time.Duration(timeout)
+	return time.Duration(timeout), err
 }
 
 func (s store) getTeamsAndServices(teamIPs []int16, scriptsDir string) (map[int16]BlueteamView, []MonitorService, error) {
 	c := s.Get()
 	defer c.Close()
+
+	log.Printf("bot config:")
 
 	teams := map[int16]BlueteamView{}
 	{
@@ -39,6 +41,12 @@ func (s store) getTeamsAndServices(teamIPs []int16, scriptsDir string) (map[int1
 
 		for i, data := range values {
 			ip := teamIPs[i]
+			if len(data) == 0 {
+				// team must not be active. Skip it.
+				log.Printf("  warning: skipping inactive team (ip=%d)", ip)
+				continue
+				// return nil, nil, fmt.Errorf("failed to fetch team: no config (is the team active?) (ip=%d)", ip)
+			}
 			t := BlueteamView{}
 			err = json.Unmarshal(data, &t)
 			if err != nil {
@@ -46,6 +54,7 @@ func (s store) getTeamsAndServices(teamIPs []int16, scriptsDir string) (map[int1
 			}
 			teams[ip] = t
 		}
+		log.Printf("  teams=%+v", teams)
 	}
 
 	services := []MonitorService{}
@@ -59,6 +68,7 @@ func (s store) getTeamsAndServices(teamIPs []int16, scriptsDir string) (map[int1
 		if err != nil {
 			return nil, nil, fmt.Errorf("failed to unmarshal json services: %v", err)
 		}
+		log.Printf("  services=%s", data)
 	}
 
 	return teams, services, nil

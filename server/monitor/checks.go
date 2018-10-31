@@ -10,7 +10,6 @@ import (
 	"github.com/pereztr5/cyboard/server"
 	"github.com/pereztr5/cyboard/server/models"
 	"github.com/pereztr5/cyboard/server/monitor/coordination"
-	"github.com/sirupsen/logrus"
 )
 
 const PGListenNotifyChannel = "cyboard.server.checks"
@@ -110,7 +109,8 @@ func (m *Monitor) Run(event *EventSettings, srvmon *ServiceMonitorSettings) {
 
 	// Max time to wait for results to come back from workers via redis
 	// note: Division here truncates down, so a second is added to provide leeway
-	recvTimeout := ((srvmon.Timeout + (100 * time.Millisecond)).Nanoseconds() / int64(time.Second)) + 1
+	const leeway = 100 * time.Millisecond
+	recvTimeout := ((srvmon.Timeout + leeway).Nanoseconds() / int64(time.Second)) + 1
 
 	// Scripts get executed in a separate goroutine, one for each team, for each service,
 	// and then send results back on the status channel to the resultsBuf.
@@ -192,7 +192,7 @@ func (m *Monitor) Run(event *EventSettings, srvmon *ServiceMonitorSettings) {
 		{
 			c := rstore.Get()
 			for _, team := range m.Teams {
-				c.Send("DEL", FmtResultsKey(team.BlueteamIP))
+				c.Send("DEL", coordination.FmtResultsKey(team.BlueteamIP))
 			}
 			c.Send("PUBLISH", coordination.RedisKeySchedule, cmdSig)
 			c.Flush()
@@ -200,7 +200,7 @@ func (m *Monitor) Run(event *EventSettings, srvmon *ServiceMonitorSettings) {
 		}
 
 		for _, team := range m.Teams {
-			go receiveResults(statusChan, rstore, recvTimeout, &now, FmtResultsKey(team.BlueteamIP))
+			go receiveResults(statusChan, rstore, recvTimeout, &now, coordination.FmtResultsKey(team.BlueteamIP))
 		}
 
 		// One second is taken away to provide leeway to synchronize between host & workers.
@@ -217,18 +217,22 @@ func (m *Monitor) Run(event *EventSettings, srvmon *ServiceMonitorSettings) {
 				if results.Err != nil {
 					workerErrs = append(workerErrs, results.Err)
 				} else {
-					max := i + len(m.Checks)
+					j := i * len(m.Checks)
+					max := j + len(m.Checks)
 					if len(resultsBuf) < max {
 						workerErrs = append(workerErrs,
 							fmt.Errorf("Fatal programmer error: detected buffer overflow: "+
 								"len(resultsBuf)=%d, max=%d", nResults, max))
 					} else {
-						Logger.WithFields(logrus.Fields{"i": i, "max": max, "len": len(resultsBuf)}).Debug("Copying results")
-						subslice := resultsBuf[i:max]
+						subslice := resultsBuf[j:max]
 						copy(subslice, results.Results)
 					}
 				}
 			}
+		}
+
+		for i := range resultsBuf {
+			resultsBuf[i].CreatedAt = now
 		}
 
 		m.Unlock()

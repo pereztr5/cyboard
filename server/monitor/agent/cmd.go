@@ -60,16 +60,16 @@ func prepareChecks(services []MonitorService, team *BlueteamView, scriptsDir str
 		checks = append(checks, Check{TeamID: team.ID, ServiceID: srv.ID, Command: script})
 	}
 
-	log.Print("All checks:")
-	for _, chk := range checks {
-		log.Printf(`  [%d] Check{fullcmd="%s %s"}`,
-			chk.ServiceID, filepath.Base(chk.Command.Path), strings.Join(chk.Command.Args, " "))
-	}
+	// log.Print("All checks:")
+	// for _, chk := range checks {
+	//     log.Printf(`  [%d] Check{fullcmd="%s %s"}`,
+	//         chk.ServiceID, filepath.Base(chk.Command.Path), strings.Join(chk.Command.Args, " "))
+	// }
 
 	return checks, nil
 }
 
-func getCmdResult(cmd *exec.Cmd, timeout time.Duration) (int16, int16) {
+func getCmdResult(cmd *exec.Cmd, timeout time.Duration) (int16, ExitStatus) {
 	var code int16
 	var status ExitStatus
 
@@ -94,7 +94,7 @@ func getCmdResult(cmd *exec.Cmd, timeout time.Duration) (int16, int16) {
 			status = ExitStatusFail
 		}
 	}
-	return code, int16(status)
+	return code, status
 }
 
 func runCmd(check *Check, timeout time.Duration) ServiceCheck {
@@ -108,7 +108,7 @@ func runCmd(check *Check, timeout time.Duration) ServiceCheck {
 	if err := cmd.Start(); err != nil {
 		log.Println("Could not run script:", err)
 		result.ExitCode = 127 // 127=command not found: http://www.tldp.org/LDP/abs/html/exitcodes.html
-		result.Status = int16(ExitStatusTimeout)
+		result.Status = ExitStatusTimeout
 		return result
 	}
 

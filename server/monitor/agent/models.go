@@ -30,10 +30,32 @@ const (
 	ExitStatusTimeout = ExitStatus(4)
 )
 
+func (es ExitStatus) String() string {
+	var enumVal string
+
+	switch es {
+	case ExitStatusPass:
+		enumVal = "pass"
+	case ExitStatusFail:
+		enumVal = "fail"
+	case ExitStatusPartial:
+		enumVal = "partial"
+	case ExitStatusTimeout:
+		enumVal = "timeout"
+	}
+
+	return enumVal
+}
+
+// MarshalText marshals ExitStatus into text.
+func (es ExitStatus) MarshalText() ([]byte, error) {
+	return []byte(es.String()), nil
+}
+
 // ServiceCheck represents a row from 'cyboard.service_check'.
 type ServiceCheck struct {
-	TeamID    int   `json:"team_id"`    // team_id
-	ServiceID int   `json:"service_id"` // service_id
-	Status    int16 `json:"status"`     // status
-	ExitCode  int16 `json:"exit_code"`  // exit_code
+	TeamID    int        `json:"team_id"`    // team_id
+	ServiceID int        `json:"service_id"` // service_id
+	Status    ExitStatus `json:"status"`     // status
+	ExitCode  int16      `json:"exit_code"`  // exit_code
 }

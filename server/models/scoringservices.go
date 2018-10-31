@@ -175,7 +175,8 @@ type MonitorService struct { // `cyboard.service` table
 func MonitorServices(db DBClient) ([]MonitorService, error) {
 	const sqlstr = `SELECT s.id, s.name, s.script, s.args, s.starts_at
 	FROM service AS s
-	WHERE s.disabled = false`
+	WHERE s.disabled = false
+	ORDER BY s.id`
 	rows, err := db.Query(sqlstr)
 	if err != nil {
 		return nil, err

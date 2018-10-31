@@ -4,7 +4,7 @@ type ErrorSlice []error
 
 func (errs ErrorSlice) Error() string {
 	var str string
-	for i, e := range errs {
+	for _, e := range errs {
 		if str == "" {
 			str += e.Error()
 		} else {

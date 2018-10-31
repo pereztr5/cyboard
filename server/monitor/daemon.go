@@ -13,11 +13,11 @@ import (
 
 func ChecksRun(checkCfg *Configuration) {
 	server.SetupCheckServiceLogger(&checkCfg.Log)
+	Logger = server.Logger
+
 	setupRedis(checkCfg.ServiceMonitor.RedisConnType, checkCfg.ServiceMonitor.RedisAddr)
 	rawDB = server.SetupPostgres(checkCfg.Database.URI)
-
 	db = rawDB
-	Logger = server.Logger
 
 	sigtermC := make(chan os.Signal, 1)
 	signal.Notify(sigtermC, os.Interrupt)

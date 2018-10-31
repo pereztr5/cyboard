@@ -75,7 +75,9 @@ func redisUpdateTeamsAndServices(pool *redis.Pool, teams []models.BlueteamView, 
 			}
 		}
 		c.Send("DEL", coordination.RedisKeyTeams)
-		c.Do("HMSET", redis.Args{}.Add(coordination.RedisKeyTeams).AddFlat(pack)...)
+		c.Send("HMSET", redis.Args{}.Add(coordination.RedisKeyTeams).AddFlat(pack)...)
+		c.Flush()
+		c.Receive()
 		_, err := c.Receive()
 		if err != nil {
 			Logger.WithError(err).Error("failed to hmset teams in redis")
@@ -126,8 +128,8 @@ func prepareServices(services []models.MonitorService, baseIP string) []models.M
 			s, ok := argCache[arg]
 			if !ok {
 				s = arg
-				s = strings.Replace(arg, "{IP}", baseIP+"{t}", -1)
-				s = strings.Replace(arg, "{TEAM_4TH_OCTET}", "{t}", -1)
+				s = strings.Replace(s, "{IP}", baseIP+"{t}", -1)
+				s = strings.Replace(s, "{TEAM_4TH_OCTET}", "{t}", -1)
 				argCache[arg] = s
 			}
 			srv.Args[j] = s
