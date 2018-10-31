@@ -45,8 +45,7 @@ func (s store) subscribeLoop(onMessage func(redis.Message) error) error {
 				break
 			}
 		case err := <-done:
-			log.Println("pubsub fatal error:", err)
-			break
+			return err
 		}
 	}
 

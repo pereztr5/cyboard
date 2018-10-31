@@ -131,6 +131,6 @@ func (bot *bleepbloop) run(s store) {
 	log.Printf("b1e3pBl00p -=-=- daemonizing -=-=- targets=%v", bot.targets)
 	err := s.subscribeLoop(bot.messageFunc(s))
 	if err != nil {
-		log.Print(err)
+		log.Println("pubsub fatal error:", err)
 	}
 }
