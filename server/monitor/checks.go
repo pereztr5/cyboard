@@ -239,7 +239,7 @@ func (m *Monitor) Run(event *EventSettings, srvmon *ServiceMonitorSettings) {
 
 		if len(workerErrs) > 0 {
 			Logger.WithError(workerErrs).Error("!! ALL CHECKS SKIPPED !! Due to fatal worker error")
-		} else if err := models.ServiceCheckSlice(resultsBuf).Insert(db); err != nil {
+		} else if err := models.ServiceCheckSlice(resultsBuf).DummyInsert(db); err != nil {
 			// Try *really hard* to not lose unrecoverable scoring data.
 			err = monitorRetryWithBackoff(func() error {
 				err := models.ServiceCheckSlice(resultsBuf).Insert(db)

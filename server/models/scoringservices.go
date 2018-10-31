@@ -20,6 +20,8 @@ var (
 	serviceCheckTableColumns = []string{
 		"created_at", "team_id", "service_id", "status", "exit_code",
 	}
+
+	dstrServiceCheckTableIdent = pgx.Identifier{"cyboard", "distributed_service_check"}
 )
 
 // ServiceCheckSlice is an array of ServiceChecks, suitable to insert many of at once.
@@ -53,6 +55,16 @@ func (ctr *serviceCheckCopyFromRows) Err() error {
 func (sc ServiceCheckSlice) Insert(db DB) error {
 	_, err := db.CopyFrom(
 		serviceCheckTableIdent,
+		serviceCheckTableColumns,
+		&serviceCheckCopyFromRows{rows: sc, idx: -1},
+	)
+	return err
+}
+
+// DummyInsert records results into a table that is otherwise unused by the application.
+func (sc ServiceCheckSlice) DummyInsert(db DB) error {
+	_, err := db.CopyFrom(
+		dstrServiceCheckTableIdent,
 		serviceCheckTableColumns,
 		&serviceCheckCopyFromRows{rows: sc, idx: -1},
 	)
