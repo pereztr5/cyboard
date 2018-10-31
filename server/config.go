@@ -68,6 +68,7 @@ type ServerSettings struct {
 type ServiceMonitorSettings struct {
 	RedisConnType string `mapstructure:"redis_conn_type"`
 	RedisAddr     string `mapstructure:"redis_addr"`
+	RedisPass     string `mapstructure:"redis_pass"`
 
 	BaseIP    string `mapstructure:"base_ip_prefix"`
 	Intervals time.Duration

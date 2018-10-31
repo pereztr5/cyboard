@@ -15,7 +15,8 @@ func ChecksRun(checkCfg *Configuration) {
 	server.SetupCheckServiceLogger(&checkCfg.Log)
 	Logger = server.Logger
 
-	setupRedis(checkCfg.ServiceMonitor.RedisConnType, checkCfg.ServiceMonitor.RedisAddr)
+	srvmon := checkCfg.ServiceMonitor
+	setupRedis(srvmon.RedisConnType, srvmon.RedisAddr, srvmon.RedisPass)
 	rawDB = server.SetupPostgres(checkCfg.Database.URI)
 	db = rawDB
 
@@ -84,7 +85,7 @@ func ChecksRun(checkCfg *Configuration) {
 
 	Logger.Println("Starting Checks")
 	go monitor.BreaktimeScheduler(event.Breaks)
-	go monitor.Run(&event, &checkCfg.ServiceMonitor)
+	go monitor.Run(&event, &srvmon)
 
 	// Stop if: 1. The event is over 2. monitor has stopped 3. received ctrl+C (SIGTERM)
 	select {

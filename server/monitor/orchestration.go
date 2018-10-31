@@ -14,11 +14,11 @@ import (
 	"github.com/pereztr5/cyboard/server/monitor/coordination"
 )
 
-func setupRedis(connType, addr string) *redis.Pool {
+func setupRedis(connType, addr, pass string) *redis.Pool {
 	pool := &redis.Pool{
 		MaxIdle:     15,
 		IdleTimeout: 90 * time.Second,
-		Dial:        func() (redis.Conn, error) { return redis.Dial(connType, addr) },
+		Dial:        func() (redis.Conn, error) { return redis.Dial(connType, addr, redis.DialPassword(pass)) },
 		TestOnBorrow: func(c redis.Conn, t time.Time) error {
 			_, err := c.Do("PING")
 			return err
