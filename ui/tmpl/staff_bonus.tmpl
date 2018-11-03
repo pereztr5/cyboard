@@ -1,5 +1,5 @@
 {{ define "content" }}
-<div class="bonus-award-panel">
+<div class="bonus-award-panel pb-3">
   <h5>Award or Dock Bonus Points</h5>
 
   <form class="row">
@@ -31,10 +31,29 @@
       </div>
     </div>
   </form>
-
-  <!-- TODO: Show time-sorted list of all bonuses -->
-
 </div>
+
+<h6>All other points awarded</h6>
+<table class="table table-sm">
+  <thead><tr>
+    <th>Timestamp</th>
+    <th>Teams</th>
+    <th>Points</th>
+    <th>Reason</th>
+  </tr></thead>
+  <tbody>
+    {{range .Data.Bonus}}
+    <tr>
+      <td>{{kitchentime .CreatedAt}}</td>
+      <td>{{StringsJoin .Teams ", "}}</td>
+      <td>{{.Points}}</td>
+      <td>{{.Reason}}</td>
+    </tr>
+    {{else}}
+    <tr><p>...No other points awarded, yet</p></tr>
+    {{end}}
+  </tbody>
+</table>
 {{ end }}
 
 {{ define "scripts" }}

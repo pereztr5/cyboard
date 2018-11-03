@@ -136,6 +136,7 @@ func CreateWebRouter(teamScoreUpdater, servicesUpdater *broadcastHub) chi.Router
 	api.Route("/admin", func(admin chi.Router) {
 		admin.Use(RequireLogin, RequireAdmin)
 
+		admin.Get("/all_bonus", GetBonusPoints)
 		admin.Post("/grant_bonus", GrantBonusPoints)
 
 		admin.Get("/team/{name}", GetTeamByName)

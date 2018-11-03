@@ -238,6 +238,8 @@ func ShowBonusPage(w http.ResponseWriter, r *http.Request) {
 
 	page.Data["Blueteams"], err = models.AllBlueteams(db)
 	page.checkErr(err, "all blue teams")
+	page.Data["Bonus"], err = models.AllBonusPoints(db)
+	page.checkErr(err, "all bonus points")
 
 	renderTemplate(w, page)
 }

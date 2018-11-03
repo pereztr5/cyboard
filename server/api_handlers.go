@@ -398,6 +398,11 @@ func GrantBonusPoints(w http.ResponseWriter, r *http.Request) {
 	w.WriteHeader(http.StatusCreated)
 }
 
+func GetBonusPoints(w http.ResponseWriter, r *http.Request) {
+	bonus, err := models.AllBonusPoints(db)
+	ApiQuery(w, r, bonus, err)
+}
+
 // CTF Configuration
 
 func GetAllFlags(w http.ResponseWriter, r *http.Request) {
