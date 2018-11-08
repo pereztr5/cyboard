@@ -1,10 +1,3 @@
-Version 6.1.3
-
-## Licensing
-
-**Highcharts** is being utilized under the
-[Creative Commons Attribution-NonCommercial 3.0 License](https://creativecommons.org/licenses/by-nc/3.0/).
-
-Highcharts is available under this license under the following circumstances:
-[When can I use the Non-Commercial License?](https://shop.highsoft.com/faq#Non-Commercial-0)
-
+version https://git-lfs.github.com/spec/v1
+oid sha256:02d12cd16a6fbcbf699627390f2a65a0dcbd2449b9fffe0ee2f28fe0e45cdc7b
+size 352
