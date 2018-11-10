@@ -1,3 +1,0 @@
-Team1:password
-Team2:password2
-Team3:password3
