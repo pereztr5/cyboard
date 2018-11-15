@@ -1,0 +1,10 @@
+# .dockerignore
+# Whitelist style: Ignore everything `*`, except lines beginning with `!`
+*
+
+!main.go
+!Gopkg.lock
+!Gopkg.toml
+!cmd/
+!server/
+!ui/

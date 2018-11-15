@@ -1,45 +1,52 @@
+# .../setup/docker/docker-compose.yml
 version: '3'
 services:
 
-  # Two cyboard containers are used for the CTF & Service Checker compoenents
+  # Two cyboard containers are used for the CTF & Service Checker components
   server:
-    build: .
     image: cyboard:latest
-    volumes:
-      - ./certs:/srv/certs:ro
-      - ./cfg:/srv/.cyboard:ro
-      - logs:/srv/log
-    command: server
-    environment:
-      MONGODB_URI: mongodb://db:27017
-    links:
-      - db
+    # build cyboard at the root of the git repo
+    build:
+      context: ../..
+      dockerfile: setup/docker/Dockerfile
+    entrypoint: dumb-init -- wait-for db:5432 -- cyboard server
     ports:
       - 80:8080
       - 443:8081
+    volumes:
+      - ../../data:/cyboard/data
+      - ../../cfg:/home/cyboard/.cyboard/:ro
+    environment:
+      CY_POSTGRES_URI: "user=cybot password=${POSTGRES_PASSWORD:-} host=db sslmode=disable"
+    links:
+      - db
 
   checks:
-    build: .
     image: cyboard:latest
-    command: checks
-    environment:
-      MONGODB_URI: mongodb://db:27017
+    # build cyboard at the root of the git repo
+    build:
+      context: ../..
+      dockerfile: setup/docker/Dockerfile
+    entrypoint: dumb-init -- wait-for db:5432 -- cyboard checks
     volumes:
-      - ./scripts:/srv/scripts:ro
-      - ./cfg:/srv/.cyboard:ro
-      - logs:/srv/log
+      - ../../data:/cyboard/data
+      - ../../cfg:/home/cyboard/.cyboard/:ro
+    environment:
+      CY_POSTGRES_URI: "user=cybot password=${POSTGRES_PASSWORD:-} host=db sslmode=disable"
     links:
       - db
 
   db:
-    image: mongo:3.4
+    image: cyboard-db:latest
+    # build from postgres-setup folder
+    build: ../../migrations
     volumes:
-      - db-data:/data/db
+      - db-data:${PGDATA:-/var/lib/postgresql/data}
+    environment:
+      - POSTGRES_PASSWORD
     expose:
-      - "27017"
-    ulimits:
-      nproc: 65535
+      - "5432"
 
 volumes:
-  logs:
   db-data:
+

@@ -3,13 +3,12 @@ cyboard
 *.exe
 
 # Dependency management
-.glide/
 vendor/
 
-# Default cyboard dirs
-# Includes: logs/, scripts/, ctf/
+# Environment & secrets
+cfg/
 data/
-
-# Secrets
+.env
 *.pem
 *.key
+

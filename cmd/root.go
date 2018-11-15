@@ -46,13 +46,14 @@ func initConfig(v *viper.Viper, configName string) {
 	v.BindPFlag("log.stdout", flags.Lookup("stdout"))
 
 	// Env var may be used for sensitive connection strings (alternative to .pgpass file)
-	v.BindEnv("database.postgres_uri", "CY_POSTRES_URI")
+	v.BindEnv("database.postgres_uri", "CY_POSTGRES_URI")
 
 	// Set defaults
 	v.SetDefault("server.rate_limit", true)
 	v.SetDefault("server.compress", true)
 	v.SetDefault("server.ctf_file_dir", "data/ctf")
 	v.SetDefault("service_monitor.checks_dir", "data/scripts")
+	v.SetDefault("log.level", "info")
 
 	path := v.GetString("configPath")
 	if path != "" {
