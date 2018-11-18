@@ -1,8 +1,7 @@
 # Cyboard
 
-[![Build Status](https://travis-ci.org/pereztr5/cyboard.svg?branch=master)][travis]
-
-**Cyboard** is a modular scoring engine for cyber defense competitions.
+**Cyboard** is a scoring engine for the cyber defense competition
+[CNY Hackathon](https://www.cnyhackathon.org "CNY Hackathon Home").
 
 <!-- Generated with https://github.com/jonschlinkert/markdown-toc -->
 <!-- toc -->
@@ -29,30 +28,34 @@
 
 ## Background
 
-[Tony](https://github.com/pereztr5 "Tony Perez") started developing Cyboard
-in 2016 as his senior project at SUNY Polytechnic, with the goal to use it
-for the [CNY Hackathon](https://www.cnyhackathon.org "CNY Hackathon Home").
-[Butters](https://github.com/tbutts "Tyler Butters") has helped maintain and
-improve this project since it was created.
-
 CNY Hackathon is a joint cyber security defense & CTF event for intercollegiate
-students of the Central New York region. The event is hosted bi-annually to
+students in the US North East region. The event is hosted bi-annually to
 100+ contestants. Despite the name, it shares no similarities with a
 [programming hackathon](https://en.wikipedia.org/wiki/Hackathon).
 
+[Tony](https://github.com/pereztr5 "Tony Perez") first developed Cyboard in 2016
+as his senior project at SUNY Polytechnic. Ever since Tony's graduation,
+[Butters](https://github.com/tbutts "Tyler Butters") stepped up as the project's
+developer.
+
 ## Features
+### Web Application Server
 
-- Web Application Server
-    - CTF event submission & display
-    - Scoreboard actively maintained via WebSockets
-    - JSON-based HTTP API (REST-like)
-    - User & Team authentication
-    - Specific functionality for blue teams, red teams, and black teams
-- Service Checker
-    - Scores contestants' infrastructure at regular intervals
-    - Checks are any script/program, language agnositc
-- Each piece is integrated through a MongoDB back end
+- Fast, self-contained (no internet required) web site powered by Bootstrap
+- Scoreboard display (updates automatically), shows points &
+    feedback on teams' service statuses
+- Locally run CTF event
+    - Flag submission forms with instant feedback for contestants
+    - Challenges divided into groups (e.g. Reversing, Programming, Crytpo, etc.)
+    - Markdown descriptions (inline images, links, code blocks, text styles)
+    - Host any custom files (crackme binaries, stego images, crypto messages)
+- Web Admin Panels for User/Team, CTF, and Services
+- JSON-based HTTP REST API
 
+### Service Checker
+- Scores contestants' infrastructure at regular intervals
+- Checks are any script/program, language agnositc
+- Completely automated during the event
 
 ## Building
 
@@ -65,31 +68,26 @@ FreeBSD, CentOS, Arch, and Ubuntu. To build `cyboard`:
     * Alternatively Download & Install [Go v1.9+][go-install]
 2. _Optional_: Go demands all code be located in one central folder,
     which you may configure before proceeding: [Guide to GOPATH][gopath]
-2. Install [dep][dep], which manages Go dependencies
+3. Install [dep][dep], which manages Go dependencies
     * Two line install for linux:
         ``` bash
-        wget -O $GOPATH/bin/dep https://github.com/golang/dep/releases/download/v0.4.1/dep-linux-amd64
+        wget -O $GOPATH/bin/dep https://github.com/golang/dep/releases/download/v0.5.0/dep-linux-amd64
         chmod 755 $GOPATH/bin/dep
         ```
-3. Clone this source repo into `$GOPATH/src/github.com/pereztr5/cyboard/`,
-    either through:
-    * `go get github.com/pereztr5/cyboard`
-    * or directly via Github
-4. From the source root, run:
-    ``` sh
-    dep ensure     # Fetches & builds dependencies
-    go build       # Build the project
-    go test ./...  # Optional: Runs unit tests (Local MongoDB install required)
-    ```
-5. The result generated is a single, runnable binary, `cyboard`!
-
-To run `cyboard`, you must have a [Mongo Database][mongo-install] the app can
-connect to. [Read the configuration section](#mongodb) more details.
+4. Clone this source repo into `$GOPATH/src/github.com/pereztr5/cyboard/`
+5. From the source root: `dep ensure && go build`
+6. The result generated is a single, runnable binary, `cyboard`!
 
 You can install the binary itself anywhere, with the only caveat that
-the `static/` and `tmpl/` folders from this source repo must be in the
-current working directory.
+the `ui/` folder from this source repo must be in the current working directory,
+along with a modified copy of `config.toml`, editted to your needs.
 
+## Setup DB
+
+To run `cyboard`, you must have PostgreSQL installed with the
+[timescaledb](https://www.timescale.com/) extension.
+
+<!-- TODO: how to install pg, timescale (build from src), run migrations to set up schema -->
 
 ## Administration
 
@@ -307,156 +305,10 @@ If you believe you must manually edit the data in Mongo, please be careful!
 Mongo's implicit data types can cause confusing problems. E.g. All numbers are
 `double` values by default, when inserted or updated with the `mongo` shell.
 
-## API
-
-For scripted tasks or bots, Cyboard has a growing selection of API endpoints
-to work with.
-
-**Note**: The API is due for substantial changes in the future. Be advised.
-
-You will need to be authenticated to call most endpoints. This can be
-achieved a couple of ways:
-- From a browser session, after having logged in manually. The cookie is
-    available in the web developer tools, under the "cyboard" key name.
-    - In Firefox: Hit `F12`, go to "Storage" -> "Cookies" -> [domain of cyboard]
-    - In Chrome: Hit `F12`, go to "Application" -> "Cookies" -> [domain of cyboard]
-    - Copy the cookie, and include it in your script or tool with each request
-        to `cyboard` from then on.
-- Alternatively, if your tools or interfaces support persistent session storage,
-    you may log in with the `/login` POST endpoint and go about your way.
-
-<!-- TODO: Swagger docs would be much better -->
-
-### Endpoints
-
-#### Function: Login
-+ Endpoint: `/login`
-+ Role: &lt;any&gt;
-+ Methods: POST
-+ Request:
-    * Headers: ContentType: form
-    * Body:
-        - `teamname` string
-        - `password` string
-+ Response: text/plain
-    * On success: A cookie under the key `cyboard` is saved to
-        the browser. Finally, issues an HTTP redirect to `/team/dashboard`.
-    * On failure: Issues HTTP redirect to `/login`
-
-#### Function: Logout
-+ Endpoint: `/logout`
-+ Role: &lt;any&gt;
-+ Methods: GET
-+ Request: &lt;ignored&gt;
-+ Response: text/plain
-    * On success: The logged in user's cookie under the key `cyboard`
-        will be wiped. Then, HTTP redirect to `/login`.
-    * On failure: If not logged in, issues HTTP redirect to `/login`
-
-#### Function: Submit a flag guess
-+ Endpoint: `/challenges/verify`
-+ Role: "blueteam"
-+ Methods: POST
-+ Request:
-    * Headers: ContentType: form
-    * Body:
-        - `flag` string
-        - `challenge` string
-+ Response: text/plain
-    * On success: Adds the flag's value to the submitting team's score,
-        and writes a '0', indicating the flag was captured.
-    * On failure:
-        - '1': if the flag was already captured by the submitting team
-        - '2': if the guessed flag was incorrect.
-        - Other HTTP Status Code: Bad request, server error, etc.
-
-#### Function: List CTF challenges
-+ Endpoint: `/ctf/flags`
-+ Role: "admin", "blackteam", or designated CTF group owner
-+ Methods: GET
-+ Request: &lt;ignored&gt;
-+ Response: application/json
-    * On success: Returns everything about each challenge flags that
-        the requesting user has access to view.
-    * On failure: Standard HTTP error code.
-
-#### Function: List all teams
-+ Endpoint: `/admin/teams`
-+ Role: "admin"
-+ Methods: GET
-+ Request: &lt;ignored&gt;
-+ Response: application/json
-    * On success: Returns everything but password hashes, for every user.
-    * On failure: Standard HTTP error code.
-
-#### Function: Add or Subtract Points from score
-+ Endpoint: `/black/team/bonus`
-+ Role: "blackteam" or "admin"
-+ Methods: POST
-+ Request:
-    * Headers: ContentType: json
-    * Body:
-        - `teams` array of strings
-        - `points` integer
-            + Can be positive or negative
-        - `details` string
-            + Provide a reason why points are being given or taken away
-+ Response: text/plain
-    * On success: Each teams score is updated accordingly.
-    * On failure: Standard HTTP error code (4XX or 5XX) and plain-text
-        reason for the error.
-
-### Examples using [httpie](https://httpie.org/ "aitch-tee-tee-pie")
-
-`httpie` is a handy tool that can be used for scripting API work. Here's
-a demonstration, using it to poke at Cyboard:
-
-``` bash
-$ http --session cyboard-demo --form POST https://localhost:8081/login teamname=admin password=p
-HTTP/1.1 302 Found
-Content-Length: 0
-Content-Type: text/plain; charset=utf-8
-Date: Sat, 28 Oct 2017 16:36:45 GMT
-Location: /team/dashboard
-Set-Cookie: cyboard=<snip>; Expires=Sat, 28 Oct 2017 17:36:45 GMT; Max-Age=3600; HttpOnly
-
-# `http` saves the authenticated cookie in the '--session', making further requests simple
-$ http --session cyboard-demo --json POST https://localhost:8081/black/team/bonus teams:='["team1"]' points:=42 details="You deserve it"
-HTTP/1.1 200 OK
-Content-Length: 0
-Content-Type: text/plain; charset=utf-8
-Date: Sat, 28 Oct 2017 16:38:31 GMT
-
-$ http --session cyboard-demo GET https://localhost:8081/admin/teams
-HTTP/1.1 200 OK
-Content-Length: 1070
-Content-Type: application/json; charset=UTF-8
-Date: Sat, 28 Oct 2017 16:41:56 GMT
-
-[ ... ]
-# Combine with the powerful json parser utility `jq` to splice and select fields!
-# The following returns a newline-separated list of all challenge names
-$ http --session cyboard-demo GET https://localhost:8081/ctf/flags | jq -cr '.[] | .name'
-crypto-1
-crypto-2
-programming-1
-[ ... ]
-$
-```
-
 ## Docker
 
 Docker deployments are supported! For more info, check out the docs in
 `./setup/docker/`.
-
-
-## Contributors
-
-Cyboard is maintained by [Butters](https://github.com/tbutts "Tyler Butters") and
-[Tony](https://github.com/pereztr5 "Tony Perez").
-
-If you have any feedback or suggestions, get in contact or
-[create an issue!](https://github.com/pereztr5/cyboard/issues)
 
 -----
 
@@ -476,5 +328,4 @@ If you have any feedback or suggestions, get in contact or
 [mongo-uri]: https://docs.mongodb.com/manual/reference/connection-string/
 [nagios]: https://www.nagios.org/projects/nagios-core/
 [nagios-plugins]: https://github.com/nagios-plugins/nagios-plugins
-[travis]: https://travis-ci.org/pereztr5/cyboard
 [toml]: https://github.com/toml-lang/toml
