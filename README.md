@@ -8,21 +8,25 @@
 
 - [Background](#background)
 - [Features](#features)
+  * [Web Application Server](#web-application-server)
+  * [Service Checker](#service-checker)
 - [Building](#building)
+- [Setup DB](#setup-db)
+  * [Install PostgreSQL](#install-postgresql)
+  * [Install Timescaledb Extension](#install-timescaledb-extension)
+  * [Database Instance Setup](#database-instance-setup)
+  * [Create Tables (Migrations)](#create-tables-migrations)
+- [Testing](#testing)
 - [Administration](#administration)
   * [CTF Event and Web Server](#ctf-event-and-web-server)
-    + [Public Challenges](#public-challenges)
     + [Users and Roles](#users-and-roles)
     + [Running the Web Server](#running-the-web-server)
-  * [Service Checker](#service-checker)
+  * [Service Monitor](#service-monitor)
     + [Writing Service Checking Scripts](#writing-service-checking-scripts)
-    + [Scheduled Event End and Intermissions](#scheduled-event-end-and-intermissions)
-    + [Running the Service Checker](#running-the-service-checker)
-  * [MongoDB](#mongodb)
-- [API](#api)
-  * [Endpoints](#endpoints)
+    + [Running the Service Monitor](#running-the-service-monitor)
+  * [Scheduled Event Start, End and Intermissions](#scheduled-event-start-end-and-intermissions)
+  * [PostgreSQL](#postgresql)
 - [Docker](#docker)
-- [Contributors](#contributors)
 
 <!-- tocstop -->
 
@@ -57,6 +61,8 @@ developer.
 - Checks are any script/program, language agnositc
 - Completely automated during the event
 
+-----
+
 ## Building
 
 Cyboard is written in [Golang][golang], and has been tested on recent versions of MacOS,
@@ -85,9 +91,103 @@ along with a modified copy of `config.toml`, editted to your needs.
 ## Setup DB
 
 To run `cyboard`, you must have PostgreSQL installed with the
-[timescaledb](https://www.timescale.com/) extension.
+[timescaledb][timescale-home] extension. Timescale provides time-series
+functionality for Postgres beyond what PG does out of the box. We use this
+for analytics and keeping the DB fast.
 
-<!-- TODO: how to install pg, timescale (build from src), run migrations to set up schema -->
+We have used PostgreSQL **v10.3 & v10.6** with timescale **v0.11**.
+Other versions of both (particularly newer ones) should work, as long as
+the db and extension are compatible.
+
+### Install PostgreSQL
+
+PostgreSQL can be installed through your distro's package manager.
+Search for it with your pkg manager, or refer to the [documentation][postgres-dl]
+(note that, for instance, centos and ubuntu have separate pkg repos you will
+need to enable).
+
+You will likely need to install any package like **"postgresql10-contrib"** and
+**"postgresql10-devel"**, to support the necessary extensions for cyboard. Two
+of the extensions, `moddatetime` and `tablefunc` are maintained by the Postgres
+team, which are usually in that "*-contrib", or just in the base "postgres-server"
+package. The last extension, `timescaledb`, is made by a separate company and
+cyboard uses the open-source version of it.
+
+### Install Timescaledb Extension
+
+[See the docs][timescale-install]. We always compile our Timescale ext from
+source - it's a handful of commands, and only requires postgres devel, cmake,
+and a C compiler. Installing from yum/apt repo is also easy enough.
+
+Make sure you edit **postgresql.conf** according to the documentation.
+
+### Database Instance Setup
+
+First thing, if you haven't setup any other postgres instance again, you'll need
+to initalize a db cluster. This differs a bit between distros, but the steps are
+basically:
+
+1. identify the default data dir ($PGDATA)
+2. ensure that dir exists and is owned by the `postgres` user
+3. as the user `postgres`, run:
+`initdb --locale en_US.UTF-8 --encoding UTF8 --pgdata <path_to_datadir>`
+
+As an example of differences, in CentOS, the above steps are instead to run
+one command: `postgresql-setup initdb`
+
+From here, you have a db cluster with one 'database', which is named 'postgres'.
+The user and dbname are shared, and the 'postgres' user has superuser privileges.
+To do anything right now, you'll need to interact with the db cluster as
+that 'postgres' user, which means sudo/su your command shell before running
+commands.
+
+To make it easier, you may want to [edit the pg_hba.conf file][postgres-hba] to
+allow local connections to login to the database as any user (first example
+shown). With this, you can run postgres commands (`createuser`, `psql`,
+`createdb`) as the 'postgres' superuser (or as the user we'll create later) by
+adding the common flag: `-U <user>`.
+
+For added security on cyboard, we use a **plain user**, `cybot`, to run
+the application. Create the user for the whole db cluster with:
+`createuser -U postgres --login --echo cybot`
+
+Optionally, you may create a unique database in the cluster for cyboard:
+`createdb -U postgres cyboard`. This isn't necessary though, as all data will be
+namespaced into a unique schema to prevent any clashes with existing tables.
+
+### Create Tables (Migrations)
+
+Finally, to populate the database, you have to run all the migration scripts.
+Currently, the easiest way to do that is a shell for-loop:
+
+```bash
+for sql in ./migrations/*.up.sql; do
+    psql -U postgres --dbname cyboard -f $sql || { echo "ERR during '$sql'" && break }
+done
+```
+
+## Testing
+
+Cyboard has a modest suite of tests that can verify the program and DB work.
+The tests require the full Postgres setup above, running on the local system.
+Additionally, you will need to create a test admin user, test database, and
+rerun the migrations:
+
+```bash
+createdb --owner=cybot --encoding="utf8" cyboard_test
+createuser --superuser --login --echo supercybot
+psql -U postgres -c 'ALTER ROLE supercybot SET search_path = cyboard'
+for sql in ./migrations/*.up.sql; do
+    psql -U postgres --dbname cyboard_test -f $sql || { echo "ERR during '$sql'" && break }
+done
+```
+
+After, to run the tests: `go test -p 1 ./...`
+
+If a test fails, check the output and make sure the issue isn't with your setup
+before reporting a bug.
+
+-----
 
 ## Administration
 
@@ -101,16 +201,23 @@ The reasoning behind having separate services like this has been that each
 piece can be distributed onto different machines, restarted independently
 if one were to kick the bucket, and developed in tandem.
 
-Cyboard's settings are managed through a mix of config files, web gui options,
-and elbow grease.
+Cyboard's settings are managed through a single config file, and through
+an admin web ui.
 
-The Config files are written in [TOML][toml], which is like a souped up INI
-format. Config files may be placed in the current working dir, or in
-`$HOME/.cyboard/*.toml`.
+The config file, `config.toml`, is written in [TOML][toml], which is like
+a souped up INI format. Cyboard will look for the config in either the current
+working dir, your home dir under `$HOME/.cyboard/`, or you can specify the
+location with `-c` or `--config` flag.
+
+After the web server is running, everything else is configured through the
+admin web ui. The dashboard has instructions on each page.
+
+By default, all logs will be stored in `${PWD}/data/log/`. Check the `server.log`
+if you're experiencing issues at start up.
 
 ### CTF Event and Web Server
 
-> Config file: `config.toml`
+> Config file: `config.toml` -> `[server]` section
 
 > Logs: `requests.log` (HTTP Requests) :: `captured_flags.log` (Tracks flag
          submissions) :: `server.log` (Other general logs)
@@ -124,20 +231,7 @@ suite of services (see [Service Checker](#service-checker)), which are combined
 with the CTF results, and reflected on the scoreboard in real-time.
 
 Most config options for the CTF event are your standard set of tweaks for a web
-server, such as host, ports, SSL cert locations, etc.
-
-#### Public Challenges
-
-``` toml
-# Snippet from config.toml
-special_challenges = ["Wireless", "Reverse Engineering"]
-```
-
-By default, all information about every flag is hidden from the participants.
-This way, the CTF turns into a real treasure hunt. Using the `special_challeges`
-option, as described above, will enable groups of challenges to be made public,
-which reveals their name and description, giving the contestants a better hint
-as to what they're searching for.
+server, such as host, ports, (optional) SSL cert locations, etc.
 
 #### Users and Roles
 
@@ -148,26 +242,25 @@ once logged in.
 Users are divided up into different roles, known as teams, just as they would
 be called on during the competition:
 
-| Team      | Role                                    |
-| --------- | --------------------------------------- |
-| blueteam  | Participant (Students)                  |
-| redteam   | Blue's Adversary (Hackers!)             |
-| blackteam | Infrastructure (Reading this README)    |
-| admin     | Configures users                        |
-| whiteteam | CTF designers and all around nice folks |
+| Team       | Role                                 |
+| ---------- | ------------------------------------ |
+| blueteam   | Participant (Students)               |
+| ctf_creator| CTF designers (Support staff)        |
+| admin      | Infrastructure (Reading this README) |
 
 * Blues can submit flags, and appear on the scoreboard
-* Select white and reds who are marked as the `AdminOf` a particular CTF group
-  will be able to configure flags in that group.
-* Black and Admins can configure & see information about all CTF Challenges
-    * Flags are considered sensitive info, so be careful!
+* CTF staff can view/modify challenges, and see more detailed analytics
+  surrounding the challenges as the competition is running.
+* Admins can see everything and modify users/reset passwords
 
 #### Running the Web Server
 
 To get the **cyboard server** up and running:
 
-1. Ensure [**mongodb**](#mongodb) is installed and active
-2. Configure **_config.toml_**
+1. Ensure **postgres** is setup and running
+2. Configure your `config.toml` based on the example
+    - You can double-check your settings are picked up right with:
+      `./cyboard server --config [path-to-config.toml] --dump-config`
 3. Start the server:
     - `./cyboard server --config [path-to-config.toml]`
 4. Browse to the welcome page:
@@ -177,133 +270,137 @@ _Note on SSL:_ To quickly enable ssl using self-signed certs, you may run:
     `go run ./setup/generate_cert.go --host https://127.0.0.1 --rsa-bits 4048`
 
 
+### Service Monitor
 
-### Service Checker
-
-> Config File: checks.toml
+> Config File: `config.toml` -> `[service_monitor]` section
 
 > Logs: `checks.log`
 
 This component awards points to teams by monitoring the stability of their
 infrastructure. Typically, this may be services such as a router, mail server,
-e-commerce website, and FTP server. In cyber defense competitions, teams are
-typically trying to compete against each other, while fending off professional
+e-commerce website, and file share server. In cyber defense competitions, teams
+are typically trying to compete against each other, while fending off professional
 red team members that represent an omnipotent, adversarial threat.
 
-A set of checks - scripts/programs on the filesystem - are run at regular
-intervals, which determine the health of each service. A single check's config
-will resembled the following:
+A set of service checks - scripts/programs on the filesystem - are run at
+regular intervals, which determine the health of each service. The global
+interval and check timeout are configured in `config.toml`. Individual services
+are configured in the web ui, where you set these attributes for each:
 
-``` toml
-# Snippet from checks.toml
-[[checks]]
-check_name = "web"
-filename = "check_http"
-args = "-I IP -t 5"
-# Exit 0 = 10 points | exit 1 = 6 | exit 2 = 0
-# See explanation in "Writing" section
-points = [ 10, 6, 0 ]
-# Toggles whether to run a check or not
-disable = false
-```
+* Name
+* Description
+* Start time
+* Enabled/Disabled
+* Total Point Value
+* Script file name
+* Commandline arguments
+* _etc._
 
-The `checks.toml` config file may be updated and the Service Checker will
-**automatically reload**, so you can update the amount of points awarded on
-the fly, or disable a check.
+Any changes in the web ui will be detected by the service monitor and it will
+use the new settings at the beginning of the next check interval. You can also
+test your configured services from the web ui with any command arguments, to
+troubleshoot from the server's standpoint and environment.
 
 #### Writing Service Checking Scripts
 
 The service checker - `cyboard checks` - works by running a configured script
 against every blue team's IP address and checking the [exit code][exit-code]
 for success, failure, or a partial success. This is a flexible strategy that we
-adopted based on a suggestion to follow a simplified version of the
-[Nagios monitoring engine][nagios].
+adopted based on a suggestion to follow the paradigm of the battle-tested
+[Nagios monitoring engine][nagios] (aka Naemon, Ichinga, Thruk, ...)
 
 Points are awarded to each team are based on the check script's exit code.
-The exact amount of points is configured with the check, as an array -
-`points` - in `checks.toml`. The exit code is used as an index into the
-`points` array. If a script's exit code does not fit in the array bounds,
-it is worth 0.
 
 The **Scoreboard** on the [Web Site](#ctf-event-and-web-server) maps exit
 codes as follows:
-- `Exit 0`: 'Success' (green)
+- `Exit 0`: 'Success' (green) (only way points are awarded)
 - `Exit 1`: 'Warning' (yellow)
 - `Exit 2`: 'Failure' (red)
 - Anything else: 'Unknown' (gray)
     - This would typically be the result of the checker timing out
 
 The only requirement of a check is that it must accept an IP address as an
-argument. Other than that and the use of exit codes, any language installed on
-the server may be used, though Cyboard will generally refer to these as
-"_scripts_".
+argument. Other than that and the use of exit codes, any language or binary
+installed by the sysadmin to the server may be used.
 
-**Example 1**:
+In our experience, many service checks are simple shell scripts, less than
+a dozen lines. On the other hand, we have also used & modified the
+[Nagios Plugins programs][nagios-plugins], which you may use or gain
+inspiration from.
+
+##### Example 1
 To check if a web server is up, a script may use the `curl`
 command, and exit with a status of 0 if the [HTTP response is 200][httpstatus],
 otherwise exit with 2.
 
-**Example 2**:
+##### Example 2
 The above example may be extended further, to verify that some
 text content is available on the webpage, like "Theodore Logan is the best".
 If the content is present, exit 0. If the server is up, but the content is
 missing or vandalized, exit 1. For all other cases, exit 2.
 
-**Example 3**:
+##### Example 3
 DNS can be tested by issuing a `dig` command to a specific
 name server. In general, the best way to monitor some piece of infrastructure,
 is to script something that just tries to use it!
 
-In our experience, many scripts are simple shell scripts, less than a dozen
-lines. On the other hand, we have also used & modified the
-[Nagios Plugins programs][nagios-plugins], which you may use or gain
-inspiration from.
+#### Running the Service Monitor
 
-#### Scheduled Event End and Intermissions
+To get the service monitor running:
 
-The service checker will automatically stop checking and shutdown at the
-date & time configured by the `event_end_time` setting in the config file.
-Temporarily breaks may be issued by setting the `on_break` option to `true`
-in the config file.
-
-#### Running the Service Checker
-
-To get the **cyboard checks** monitor running:
-
-1. Ensure [**mongodb**](#mongodb) is installed and active
-2. Configure **_checks.toml_**
-    - Make sure your `checks_dir` points to a location where the service
-      monitoring scripts can be found.
-    - For each of your `[[checks]]`, there should be a file in `checks_dir`
+1. Ensure **postgres** is setup and running
+2. Configure your `config.toml` based on the example
+    - You can double-check your settings are picked up right with:
+      `./cyboard checks --config [path-to-config.toml] --dump-config`
 3. Start the server:
-    - `./cyboard checks --config [path-to-checks.toml]`
-4. Tail the log and update `checks.toml` as needed - the running checker process
-    will automatically reload with new settings.
+    - `./cyboard checks --config [path-to-config.toml]`
+4. Tail the log make further changes through the web ui. They will automatically
+   be reflected in the running service monitor process.
+
+### Scheduled Event Start, End and Intermissions
+
+> Config File: `config.toml` -> `[event]` section
+
+The entire application is bound by the schedule in config.toml. These are times
+specified with the `start`, `end`, and `breaks` options.
+
+**It is essential that the schedule not be modified after the event begins.**
+Modifying the event schedule and restarting the web server will cause teams
+scores to shift around and generally upset everyone.
+
+The web server will only display a countdown to participants until the event
+starts. Admins & CTF staff can log in at any time by going to the `/login`
+page, to prepare the server for the event.
+
+Once the event begins, the CTF submissions and Service monitor will follow the
+set schedule, automatically pausing during breaks or shutting down when
+the event ends.
 
 
-### MongoDB
+### PostgreSQL
 
-MongoDB is a tire fire of a database that `cyboard` relies on. Mongo can be
-set up pretty easily, and there are [plenty of docs][mongodb-docs] to help
-with this process. Just be sure to install MongoDB v3.0 or greater.
-
-For connecting with MongoDB, there are multiple ways to
-[configure the MongoDB URI][mongo-uri] (Last location found will be used):
-- In the config files, both `checks.toml` and `config.toml`:
-    ``` toml
+PostgreSQL (PG) is used as a database backend for `cyboard`. To connect the app
+to PG, you configure a standard [connection-string][postgres-conn] in one of
+several places. In order, from lowest to highest priority:
+- In the `config.toml` file:
+    ```toml
     [database]
-    uri = "mongodb://127.0.0.1"
+    postgres_uri = "dbname=cyboard user=cybot host=127.0.0.1 sslmode=disable"
+    # or similarly
+    postgres_uri = "postgresql://localhost/cybot?sslmode=disable"
     ```
-- Environment variable: `MONGODB_URI`
-- Command line parameter: `--mongodb_uri "mongodb://127.0.0.1"`
+- Environment variable: `CY_POSTGRES_URI`
+- Command line parameter: `--postgres-uri "postgresql://..."`
 
-There are a few samples of the data models available in
-`./setup/mongo_samples/`, to give you a better idea of what is stored and
-processed, as well as an unofficial beginner's guide to MongoDB.
+You can connect to PostgreSQL yourself and browse tables using the standard
+`psql` tool, `pgadmin` web app, or anything that can speak to Postgres. The
+database tablespace faily small and easy to navigate. Make sure you are looking
+in the correct schema by setting your `search_path`. To permanently add cyboard
+to your search path, set it within psql:
+`ALTER ROLE myuser SET search_path = "cyboard" [, other schemas ...]`
 
-If you believe you must manually edit the data in Mongo, please be careful!
-Mongo's implicit data types can cause confusing problems. E.g. All numbers are
-`double` values by default, when inserted or updated with the `mongo` shell.
+As a convenience, remember that you can set your default settings for Postgres
+connections using [environment variables][postgres-env], like `$PGDATABASE`.
 
 ## Docker
 
@@ -323,9 +420,12 @@ Docker deployments are supported! For more info, check out the docs in
 [go-install]: https://golang.org/doc/install]
 [gopath]: https://golang.org/doc/code.html#GOPATH
 [httpstatus]: https://httpstatuses.com/
-[mongo-docs]: https://docs.mongodb.com/getting-started/shell/introduction/
-[mongo-install]: https://docs.mongodb.com/manual/installation/#mongodb-community-edition
-[mongo-uri]: https://docs.mongodb.com/manual/reference/connection-string/
 [nagios]: https://www.nagios.org/projects/nagios-core/
 [nagios-plugins]: https://github.com/nagios-plugins/nagios-plugins
+[postgres-conn]: https://www.postgresql.org/docs/10/libpq-connect.html#LIBPQ-CONNSTRING
+[postgres-dl]: https://www.postgresql.org/download/
+[postgres-env]: https://www.postgresql.org/docs/10/libpq-envars.html
+[postgres-hba]: https://www.postgresql.org/docs/10/auth-pg-hba-conf.html#EXAMPLE-PG-HBA.CONF
+[timescale-home]: https://www.timescale.com/
+[timescale-install]: https://docs.timescale.com/v0.11/getting-started/installation
 [toml]: https://github.com/toml-lang/toml
