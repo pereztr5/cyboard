@@ -13,18 +13,6 @@ BEGIN;
 -- First: Schema, application user w/ priviledges, and extensions
 CREATE SCHEMA IF NOT EXISTS cyboard;
 
-----------------
--- Must create role separately.
---
--- TODO: Add instructions to readme
--- $ createuser --login -h localhost -U postgres cybot
---
--- TODO: And for testing, add instructions to run:
--- $ createuser --superuser --login --echo supercybot
--- $ psql -c 'ALTER ROLE supercybot SET search_path = cyboard'
-----------------
--- CREATE ROLE cybot LOGIN;
-
 ALTER ROLE cybot SET search_path = cyboard;
 
 GRANT USAGE ON SCHEMA cyboard TO cybot;
