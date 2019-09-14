@@ -1,3 +1,11 @@
+## v0.2019.09 (NSA Hackathon 2019)
+
+### General:
+
+- Update Docker deployment to drop Mongo and support Postgres + TimescaleDB (v10.6 + v0.11)
+- Rewrite README.md to feature Postgres setup, tips&tricks, Web UI configuration added last year, and a lot more documentation.
+
+
 ## v0.2018.11 (Fall 2018)
 
 *Complete rewrite over the 2018 summer/fall*
