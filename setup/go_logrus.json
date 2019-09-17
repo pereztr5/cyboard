@@ -1,0 +1,19 @@
+{
+    "go_logrus" : {
+        "title" : "Logrus (Go) Structured Log format",
+        "description" : "The default log format for services powered by Logrus.",
+        "regex" : {
+            "std": {
+                "pattern": "^time=\"(?<timestamp>[^\"]+)\" level=(?<level>\\w+) (?<body>.*)"
+            }
+        },
+        "level-field": "level",
+        "value": {
+        },
+        "sample" : [
+            {
+                "line" : "time=\"2018-11-03T10:07:38-04:00\" level=info msg=\"Score!!\" anon=false category=Trivia challenge=\"Early Exploitation\" team=team8"
+            }
+        ]
+    }
+}
