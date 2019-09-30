@@ -1,6 +1,6 @@
 # Running postgres through docker
 
-Short instructions on running the Cyboard postgres database (the most cumbersome
+Instructions on running the Cyboard postgres database (the most cumbersome
 piece of infrastructure to set up) using a few short Docker commands:
 
 ```bash
@@ -23,23 +23,27 @@ docker run --detach --rm $OPTS cyboard-db
 exit
 
 # Run cyboard server.
-#
-# --postgres-uri notes:
-# dbname, and user are 'cybot' (dbname is implied if not specified)
-# host is the db available on localhost or unix socket
-go run main.go server -c cfg/config.toml --postgres-uri 'user=cybot host=/run/cyboard-db/ sslmode=disable'
+go run main.go server -c cfg/config.toml --postgres-uri 'host=/run/cyboard-db/ dbname=postgres user=cyboard host=/run/cyboard-db/ sslmode=disable'
+
 
 # You can connect to the db with other tools in a similar fashion:
-psql -h /var/run/cyboard-db/ cybot cybot  # Using a unix socket
-psql -h 127.0.0.1 cybot cybot             # Over tcp/ip
-psql --host 127.0.0.1 --dbname cybot --username cybot
-psql postgresql://cybot@127.0.0.1/cybot
+psql -h /var/run/cyboard-db/ postgres cyboard  # Using a unix socket
+psql -h 127.0.0.1 postgres cyboard             # Over tcp/ip
+psql --host 127.0.0.1 --dbname postgres --username cyboard
+psql postgresql://cyboard@127.0.0.1/postgres
 # Or with just docker:
-sudo docker exec -it cyboard-db psql -U cybot
+sudo docker exec -it cyboard-db psql -U cyboard -d postgres
 
-# Developers can easily restore a previous event from backup:
-sudo docker cp ./data.dump cyboard-db:/tmp/
-sudo docker exec cyboard-db pg_restore -U cybot /tmp/data.dump
+
+# Developers can restore a previous event from backup:
+sudo docker cp ./data.dump cyboard-db:/tmp/data.dump
+sudo docker exec cyboard-db psql -X -U postgres -c 'SELECT timescaledb_pre_restore();' -c '\! pg_restore --clean -Fc -U postgres -d postgres /tmp/data.dump;' -c 'SELECT timescaledb_post_restore();'
+# (this can produce hundreds of "already exists" errors, which can be ignored, but sometimes it does fail unexpectedly.)
+
+
+# To run the go tests (readme's "Testing" section), pass two extra environment variables:
+OPTS=" -e CYTEST=t -e POSTGRES_DB=cyboard_test"
+OPTS+=" --name cyboard-db -p 127.0.0.1:5432:5432"
+sudo docker run --detach --rm $OPTS cyboard-db
+go test -p 1 ./...
 ```
-
-_Note_: This setup cannot be used to run the tests at this time.

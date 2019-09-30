@@ -24,7 +24,7 @@ type Service struct {
 
 // Insert inserts the Service to the database.
 func (s *Service) Insert(db DB) error {
-	const sqlstr = `INSERT INTO cyboard.service (` +
+	const sqlstr = `INSERT INTO service (` +
 		`name, category, description, total_points, points, script, args, disabled, starts_at` +
 		`) VALUES (` +
 		`$1, $2, $3, $4, $5, $6, $7, $8, $9` +
@@ -35,7 +35,7 @@ func (s *Service) Insert(db DB) error {
 
 // Update updates the Service in the database.
 func (s *Service) Update(db DB) error {
-	const sqlstr = `UPDATE cyboard.service SET (` +
+	const sqlstr = `UPDATE service SET (` +
 		`name, category, description, total_points, points, script, args, disabled, starts_at` +
 		`) = ( ` +
 		`$2, $3, $4, $5, $6, $7, $8, $9, $10` +
@@ -46,7 +46,7 @@ func (s *Service) Update(db DB) error {
 
 // Delete deletes the Service from the database.
 func (s *Service) Delete(db DB) error {
-	const sqlstr = `DELETE FROM cyboard.service WHERE id = $1`
+	const sqlstr = `DELETE FROM service WHERE id = $1`
 	_, err := db.Exec(sqlstr, s.ID)
 	return err
 }
@@ -55,7 +55,7 @@ func (s *Service) Delete(db DB) error {
 func ServiceByName(db DB, name string) (*Service, error) {
 	const sqlstr = `SELECT ` +
 		`id, name, category, description, total_points, points, script, args, disabled, starts_at, created_at, modified_at ` +
-		`FROM cyboard.service ` +
+		`FROM service ` +
 		`WHERE name = $1`
 	s := Service{}
 	err := db.QueryRow(sqlstr, name).Scan(&s.ID, &s.Name, &s.Category, &s.Description, &s.TotalPoints, &s.Points, &s.Script, &s.Args, &s.Disabled, &s.StartsAt, &s.CreatedAt, &s.ModifiedAt)
@@ -70,7 +70,7 @@ func ServiceByName(db DB, name string) (*Service, error) {
 func ServiceByID(db DB, id int) (*Service, error) {
 	const sqlstr = `SELECT ` +
 		`id, name, category, description, total_points, points, script, args, disabled, starts_at, created_at, modified_at ` +
-		`FROM cyboard.service ` +
+		`FROM service ` +
 		`WHERE id = $1`
 	s := Service{}
 	err := db.QueryRow(sqlstr, id).Scan(&s.ID, &s.Name, &s.Category, &s.Description, &s.TotalPoints, &s.Points, &s.Script, &s.Args, &s.Disabled, &s.StartsAt, &s.CreatedAt, &s.ModifiedAt)
@@ -85,7 +85,7 @@ func ServiceByID(db DB, id int) (*Service, error) {
 func AllServices(db DB) ([]Service, error) {
 	const sqlstr = `
 	SELECT id, name, category, description, total_points, points, script, args, disabled, starts_at, created_at, modified_at
-	FROM cyboard.service
+	FROM service
 	ORDER BY starts_at, id`
 
 	rows, err := db.Query(sqlstr)
@@ -113,7 +113,7 @@ func AllServices(db DB) ([]Service, error) {
 func AllActiveServices(db DB) ([]Service, error) {
 	const sqlstr = `
 	SELECT id, name, category, description, total_points, points, script, args, disabled, starts_at, created_at, modified_at
-	FROM cyboard.service
+	FROM service
 	WHERE disabled = false`
 
 	rows, err := db.Query(sqlstr)

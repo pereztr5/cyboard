@@ -17,7 +17,7 @@ services:
       - ../../data:/cyboard/data
       - ../../cfg:/home/cyboard/.cyboard/:ro
     environment:
-      CY_POSTGRES_URI: "user=cybot password=${POSTGRES_PASSWORD:-} host=db sslmode=disable"
+      CY_POSTGRES_URI: "user=cyboard password=${POSTGRES_PASSWORD:-} host=db sslmode=disable"
     links:
       - db
 
@@ -32,7 +32,7 @@ services:
       - ../../data:/cyboard/data
       - ../../cfg:/home/cyboard/.cyboard/:ro
     environment:
-      CY_POSTGRES_URI: "user=cybot password=${POSTGRES_PASSWORD:-} host=db sslmode=disable"
+      CY_POSTGRES_URI: "user=cyboard password=${POSTGRES_PASSWORD:-} host=db sslmode=disable"
     links:
       - db
 

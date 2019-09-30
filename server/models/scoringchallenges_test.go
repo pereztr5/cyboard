@@ -92,13 +92,13 @@ func Test_GetTeamCTFProgress(t *testing.T) {
 
 	ctf_prog, err = GetTeamCTFProgress(db, 1)
 	if assert.Nil(t, err) {
-		expected := []CTFProgress{{Category: "RAD", Amount: 1, Max: 2}}
+		expected := []CTFProgress{{Category: "RAD", Amount: 1, Max: 1}}
 		assert.Equal(t, expected, ctf_prog, "Team 1 did not have the right ctf progress")
 	}
 
 	ctf_prog, err = GetTeamCTFProgress(db, 2)
 	if assert.Nil(t, err) {
-		expected := []CTFProgress{{Category: "RAD", Amount: 1, Max: 2}}
+		expected := []CTFProgress{{Category: "RAD", Amount: 0, Max: 1}}
 		assert.Equal(t, expected, ctf_prog, "Team 2 did not have the right ctf progress")
 	}
 }

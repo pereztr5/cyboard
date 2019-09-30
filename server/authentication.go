@@ -107,7 +107,7 @@ func getSigningKey() []byte {
 		b []byte
 	)
 
-	err := db.QueryRow(`SELECT value FROM cyboard.config WHERE key = $1`, sessionPGConfigKey).Scan(&s)
+	err := db.QueryRow(`SELECT value FROM config WHERE key = $1`, sessionPGConfigKey).Scan(&s)
 	if err != nil {
 		if err != pgx.ErrNoRows {
 			Logger.WithError(err).Fatal("getSigningKey: failed to fetch from postgres")
@@ -123,7 +123,7 @@ func getSigningKey() []byte {
 
 		s = base64.StdEncoding.EncodeToString(b)
 
-		_, err = db.Exec(`INSERT INTO cyboard.config (key, value) VALUES ($1,$2)`, sessionPGConfigKey, s)
+		_, err = db.Exec(`INSERT INTO config (key, value) VALUES ($1,$2)`, sessionPGConfigKey, s)
 		if err != nil {
 			Logger.WithError(err).Fatal("getSigningKey: failed to insert new key into postgres")
 		}

@@ -147,9 +147,9 @@ shown). With this, you can run postgres commands (`createuser`, `psql`,
 `createdb`) as the 'postgres' superuser (or as the user we'll create later) by
 adding the common flag: `-U <user>`.
 
-For added security on cyboard, we use a **plain user**, `cybot`, to run
+For added security on cyboard, we use a **plain user**, `cyboard`, to run
 the application. Create the user for the whole db cluster with:
-`createuser -U postgres --login --echo cybot`
+`createuser -U postgres --login --echo cyboard`
 
 Optionally, you may create a unique database in the cluster for cyboard:
 `createdb -U postgres cyboard`. This isn't necessary though, as all data will be
@@ -174,11 +174,11 @@ Additionally, you will need to create a test admin user, test database, and
 rerun the migrations:
 
 ```bash
-createdb --owner=cybot --encoding="utf8" cyboard_test
-createuser --superuser --login --echo supercybot
-psql -U postgres -c 'ALTER ROLE supercybot SET search_path = cyboard'
+createdb cyboard_test
+createuser --superuser supercyboard
+psql -U postgres -c 'ALTER ROLE supercyboard SET search_path = cyboard, public'
 for sql in ./migrations/*.up.sql; do
-    psql -U postgres --dbname cyboard_test -f $sql || { echo "ERR during '$sql'" && break }
+    psql -U postgres --dbname cyboard_test -f $sql || { echo "ERR during '$sql'" && break; }
 done
 ```
 
@@ -385,9 +385,9 @@ several places. In order, from lowest to highest priority:
 - In the `config.toml` file:
     ```toml
     [database]
-    postgres_uri = "dbname=cyboard user=cybot host=127.0.0.1 sslmode=disable"
+    postgres_uri = "dbname=cyboard user=cyboard host=127.0.0.1 sslmode=disable"
     # or similarly
-    postgres_uri = "postgresql://localhost/cybot?sslmode=disable"
+    postgres_uri = "postgresql://localhost/cyboard?sslmode=disable"
     ```
 - Environment variable: `CY_POSTGRES_URI`
 - Command line parameter: `--postgres-uri "postgresql://..."`

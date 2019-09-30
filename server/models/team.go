@@ -19,7 +19,7 @@ type Team struct {
 
 // Insert inserts the Team to the database.
 func (t *Team) Insert(db DB) error {
-	const sqlstr = `INSERT INTO cyboard.team (` +
+	const sqlstr = `INSERT INTO team (` +
 		`name, role_name, hash, disabled, blueteam_ip` +
 		`) VALUES (` +
 		`$1, $2, $3, $4, $5` +
@@ -34,10 +34,10 @@ func (t *Team) Insert(db DB) error {
 func (t *Team) Update(db DB) error {
 	var err error
 	if t.Hash == nil {
-		const sqlstr = `UPDATE cyboard.team SET (name, role_name, disabled, blueteam_ip) = ($2, $3, $4, $5) WHERE id = $1`
+		const sqlstr = `UPDATE team SET (name, role_name, disabled, blueteam_ip) = ($2, $3, $4, $5) WHERE id = $1`
 		_, err = db.Exec(sqlstr, t.ID, t.Name, t.RoleName, t.Disabled, t.BlueteamIP)
 	} else {
-		const sqlstr = `UPDATE cyboard.team SET (name, role_name, disabled, blueteam_ip, hash) = ($2, $3, $4, $5, $6) WHERE id = $1`
+		const sqlstr = `UPDATE team SET (name, role_name, disabled, blueteam_ip, hash) = ($2, $3, $4, $5, $6) WHERE id = $1`
 		_, err = db.Exec(sqlstr, t.ID, t.Name, t.RoleName, t.Disabled, t.BlueteamIP, t.Hash)
 	}
 	return err
@@ -45,7 +45,7 @@ func (t *Team) Update(db DB) error {
 
 // Delete deletes the Team from the database.
 func (t *Team) Delete(db DB) error {
-	const sqlstr = `DELETE FROM cyboard.team WHERE id = $1`
+	const sqlstr = `DELETE FROM team WHERE id = $1`
 	_, err := db.Exec(sqlstr, t.ID)
 	return err
 }
@@ -54,7 +54,7 @@ func (t *Team) Delete(db DB) error {
 func TeamByName(db DB, name string) (*Team, error) {
 	const sqlstr = `SELECT ` +
 		`id, name, role_name, hash, disabled, blueteam_ip ` +
-		`FROM cyboard.team ` +
+		`FROM team ` +
 		`WHERE name = $1`
 	t := Team{}
 	err := db.QueryRow(sqlstr, name).Scan(&t.ID, &t.Name, &t.RoleName, &t.Hash, &t.Disabled, &t.BlueteamIP)
@@ -69,7 +69,7 @@ func TeamByName(db DB, name string) (*Team, error) {
 func TeamByID(db DB, id int) (*Team, error) {
 	const sqlstr = `SELECT ` +
 		`id, name, role_name, hash, disabled, blueteam_ip ` +
-		`FROM cyboard.team ` +
+		`FROM team ` +
 		`WHERE id = $1`
 	t := Team{}
 	err := db.QueryRow(sqlstr, id).Scan(&t.ID, &t.Name, &t.RoleName, &t.Hash, &t.Disabled, &t.BlueteamIP)
@@ -83,7 +83,7 @@ func TeamByID(db DB, id int) (*Team, error) {
 // AllTeams fetches all teams (users) from the database.
 // Used by the admin dashboard to view & modify all added users.
 func AllTeams(db DB) ([]Team, error) {
-	const sqlstr = `SELECT id, name, role_name, disabled, blueteam_ip FROM cyboard.team ` +
+	const sqlstr = `SELECT id, name, role_name, disabled, blueteam_ip FROM team ` +
 		`ORDER BY role_name DESC, id`
 
 	rows, err := db.Query(sqlstr)
@@ -149,7 +149,7 @@ type BlueteamView struct {
 func AllBlueteams(db DB) ([]BlueteamView, error) {
 	const sqlstr = `SELECT ` +
 		`id, name, blueteam_ip ` +
-		`FROM cyboard.team ` +
+		`FROM team ` +
 		`WHERE role_name = 'blueteam' AND disabled = false ` +
 		`ORDER BY id`
 
