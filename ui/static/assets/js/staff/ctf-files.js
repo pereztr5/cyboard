@@ -10,7 +10,8 @@ const $filesModal = $('#ctf-file-modal')
  * { name: String, size: Int, mod_time: <Date-String> } */
 function buildFileTableRow(url) {
     return f => {
-        const fileURL = `${url}/${f.name}`;
+        const escapedFilename = window.encodeURIComponent(f.name);
+        const fileURL = `${url}/${escapedFilename}`;
         const bytes = niceBytes(f.size);
         const timestamp = new Date(f.mod_time).toUTCString();
 

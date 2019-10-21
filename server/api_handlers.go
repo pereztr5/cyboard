@@ -590,7 +590,7 @@ func (cm FSContentManager) SaveFile(w http.ResponseWriter, r *http.Request) {
 			return err
 		}
 		defer f.Close()
-		path := filepath.Join(dir, fh.Filename)
+		path := filepath.Join(dir, filepath.Clean("/"+fh.Filename))
 		if stat, err := os.Stat(path); err == nil {
 			Logger.WithFields(logrus.Fields{
 				"reqpath":  r.URL.Path,
@@ -697,7 +697,7 @@ func RunScriptTest(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
-// Scoring analytics & graphs (admin-only)
+// Scoring analytics & graphs (ctf-staff)
 
 func GetBreakdownOfSubmissionsPerFlag(w http.ResponseWriter, r *http.Request) {
 	brkdwn, err := models.ChallengeCapturesPerFlag(db)

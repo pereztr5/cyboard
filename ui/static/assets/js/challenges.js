@@ -44,7 +44,7 @@ $('.challenge-list').on('click', 'button', function(event) {
 
         $.getJSON(fileURL).then(fileList => {
             $files.empty().append(fileList.map(f =>
-                $(`<a class="col-md-4 col-sm-6 text-truncate" />`).attr('href', `${fileURL}/${f.name}`)
+                $(`<a class="col-md-4 col-sm-6 text-truncate" />`).attr('href', `${fileURL}/${window.encodeURIComponent(f.name)}`)
                     .append($(`<div class="btn btn-block btn-primary text-truncate" />`)
                         .append(`<span class="fa fa-download mr-1" />`)
                         .append($(`<small />`).text(f.name)))
