@@ -161,6 +161,26 @@ func GetServicesStatuses(w http.ResponseWriter, r *http.Request) {
 	ApiQuery(w, r, services, err)
 }
 
+func GetChallengeCapturesByTime(w http.ResponseWriter, r *http.Request) {
+	var cutoffTime time.Time
+	var err error
+
+	st := r.URL.Query().Get("start_time")
+	if st == "" {
+		// default to providing all CTF solves
+		cutoffTime = appCfg.Event.Start
+	} else {
+		cutoffTime, err = time.Parse(time.RFC3339, st)
+		if err != nil {
+			render.Render(w, r, ErrInvalidBecause(fmt.Sprintf(
+				"invalid timestamp: start_time=%q (wanted RFC3339 format)", st)))
+		}
+	}
+
+	solves, err := models.ChallengeCapturesByTime(db, cutoffTime)
+	ApiQuery(w, r, solves, err)
+}
+
 // Blueteam API methods (view & submit challenges)
 
 func GetPublicChallenges(w http.ResponseWriter, r *http.Request) {

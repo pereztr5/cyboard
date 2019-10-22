@@ -82,6 +82,8 @@ func CreateWebRouter(teamScoreUpdater, servicesUpdater *broadcastHub) chi.Router
 		public.Get("/services", GetServicesStatuses)
 		public.Handle("/scores/live", teamScoreUpdater.ServeWs())
 		public.Handle("/services/live", servicesUpdater.ServeWs())
+
+		public.Get("/ctf/solves", GetChallengeCapturesByTime)
 	})
 
 	// Blue Team API
