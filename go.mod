@@ -8,6 +8,7 @@ require (
 	github.com/cockroachdb/apd v1.1.0 // indirect
 	github.com/denisenkom/go-mssqldb v0.0.0-20190924004331-208c0a498538 // indirect
 	github.com/didip/tollbooth v4.0.0+incompatible
+	github.com/fsnotify/fsnotify v1.4.7
 	github.com/go-chi/chi v3.3.2+incompatible
 	github.com/go-chi/render v1.0.1
 	github.com/go-sql-driver/mysql v1.4.1 // indirect
@@ -28,12 +29,12 @@ require (
 	github.com/sirupsen/logrus v1.1.0
 	github.com/spf13/cobra v0.0.3
 	github.com/spf13/viper v1.2.2-0.20180930044127-62edee319679
-	github.com/stretchr/testify v1.2.2
+	github.com/stretchr/testify v1.4.0
 	github.com/tbutts/testfixtures v2.4.6-0.20180812213409-dd51e1308b36+incompatible
 	github.com/tevino/abool v0.0.0-20170917061928-9b9efcf221b5
 	github.com/urfave/negroni v0.3.1-0.20180130044549-22c5532ea862
 	golang.org/x/crypto v0.0.0-20190605123033-f99c8df09eb5
-	golang.org/x/time v0.0.0-20180412165947-fbb02b2291d2 // indirect
 	google.golang.org/appengine v1.6.4 // indirect
 	gopkg.in/natefinch/lumberjack.v2 v2.0.0-20170531160350-a96e63847dc3
+	nhooyr.io/websocket v1.7.1
 )

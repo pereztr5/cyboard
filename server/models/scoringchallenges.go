@@ -36,11 +36,12 @@ const (
 
 // ChallengeGuess is a blueteam's attempt to captured a flag. Only the Flag field
 // is required to be set. Leaving Name empty causes the guess to checked against
-// all hidden flags. The Category ane Name are filled in on a successful guess.
+// all hidden flags. The Category, Name, and points are filled in on a successful guess.
 type ChallengeGuess struct {
-	Name     string `json:"name"`     // name
-	Category string `json:"category"` // category
-	Flag     string `json:"flag"`     // flag
+	Name     string  `json:"name"`     // name
+	Category string  `json:"category"` // category
+	Flag     string  `json:"flag"`     // flag
+	Points   float32 `json:"points"`   // total
 }
 
 // CheckFlagSubmission will award the team with a captured flag if their flag string

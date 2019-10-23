@@ -227,9 +227,11 @@ func SubmitFlag(w http.ResponseWriter, r *http.Request) {
 	if flagState == models.ValidFlag {
 		logFields["challenge"] = guess.Name    // guess.Name is filled by models.CheckFlagSubmission on success
 		logFields["category"] = guess.Category // Same deal with guess.Category
+		logFields["points"] = guess.Points     //
 		logFields["anon"] = anon               // Mark whether this was an anonymous challenge
 		delete(logFields, "guess")             // But don't need the correct guesses in the log file
 		CaptFlagsLogger.WithFields(logFields).Println("Score!!")
+
 	}
 	render.JSON(w, r, flagState)
 }

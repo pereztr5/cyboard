@@ -107,6 +107,8 @@ func CreateWebRouter(teamScoreUpdater, servicesUpdater *broadcastHub) chi.Router
 		ctfStaff.Get("/stats/subs_per_flag", GetBreakdownOfSubmissionsPerFlag)
 		ctfStaff.Get("/stats/teams_flags", GetEachTeamsCapturedFlags)
 
+		ctfStaff.Get("/tail_log", WsTailFile)
+
 		// TODO / HACK: Needed a place for a late-added "add one" challenge
 		// This should be in the /flags namespace below, and the
 		// insert many should be separate, or a query param toggle
