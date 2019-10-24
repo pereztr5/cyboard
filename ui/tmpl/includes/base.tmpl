@@ -48,13 +48,13 @@
             {{ if isCtfStaff .T}}
             <a class="dropdown-item" href="/staff/ctf_dashboard"><i class="fa fa-tachometer"></i> CTF Dashboard</a>
             <a class="dropdown-item" href="/staff/ctf"><i class="fa fa-flag"></i> Edit CTF Challenges</a>
+            <a class="dropdown-item" href="/staff/log_files"><i class="fa fa-tree"></i> View Logs</a>
             {{ end }}
             {{ if isAdmin .T}}
             <a class="dropdown-item" href="/admin/teams"><i class="fa fa-user-plus"></i> Edit Teams</a>
             <a class="dropdown-item" href="/admin/services"><i class="fa fa-server"></i> Edit Checks</a>
             <a class="dropdown-item" href="/admin/services/scripts"><i class="fa fa-code"></i> View/Run Check Scripts</a>
             <a class="dropdown-item" href="/admin/bonuses"><i class="fa fa-star"></i> Award/Dock Points</a>
-            <!-- <a class="dropdown-item" href="/admin/logs"><i class="fa fa-tree"></i> Logs</a> -->
             {{ end }}
             {{ if isBlueteam .T}}
             <a class="dropdown-item" href="/dashboard">Dashboard</a>

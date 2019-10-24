@@ -557,7 +557,8 @@ func getFileList(path string) ([]FileInfo, error) {
 func (cm FSContentManager) GetFileList(w http.ResponseWriter, r *http.Request) {
 	infos, err := getFileList(cm.pathBuilder(r))
 	if err != nil {
-		render.Render(w, r, ErrInvalidRequest(err))
+		render.Status(r, http.StatusBadRequest)
+		render.DefaultResponder(w, r, ErrInvalidRequest(err))
 		return
 	}
 	render.JSON(w, r, infos)
@@ -717,6 +718,12 @@ func RunScriptTest(w http.ResponseWriter, r *http.Request) {
 	} else {
 		log.Info("script test run passed")
 	}
+}
+
+var LogReadOnlyMgr = FSContentManager{
+	pathBuilder: func(*http.Request) string {
+		return LogDir
+	},
 }
 
 // Scoring analytics & graphs (ctf-staff)

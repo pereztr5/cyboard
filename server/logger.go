@@ -8,7 +8,7 @@ import (
 	"path/filepath"
 	"time"
 
-	"github.com/meatballhat/negroni-logrus"
+	negronilogrus "github.com/meatballhat/negroni-logrus"
 	"github.com/sirupsen/logrus"
 	"github.com/urfave/negroni"
 	"gopkg.in/natefinch/lumberjack.v2"
@@ -20,7 +20,7 @@ const (
 	LogDir            = "data/log"
 
 	applicationLogName   = "server.log"
-	capturedFlagsLogName = "captured_flags.log"
+	capturedFlagsLogName = "ctf.log"
 	requestLogName       = "requests.log"
 	checkServiceLogName  = "checks.log"
 )

@@ -9,6 +9,7 @@ import (
 	"path/filepath"
 
 	"github.com/fsnotify/fsnotify"
+	"github.com/go-chi/chi"
 	"github.com/go-chi/render"
 	"nhooyr.io/websocket"
 	"nhooyr.io/websocket/wsjson"
@@ -32,7 +33,7 @@ func WsTailFile(w http.ResponseWriter, r *http.Request) {
 	}
 	defer watcher.Close()
 
-	path := r.URL.Query().Get("file")
+	path := chi.URLParam(r, "name")
 	path = filepath.Join(LogDir, filepath.Clean("/"+path))
 
 	fd, err := os.Open(path)
@@ -41,6 +42,8 @@ func WsTailFile(w http.ResponseWriter, r *http.Request) {
 		wsjson.Write(ctx, c, map[string]interface{}{"error": fmt.Sprintf("%q: file does not exist", path)})
 		return
 	}
+	defer fd.Close()
+
 	fi, err := fd.Stat()
 	if err != nil {
 		Logger.WithError(err).WithField("path", path).Error("WsTailFile: file stat failed")
@@ -48,8 +51,6 @@ func WsTailFile(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	sz := fi.Size()
-	// TODO: remove me
-	Logger.Debugf("watching: %+v", fi)
 
 	fd.Seek(sz, io.SeekCurrent)
 
@@ -68,10 +69,7 @@ func WsTailFile(w http.ResponseWriter, r *http.Request) {
 			c.Close(websocket.StatusNormalClosure, "ctx done")
 			return
 		case event := <-watcher.Events:
-			Logger.Debugln("modified file:", event.Name)
 			if event.Op&fsnotify.Write == fsnotify.Write {
-				// TODO: remove me
-
 				fi, _ = fd.Stat()
 				if sz == fi.Size() {
 					continue

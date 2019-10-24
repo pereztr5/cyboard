@@ -191,6 +191,15 @@ func ShowCtfDashboard(w http.ResponseWriter, r *http.Request) {
 	renderTemplate(w, page)
 }
 
+func ShowLogViewer(w http.ResponseWriter, r *http.Request) {
+	page := getPage(r, "staff_log_files", "Log Viewer")
+
+	log_files, err := getFileList(LogDir)
+	page.Data = M{"LogFiles": log_files}
+	page.checkErr(err, "list of log files")
+	renderTemplate(w, page)
+}
+
 /* Admin Pages */
 
 func ShowTeamsConfig(w http.ResponseWriter, r *http.Request) {

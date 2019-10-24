@@ -72,6 +72,7 @@ func CreateWebRouter(teamScoreUpdater, servicesUpdater *broadcastHub) chi.Router
 		staff.Use(RequireLogin, RequireCtfStaff)
 		staff.Get("/ctf", ShowCtfConfig)
 		staff.Get("/ctf_dashboard", ShowCtfDashboard)
+		staff.Get("/log_files", ShowLogViewer)
 	})
 
 	api := chi.NewRouter()
@@ -107,7 +108,11 @@ func CreateWebRouter(teamScoreUpdater, servicesUpdater *broadcastHub) chi.Router
 		ctfStaff.Get("/stats/subs_per_flag", GetBreakdownOfSubmissionsPerFlag)
 		ctfStaff.Get("/stats/teams_flags", GetEachTeamsCapturedFlags)
 
-		ctfStaff.Get("/tail_log", WsTailFile)
+		ctfStaff.Route("/logs", func(r chi.Router) {
+			r.Get("/", LogReadOnlyMgr.GetFileList)
+			r.Get("/{name}", LogReadOnlyMgr.GetFile)
+			r.Get("/{name}/tail", WsTailFile)
+		})
 
 		// TODO / HACK: Needed a place for a late-added "add one" challenge
 		// This should be in the /flags namespace below, and the

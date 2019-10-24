@@ -1,0 +1,30 @@
+{{ define "content" }}
+<div class="log-viewer-panel pb-3">
+  <h5>View Server Logs</h5>
+
+  <form class="row">
+    <div class="file_select input-group input-group-sm mb-3">
+      <div class="input-group-prepend">
+        <label class="input-group-text" for="logs">Select File:</label>
+      </div>
+      <select class="form-control custom-select" name="logs">
+        <option>...</option>
+        {{ range .Data.LogFiles }}
+        <option value="{{.Name}}">{{.Name}} -- {{.Size}} bytes -- Last Modified: {{kitchentime .ModTime}}</option>
+        {{ else }}
+        <option disabled>No log files found</option>
+        {{ end }}
+      </select>
+    </div>
+
+    <textarea style="white-space: pre;" class="form-control text-monospace bg-white"
+      rows="20" readonly></textarea>
+  </form>
+</div>
+
+{{ end }}
+
+{{ define "scripts" }}
+  <script src="/assets/js/staff/admin-utils.js"></script>
+  <script src="/assets/js/staff/log-viewer.js"></script>
+{{end}}
