@@ -213,15 +213,15 @@ CREATE TABLE service_check (
     , exit_code   SMALLINT     NOT NULL -- actual exit code, for debugging
 );
 
--- CREATE INDEX service_check_fkey_idx_team    ON service_check (team_id);
--- CREATE INDEX service_check_fkey_idx_service ON service_check (service_id);
--- CREATE INDEX service_check_idx_status ON service_check (status);
+CREATE INDEX service_check_fkey_idx_team    ON service_check (team_id);
+CREATE INDEX service_check_fkey_idx_service ON service_check (service_id);
+CREATE INDEX service_check_idx_status       ON service_check (status);
 
 -- ctf_solve is a timestamp of when a team solved a challenge
 CREATE TABLE ctf_solve  (
       created_at   TIMESTAMPTZ  NOT NULL DEFAULT CURRENT_TIMESTAMP
     , team_id      INT          NOT NULL REFERENCES team(id)
-    , challenge_id INT          NOT NULL REFERENCES challenge(id)
+    , challenge_id INT          NOT NULL REFERENCES challenge(id) ON DELETE CASCADE
 
     /* , UNIQUE (team_id, challenge_id) */
     /*
@@ -233,8 +233,8 @@ CREATE TABLE ctf_solve  (
     */
 );
 
--- CREATE INDEX ctf_solve_fkey_idx_team      ON ctf_solve (team_id);
--- CREATE INDEX ctf_solve_fkey_idx_challenge ON ctf_solve (challenge_id);
+CREATE INDEX ctf_solve_fkey_idx_team      ON ctf_solve (team_id);
+CREATE INDEX ctf_solve_fkey_idx_challenge ON ctf_solve (challenge_id);
 
 -- other_points is for bonus points, deductions for misbehavior, etc.
 CREATE TABLE other_points (
