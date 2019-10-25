@@ -41,7 +41,8 @@ $ctfConfig.on('click', '.btn-files', function showFlagEditorModal(event) {
         $filelist.empty().append(files.map(buildFileTableRow(url)));
     }).fail((xhr) => {
         $filelist.empty();
-        if (!xhr.responseText.includes("no such file or directory")) {
+        // ignore "files not found" errors
+        if (xhr.status !== 400) {
             alert(`Failed to fetch files for ${name}: ${getXhrErr(xhr)}`);
         }
     }).always(() => {
