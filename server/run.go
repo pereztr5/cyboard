@@ -25,7 +25,7 @@ func Run(cfg *Configuration) {
 
 	// Setup logs
 	SetupScoringLoggers(&cfg.Log)
-	Logger.Infof("%+v", cfg)
+	Logger.Debugf("%+v", cfg)
 
 	setupResponder(Logger)
 
