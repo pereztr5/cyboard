@@ -113,8 +113,10 @@ func ShowTeamDashboard(w http.ResponseWriter, r *http.Request) {
 	page.Data = make(map[string]interface{})
 
 	var err error
-	page.Data["ctfProgress"], err = models.GetTeamCTFProgress(db, team.ID)
-	page.checkErr(err, "ctf progress")
+	if isBlueteam(page.T) {
+		page.Data["ctfProgress"], err = models.GetTeamCTFProgress(db, team.ID)
+		page.checkErr(err, "ctf progress")
+	}
 
 	renderTemplate(w, page)
 }

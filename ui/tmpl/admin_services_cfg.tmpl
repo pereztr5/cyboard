@@ -9,8 +9,12 @@
 {{ define "event-config" }}
 <h6>Event Configuration <small class="text-muted">- from the server</small></h6>
 <dl class="dl-horizontal">
-  <dt>Event Start:</dt><dd>{{timestamp .Data.Event.Start}}</dd>
-  <dt>Event End:</dt><dd>{{timestamp .Data.Event.End}}</dd>
+  {{ with .Data.Event }}
+    <dt>Event Start:</dt><dd>{{timestamp .Start}}</dd>
+    <dt>Event End:</dt><dd>{{timestamp .End}}</dd>
+    <dt>Scheduled Breaks:</dt>{{ range .Breaks }}
+      <dd>At: {{kitchentime .StartsAt}}, for: {{.GoesFor}}</dd>{{end}}
+  {{ end }}
   {{ with .Data.ServiceMonitor}}
     <dt>Team router IP Prefix:</dt><dd>{{.BaseIP}}</dd>
     <dt>Check Interval:</dt><dd>{{.Intervals}}</dd>
