@@ -119,6 +119,8 @@ func CreateWebRouter(teamScoreUpdater, servicesUpdater *broadcastHub) chi.Router
 		// insert many should be separate, or a query param toggle
 		ctfStaff.Post("/new_flag", AddFlag)
 
+		ctfStaff.Get("/flag", GetFlagByName)
+
 		ctfStaff.Route("/flags", func(r chi.Router) {
 			r.Get("/", GetAllFlags)
 			r.Post("/", AddFlags) // Insert many ctf challenges
@@ -128,6 +130,8 @@ func CreateWebRouter(teamScoreUpdater, servicesUpdater *broadcastHub) chi.Router
 				r.Get("/", GetFlagByID)
 				r.Put("/", UpdateFlag)
 				r.Delete("/", DeleteFlag)
+
+				r.Post("/activate", EnableCTFChallenge)
 
 				// `<host>/api/ctf/flags/4/files/suspicious.pdf`
 				r.Route("/files", func(r chi.Router) {

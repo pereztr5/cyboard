@@ -227,3 +227,11 @@ func GetPublicChallengeDescription(db DB, flagID int) (string, error) {
 	var desc string
 	return desc, db.QueryRow(sqlstr, flagID).Scan(&desc)
 }
+
+// EnableChallenge updates a challenge, ensuring it is active for submission. Right now,
+// this means it will definitely be visible on the CTF display page, ready to guess against.
+func EnableChallenge(db DB, flagID int) error {
+	const sqlstr = `UPDATE challenge SET hidden = 'false' WHERE id = $1`
+	_, err := db.Exec(sqlstr, flagID)
+	return err
+}

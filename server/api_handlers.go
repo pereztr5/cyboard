@@ -460,6 +460,25 @@ func DeleteFlag(w http.ResponseWriter, r *http.Request) {
 	ApiDelete(w, r, challenge)
 }
 
+func GetFlagByName(w http.ResponseWriter, r *http.Request) {
+	name := r.URL.Query().Get("name")
+	if name == "" {
+		render.Render(w, r, ErrInvalidBecause("missing url query parameter: `name`"))
+		return
+	}
+	challenge, err := models.ChallengeByName(db, name)
+	ApiQuery(w, r, challenge, err)
+}
+
+func EnableCTFChallenge(w http.ResponseWriter, r *http.Request) {
+	flagID := getCtxIdParam(r)
+	if err := models.EnableChallenge(db, flagID); err != nil {
+		render.Render(w, r, ErrInternal(err))
+		return
+	}
+	render.NoContent(w, r)
+}
+
 // CTF File Management
 // Files served with a given ctf challenge. e.g. `crackme` binaries, encrypted messages, etc.
 
