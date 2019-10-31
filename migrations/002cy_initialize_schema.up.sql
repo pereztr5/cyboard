@@ -213,8 +213,8 @@ CREATE TABLE service_check (
     , exit_code   SMALLINT     NOT NULL -- actual exit code, for debugging
 );
 
-CREATE INDEX service_check_fkey_idx_team    ON service_check (team_id);
-CREATE INDEX service_check_fkey_idx_service ON service_check (service_id);
+-- CREATE INDEX service_check_fkey_idx_team    ON service_check (team_id);
+-- CREATE INDEX service_check_fkey_idx_service ON service_check (service_id);
 CREATE INDEX service_check_idx_status       ON service_check (status);
 
 -- ctf_solve is a timestamp of when a team solved a challenge
