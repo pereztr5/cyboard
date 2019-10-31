@@ -745,6 +745,27 @@ var LogReadOnlyMgr = FSContentManager{
 	},
 }
 
+// View Event Configuration via the API
+
+func GetEventConfig(w http.ResponseWriter, r *http.Request) {
+	event := appCfg.Event
+	monitor := appCfg.ServiceMonitor
+
+	breaks := []M{}
+	for _, b := range event.Breaks {
+		breaks = append(breaks, M{
+			"starts_at": b.StartsAt,
+			"goes_for":  b.GoesFor.String(),
+		})
+	}
+
+	cfg := M{
+		"event":   M{"start": event.Start, "end": event.End, "breaks": breaks},
+		"monitor": M{"check_interval": monitor.Intervals.String(), "timeout": monitor.Timeout.String()},
+	}
+	render.JSON(w, r, &cfg)
+}
+
 // Scoring analytics & graphs (ctf-staff)
 
 func GetBreakdownOfSubmissionsPerFlag(w http.ResponseWriter, r *http.Request) {

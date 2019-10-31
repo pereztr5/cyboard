@@ -3,7 +3,7 @@
 <hr/>
 {{ template "services-table" . }}
 
-{{ template "bs-services-edit-modal" }}
+{{ template "bs-services-edit-modal" . }}
 {{ end }}
 
 {{ define "event-config" }}
@@ -116,11 +116,11 @@
               <legend>Starting Time</legend>
               <div class="col-md-6">
                 <label for="starts_at_date" class="col-form-label">Date:</label>
-                <input name="starts_at_date" class="form-control" type="date" required>
+                <input name="starts_at_date" class="form-control" type="date" required value="{{fmtDateInput .Data.Event.Start}}">
               </div>
               <div class="col-md-6">
                 <label for="starts_at_time" class="col-form-label">Time:</label>
-                <input name="starts_at_time" class="form-control" type="time" required>
+                <input name="starts_at_time" class="form-control" type="time" required value="{{fmtTimeInput .Data.Event.Start}}">
               </div>
             </fieldset>
           </div>

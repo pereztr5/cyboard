@@ -13,11 +13,13 @@ import (
 func buildHelperMap() template.FuncMap {
 	return template.FuncMap{
 		// Generic helper methods
-		"title":       strings.Title,
-		"StringsJoin": strings.Join,
-		"timestamp":   fmtTimestamp,
-		"kitchentime": fmtKitchenTime,
-		"fmtDuration": fmtDuration,
+		"title":        strings.Title,
+		"StringsJoin":  strings.Join,
+		"timestamp":    fmtTimestamp,
+		"kitchentime":  fmtKitchenTime,
+		"fmtDuration":  fmtDuration,
+		"fmtDateInput": fmtDateForInputField,
+		"fmtTimeInput": fmtTimeForInputField,
 
 		// App-specific helpers
 		"isAdmin":    isAdmin,
@@ -36,6 +38,14 @@ func fmtKitchenTime(t time.Time) string {
 
 func fmtDuration(d time.Duration) string {
 	return d.Truncate(time.Second).String()
+}
+
+func fmtDateForInputField(t time.Time) string {
+	return t.Format("2006-01-02")
+}
+
+func fmtTimeForInputField(t time.Time) string {
+	return t.Format("15:04")
 }
 
 func isAdmin(t *models.Team) bool {
