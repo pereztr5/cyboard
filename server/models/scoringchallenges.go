@@ -263,7 +263,7 @@ func ChallengeCapturesByTime(db DB, cutoffTime time.Time) ([]CtfSolveResult, err
 		JOIN team t ON cs.team_id = t.id
 		JOIN challenge c ON c.id = cs.challenge_id
 	WHERE cs.created_at > $1
-	ORDER BY cs.created_at DESC`
+	ORDER BY cs.created_at ASC`
 
 	rows, err := db.Query(sqlstr, cutoffTime)
 	if err != nil {

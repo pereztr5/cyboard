@@ -174,6 +174,7 @@ func GetChallengeCapturesByTime(w http.ResponseWriter, r *http.Request) {
 		if err != nil {
 			render.Render(w, r, ErrInvalidBecause(fmt.Sprintf(
 				"invalid timestamp: start_time=%q (wanted RFC3339 format)", st)))
+			return
 		}
 	}
 

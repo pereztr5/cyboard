@@ -135,8 +135,8 @@ func Test_ChallengeCapturesPerTeam(t *testing.T) {
 func Test_GetChallengeCapturesByTime(t *testing.T) {
 	prepareTestDatabase(t)
 	expected := []CtfSolveResult{
-		{Timestamp: time2, TeamID: 2, TeamName: "team2", ChallengeID: 2, Category: "RAD", ChallengeName: "No challenge here", Points: 8},
 		{Timestamp: time1, TeamID: 1, TeamName: "team1", ChallengeID: 1, Category: "RAD", ChallengeName: "Totally Rad Challenge", Points: 5},
+		{Timestamp: time2, TeamID: 2, TeamName: "team2", ChallengeID: 2, Category: "RAD", ChallengeName: "No challenge here", Points: 8},
 	}
 
 	cutoffDate := time1.Add(-time.Second)
