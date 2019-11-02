@@ -88,7 +88,8 @@ func TeamServiceStatuses(db DB) ([]TeamServiceStatusesView, error) {
 		WHERE service.disabled = false AND service.starts_at < current_timestamp
 		GROUP BY service.id, team.name) AS ss
 		ORDER BY ss.service, team.id) AS ss
-	GROUP BY ss.service, ss.service_name`
+	GROUP BY ss.service, ss.service_name
+	ORDER BY ss.service`
 	rows, err := db.Query(sqlstr)
 	if err != nil {
 		return nil, err

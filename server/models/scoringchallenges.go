@@ -52,7 +52,6 @@ func CheckFlagSubmission(db TXer, ctx context.Context, team *Team, chal *Challen
 		err         error
 		challengeID int
 		solverID    *int
-		points      float32
 
 		sqlwhere string
 		sqlstr   string
@@ -76,10 +75,10 @@ func CheckFlagSubmission(db TXer, ctx context.Context, team *Team, chal *Challen
 	// Otherwise, check if any hidden/anonymous flags have the guessed string value.
 	if len(chal.Name) > 0 {
 		sqlwhere = `c.hidden = false AND c.flag = $2 AND c.Name = $3`
-		err = tx.QueryRow(sqlstr+sqlwhere, team.ID, chal.Flag, chal.Name).Scan(&challengeID, &chal.Name, &chal.Category, &points, &solverID)
+		err = tx.QueryRow(sqlstr+sqlwhere, team.ID, chal.Flag, chal.Name).Scan(&challengeID, &chal.Name, &chal.Category, &chal.Points, &solverID)
 	} else {
 		sqlwhere = `c.hidden = true AND c.flag = $2`
-		err = tx.QueryRow(sqlstr+sqlwhere, team.ID, chal.Flag).Scan(&challengeID, &chal.Name, &chal.Category, &points, &solverID)
+		err = tx.QueryRow(sqlstr+sqlwhere, team.ID, chal.Flag).Scan(&challengeID, &chal.Name, &chal.Category, &chal.Points, &solverID)
 	}
 
 	if err != nil {
