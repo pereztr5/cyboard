@@ -1,3 +1,29 @@
+## v0.2019.11 (Fall 2019)
+
+### Developers:
+- Switch golang dependency management from `dep` => `go mod`
+- Simplify DB management (schema, user, privs), easier to import DB backups.
+- Update Docker files & docs to more easily stand up just PG + TimescaleDB
+
+### Discord:
+- Add sample support scripts, which use the web api as any client could (such as bots)
+- Add python script to activate challenge, then announce on Discord
+- Add python script to announce the first team to solve each challenge, as that happens
+
+### Web site:
+- Blues: Add cnyhackathon-specific tips to dashboard
+- CTF: Improve handling of special chars in uploaded filenames (can now a few chars like '!' and '%')
+- CTF: Add API to get ctf solves (team+chal+timestamp), ordered+filtered by time
+- CTF: Add API to get challenge by name
+- CTF: Add API to 'activate' challenge
+- CTF: Allow CTF challenges to be deleted after being solved (useful during event staging)
+- CTF+Admin: Add web page/api to tail log server log files to the browser
+- Admin: Show configured event breaks on Services cfg page
+- Admin: Add API to get event configuration as JSON
+- Admin: When adding new Services, the Service start time is pre-populated at the event start time (fixes one of the most tedious manual parts of the event setup)
+- Other minor Bug fixes and UI fixes
+
+
 ## v0.2019.09 (NSA Hackathon 2019)
 
 ### General:
