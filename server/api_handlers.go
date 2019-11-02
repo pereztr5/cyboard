@@ -161,6 +161,27 @@ func GetServicesStatuses(w http.ResponseWriter, r *http.Request) {
 	ApiQuery(w, r, services, err)
 }
 
+func GetChallengeCapturesByTime(w http.ResponseWriter, r *http.Request) {
+	var cutoffTime time.Time
+	var err error
+
+	st := r.URL.Query().Get("start_time")
+	if st == "" {
+		// default to providing all CTF solves
+		cutoffTime = appCfg.Event.Start
+	} else {
+		cutoffTime, err = time.Parse(time.RFC3339, st)
+		if err != nil {
+			render.Render(w, r, ErrInvalidBecause(fmt.Sprintf(
+				"invalid timestamp: start_time=%q (wanted RFC3339 format)", st)))
+			return
+		}
+	}
+
+	solves, err := models.ChallengeCapturesByTime(db, cutoffTime)
+	ApiQuery(w, r, solves, err)
+}
+
 // Blueteam API methods (view & submit challenges)
 
 func GetPublicChallenges(w http.ResponseWriter, r *http.Request) {
@@ -207,9 +228,11 @@ func SubmitFlag(w http.ResponseWriter, r *http.Request) {
 	if flagState == models.ValidFlag {
 		logFields["challenge"] = guess.Name    // guess.Name is filled by models.CheckFlagSubmission on success
 		logFields["category"] = guess.Category // Same deal with guess.Category
+		logFields["points"] = guess.Points     //
 		logFields["anon"] = anon               // Mark whether this was an anonymous challenge
 		delete(logFields, "guess")             // But don't need the correct guesses in the log file
 		CaptFlagsLogger.WithFields(logFields).Println("Score!!")
+
 	}
 	render.JSON(w, r, flagState)
 }
@@ -438,6 +461,25 @@ func DeleteFlag(w http.ResponseWriter, r *http.Request) {
 	ApiDelete(w, r, challenge)
 }
 
+func GetFlagByName(w http.ResponseWriter, r *http.Request) {
+	name := r.URL.Query().Get("name")
+	if name == "" {
+		render.Render(w, r, ErrInvalidBecause("missing url query parameter: `name`"))
+		return
+	}
+	challenge, err := models.ChallengeByName(db, name)
+	ApiQuery(w, r, challenge, err)
+}
+
+func EnableCTFChallenge(w http.ResponseWriter, r *http.Request) {
+	flagID := getCtxIdParam(r)
+	if err := models.EnableChallenge(db, flagID); err != nil {
+		render.Render(w, r, ErrInternal(err))
+		return
+	}
+	render.NoContent(w, r)
+}
+
 // CTF File Management
 // Files served with a given ctf challenge. e.g. `crackme` binaries, encrypted messages, etc.
 
@@ -535,7 +577,8 @@ func getFileList(path string) ([]FileInfo, error) {
 func (cm FSContentManager) GetFileList(w http.ResponseWriter, r *http.Request) {
 	infos, err := getFileList(cm.pathBuilder(r))
 	if err != nil {
-		render.Render(w, r, ErrInvalidRequest(err))
+		render.Status(r, http.StatusBadRequest)
+		render.DefaultResponder(w, r, ErrInvalidRequest(err))
 		return
 	}
 	render.JSON(w, r, infos)
@@ -590,7 +633,7 @@ func (cm FSContentManager) SaveFile(w http.ResponseWriter, r *http.Request) {
 			return err
 		}
 		defer f.Close()
-		path := filepath.Join(dir, fh.Filename)
+		path := filepath.Join(dir, filepath.Clean("/"+fh.Filename))
 		if stat, err := os.Stat(path); err == nil {
 			Logger.WithFields(logrus.Fields{
 				"reqpath":  r.URL.Path,
@@ -697,7 +740,34 @@ func RunScriptTest(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
-// Scoring analytics & graphs (admin-only)
+var LogReadOnlyMgr = FSContentManager{
+	pathBuilder: func(*http.Request) string {
+		return LogDir
+	},
+}
+
+// View Event Configuration via the API
+
+func GetEventConfig(w http.ResponseWriter, r *http.Request) {
+	event := appCfg.Event
+	monitor := appCfg.ServiceMonitor
+
+	breaks := []M{}
+	for _, b := range event.Breaks {
+		breaks = append(breaks, M{
+			"starts_at": b.StartsAt,
+			"goes_for":  b.GoesFor.String(),
+		})
+	}
+
+	cfg := M{
+		"event":   M{"start": event.Start, "end": event.End, "breaks": breaks},
+		"monitor": M{"check_interval": monitor.Intervals.String(), "timeout": monitor.Timeout.String()},
+	}
+	render.JSON(w, r, &cfg)
+}
+
+// Scoring analytics & graphs (ctf-staff)
 
 func GetBreakdownOfSubmissionsPerFlag(w http.ResponseWriter, r *http.Request) {
 	brkdwn, err := models.ChallengeCapturesPerFlag(db)

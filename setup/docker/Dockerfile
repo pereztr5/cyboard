@@ -1,27 +1,19 @@
-FROM golang:1.11-alpine AS builder
+FROM golang:1.13-alpine AS builder
 LABEL maintainer="cnyhackathon"
 
-ENV APP_DIR       /go/src/github.com/pereztr5/cyboard
-
-RUN apk add --no-cache --virtual .build-deps curl git && \
-    curl https://raw.githubusercontent.com/golang/dep/master/install.sh | sh
+ENV APP_DIR  /go/src/github.com/pereztr5/cyboard
 
 WORKDIR $APP_DIR
 
-COPY Gopkg.toml Gopkg.lock $APP_DIR/
-RUN dep ensure --vendor-only
-
-COPY main.go $APP_DIR
-COPY cmd $APP_DIR/cmd
+COPY go.mod go.sum main.go  $APP_DIR/
+COPY cmd    $APP_DIR/cmd
 COPY server $APP_DIR/server
 
 RUN \
     go install -ldflags '-s -w' -v ./... && \
-    rm -rf $APP_DIR/* && \
-    rm -rf $GOPATH/pkg/* && \
-    apk del .build-deps
+    go clean -r -cache -modcache
 
-FROM alpine:3.8
+FROM alpine:3.10
 RUN \
   apk add --no-cache dumb-init && \
   wget https://raw.githubusercontent.com/eficode/wait-for/master/wait-for && \

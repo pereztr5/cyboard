@@ -72,6 +72,7 @@ func CreateWebRouter(teamScoreUpdater, servicesUpdater *broadcastHub) chi.Router
 		staff.Use(RequireLogin, RequireCtfStaff)
 		staff.Get("/ctf", ShowCtfConfig)
 		staff.Get("/ctf_dashboard", ShowCtfDashboard)
+		staff.Get("/log_files", ShowLogViewer)
 	})
 
 	api := chi.NewRouter()
@@ -82,6 +83,8 @@ func CreateWebRouter(teamScoreUpdater, servicesUpdater *broadcastHub) chi.Router
 		public.Get("/services", GetServicesStatuses)
 		public.Handle("/scores/live", teamScoreUpdater.ServeWs())
 		public.Handle("/services/live", servicesUpdater.ServeWs())
+
+		public.Get("/ctf/solves", GetChallengeCapturesByTime)
 	})
 
 	// Blue Team API
@@ -100,15 +103,30 @@ func CreateWebRouter(teamScoreUpdater, servicesUpdater *broadcastHub) chi.Router
 	})
 
 	// Staff API to view & edit the CTF event
+	api.Route("/staff", func(staff chi.Router) {
+		staff.Use(RequireLogin, RequireCtfStaff)
+
+		staff.Get("/event_config", GetEventConfig)
+	})
+
+	// Staff API to view & edit the CTF event
 	api.Route("/ctf", func(ctfStaff chi.Router) {
 		ctfStaff.Use(RequireLogin, RequireCtfStaff)
 		ctfStaff.Get("/stats/subs_per_flag", GetBreakdownOfSubmissionsPerFlag)
 		ctfStaff.Get("/stats/teams_flags", GetEachTeamsCapturedFlags)
 
+		ctfStaff.Route("/logs", func(r chi.Router) {
+			r.Get("/", LogReadOnlyMgr.GetFileList)
+			r.Get("/{name}", LogReadOnlyMgr.GetFile)
+			r.Get("/{name}/tail", WsTailFile)
+		})
+
 		// TODO / HACK: Needed a place for a late-added "add one" challenge
 		// This should be in the /flags namespace below, and the
 		// insert many should be separate, or a query param toggle
 		ctfStaff.Post("/new_flag", AddFlag)
+
+		ctfStaff.Get("/flag", GetFlagByName)
 
 		ctfStaff.Route("/flags", func(r chi.Router) {
 			r.Get("/", GetAllFlags)
@@ -119,6 +137,8 @@ func CreateWebRouter(teamScoreUpdater, servicesUpdater *broadcastHub) chi.Router
 				r.Get("/", GetFlagByID)
 				r.Put("/", UpdateFlag)
 				r.Delete("/", DeleteFlag)
+
+				r.Post("/activate", EnableCTFChallenge)
 
 				// `<host>/api/ctf/flags/4/files/suspicious.pdf`
 				r.Route("/files", func(r chi.Router) {

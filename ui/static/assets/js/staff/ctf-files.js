@@ -10,7 +10,8 @@ const $filesModal = $('#ctf-file-modal')
  * { name: String, size: Int, mod_time: <Date-String> } */
 function buildFileTableRow(url) {
     return f => {
-        const fileURL = `${url}/${f.name}`;
+        const escapedFilename = window.encodeURIComponent(f.name);
+        const fileURL = `${url}/${escapedFilename}`;
         const bytes = niceBytes(f.size);
         const timestamp = new Date(f.mod_time).toUTCString();
 
@@ -40,7 +41,8 @@ $ctfConfig.on('click', '.btn-files', function showFlagEditorModal(event) {
         $filelist.empty().append(files.map(buildFileTableRow(url)));
     }).fail((xhr) => {
         $filelist.empty();
-        if (!xhr.responseText.includes("no such file or directory")) {
+        // ignore "files not found" errors
+        if (xhr.status !== 400) {
             alert(`Failed to fetch files for ${name}: ${getXhrErr(xhr)}`);
         }
     }).always(() => {

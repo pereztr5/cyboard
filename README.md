@@ -74,15 +74,10 @@ FreeBSD, CentOS, Arch, and Ubuntu. To build `cyboard`:
     * Alternatively Download & Install [Go v1.9+][go-install]
 2. _Optional_: Go demands all code be located in one central folder,
     which you may configure before proceeding: [Guide to GOPATH][gopath]
-3. Install [dep][dep], which manages Go dependencies
-    * Two line install for linux:
-        ``` bash
-        wget -O $GOPATH/bin/dep https://github.com/golang/dep/releases/download/v0.5.0/dep-linux-amd64
-        chmod 755 $GOPATH/bin/dep
-        ```
-4. Clone this source repo into `$GOPATH/src/github.com/pereztr5/cyboard/`
-5. From the source root: `dep ensure && go build`
-6. The result generated is a single, runnable binary, `cyboard`!
+    * The default is `~/go`
+3. Clone this source repo into `$GOPATH/src/github.com/pereztr5/cyboard/`
+4. From the source root: `go build`
+5. The result generated is a single, runnable binary, `cyboard`!
 
 You can install the binary itself anywhere, with the only caveat that
 the `ui/` folder from this source repo must be in the current working directory,
@@ -95,9 +90,9 @@ To run `cyboard`, you must have PostgreSQL installed with the
 functionality for Postgres beyond what PG does out of the box. We use this
 for analytics and keeping the DB fast.
 
-We have used PostgreSQL **v10.3 & v10.6** with timescale **v0.11**.
-Other versions of both (particularly newer ones) should work, as long as
-the db and extension are compatible.
+We have used PostgreSQL **v12.x, v10.6, & v10.3** with timescale **v1.4, down to
+v0.11**.  Other versions of both (particularly newer ones) should work, as long
+as the db and extension are compatible.
 
 ### Install PostgreSQL
 
@@ -147,9 +142,9 @@ shown). With this, you can run postgres commands (`createuser`, `psql`,
 `createdb`) as the 'postgres' superuser (or as the user we'll create later) by
 adding the common flag: `-U <user>`.
 
-For added security on cyboard, we use a **plain user**, `cybot`, to run
+For added security on cyboard, we use a **plain user**, `cyboard`, to run
 the application. Create the user for the whole db cluster with:
-`createuser -U postgres --login --echo cybot`
+`createuser -U postgres --login --echo cyboard`
 
 Optionally, you may create a unique database in the cluster for cyboard:
 `createdb -U postgres cyboard`. This isn't necessary though, as all data will be
@@ -174,11 +169,11 @@ Additionally, you will need to create a test admin user, test database, and
 rerun the migrations:
 
 ```bash
-createdb --owner=cybot --encoding="utf8" cyboard_test
-createuser --superuser --login --echo supercybot
-psql -U postgres -c 'ALTER ROLE supercybot SET search_path = cyboard'
+createdb cyboard_test
+createuser --superuser supercyboard
+psql -U postgres -c 'ALTER ROLE supercyboard SET search_path = cyboard, public'
 for sql in ./migrations/*.up.sql; do
-    psql -U postgres --dbname cyboard_test -f $sql || { echo "ERR during '$sql'" && break }
+    psql -U postgres --dbname cyboard_test -f $sql || { echo "ERR during '$sql'" && break; }
 done
 ```
 
@@ -385,9 +380,9 @@ several places. In order, from lowest to highest priority:
 - In the `config.toml` file:
     ```toml
     [database]
-    postgres_uri = "dbname=cyboard user=cybot host=127.0.0.1 sslmode=disable"
+    postgres_uri = "dbname=cyboard user=cyboard host=127.0.0.1 sslmode=disable"
     # or similarly
-    postgres_uri = "postgresql://localhost/cybot?sslmode=disable"
+    postgres_uri = "postgresql://localhost/cyboard?sslmode=disable"
     ```
 - Environment variable: `CY_POSTGRES_URI`
 - Command line parameter: `--postgres-uri "postgresql://..."`
@@ -415,7 +410,6 @@ Docker deployments are supported! For more info, check out the docs in
 <!-- Footnote Back links -->
 
 [exit-code]: https://en.wikipedia.org/wiki/Exit_status
-[dep]: https://golang.github.io/dep/
 [golang]: https://golang.org/
 [go-install]: https://golang.org/doc/install]
 [gopath]: https://golang.org/doc/code.html#GOPATH

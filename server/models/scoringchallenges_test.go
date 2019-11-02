@@ -92,13 +92,13 @@ func Test_GetTeamCTFProgress(t *testing.T) {
 
 	ctf_prog, err = GetTeamCTFProgress(db, 1)
 	if assert.Nil(t, err) {
-		expected := []CTFProgress{{Category: "RAD", Amount: 1, Max: 2}}
+		expected := []CTFProgress{{Category: "RAD", Amount: 1, Max: 1}}
 		assert.Equal(t, expected, ctf_prog, "Team 1 did not have the right ctf progress")
 	}
 
 	ctf_prog, err = GetTeamCTFProgress(db, 2)
 	if assert.Nil(t, err) {
-		expected := []CTFProgress{{Category: "RAD", Amount: 1, Max: 2}}
+		expected := []CTFProgress{{Category: "RAD", Amount: 0, Max: 1}}
 		assert.Equal(t, expected, ctf_prog, "Team 2 did not have the right ctf progress")
 	}
 }
@@ -129,5 +129,21 @@ func Test_ChallengeCapturesPerTeam(t *testing.T) {
 		assert.Equal(t, expected, per_team_captures,
 			"team1 should have the 'Totally Rad Challenge'. "+
 				"team2 should have 'No challenge here'.")
+	}
+}
+
+func Test_GetChallengeCapturesByTime(t *testing.T) {
+	prepareTestDatabase(t)
+	expected := []CtfSolveResult{
+		{Timestamp: time1, TeamID: 1, TeamName: "team1", ChallengeID: 1, Category: "RAD", ChallengeName: "Totally Rad Challenge", Points: 5},
+		{Timestamp: time2, TeamID: 2, TeamName: "team2", ChallengeID: 2, Category: "RAD", ChallengeName: "No challenge here", Points: 8},
+	}
+
+	cutoffDate := time1.Add(-time.Second)
+	capsByTime, err := ChallengeCapturesByTime(db, cutoffDate)
+	if assert.Nil(t, err) {
+		assert.Equal(t, expected, capsByTime,
+			"two results should be available. One for each team, with team2's"+
+				"appearing first, per descending sort order.")
 	}
 }

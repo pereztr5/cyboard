@@ -25,7 +25,7 @@ func Run(cfg *Configuration) {
 
 	// Setup logs
 	SetupScoringLoggers(&cfg.Log)
-	Logger.Infof("%+v", cfg)
+	Logger.Debugf("%+v", cfg)
 
 	setupResponder(Logger)
 
@@ -135,7 +135,7 @@ func tlsConfig() *tls.Config {
 // EnsureAdmin helps bootstrap the app configuration by prompting & setting up
 // an admin account if there is not one already configured.
 func EnsureAdmin(db models.DB) {
-	const sqlstr = `SELECT id FROM cyboard.team WHERE role_name = 'admin' LIMIT 1`
+	const sqlstr = `SELECT id FROM team WHERE role_name = 'admin' LIMIT 1`
 	err := db.QueryRow(sqlstr).Scan(nil)
 
 	if err == nil {

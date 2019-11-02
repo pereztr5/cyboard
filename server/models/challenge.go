@@ -25,7 +25,7 @@ type Challenge struct {
 
 // Insert inserts the Challenge to the database.
 func (c *Challenge) Insert(db DB) error {
-	const sqlstr = `INSERT INTO cyboard.challenge (` +
+	const sqlstr = `INSERT INTO challenge (` +
 		`name, category, designer, flag, total, body, hidden` +
 		`) VALUES (` +
 		`$1, $2, $3, $4, $5, $6, $7` +
@@ -36,7 +36,7 @@ func (c *Challenge) Insert(db DB) error {
 
 // Update updates the Challenge in the database.
 func (c *Challenge) Update(db DB) error {
-	const sqlstr = `UPDATE cyboard.challenge SET (` +
+	const sqlstr = `UPDATE challenge SET (` +
 		`name, category, designer, flag, total, body, hidden` +
 		`) = ( ` +
 		`$2, $3, $4, $5, $6, $7, $8` +
@@ -48,7 +48,7 @@ func (c *Challenge) Update(db DB) error {
 
 // Delete deletes the Challenge from the database.
 func (c *Challenge) Delete(db DB) error {
-	const sqlstr = `DELETE FROM cyboard.challenge WHERE id = $1`
+	const sqlstr = `DELETE FROM challenge WHERE id = $1`
 
 	_, err := db.Exec(sqlstr, c.ID)
 	return err
@@ -58,7 +58,7 @@ func (c *Challenge) Delete(db DB) error {
 func ChallengeByFlag(db DB, flag string) (*Challenge, error) {
 	const sqlstr = `SELECT ` +
 		`id, name, category, designer, flag, total, body, hidden, created_at, modified_at ` +
-		`FROM cyboard.challenge ` +
+		`FROM challenge ` +
 		`WHERE flag = $1`
 
 	c := Challenge{}
@@ -74,7 +74,7 @@ func ChallengeByFlag(db DB, flag string) (*Challenge, error) {
 func ChallengeByName(db DB, name string) (*Challenge, error) {
 	const sqlstr = `SELECT ` +
 		`id, name, category, designer, flag, total, body, hidden, created_at, modified_at ` +
-		`FROM cyboard.challenge ` +
+		`FROM challenge ` +
 		`WHERE name = $1`
 
 	c := Challenge{}
@@ -90,7 +90,7 @@ func ChallengeByName(db DB, name string) (*Challenge, error) {
 func ChallengeByID(db DB, id int) (*Challenge, error) {
 	const sqlstr = `SELECT ` +
 		`id, name, category, designer, flag, total, body, hidden, created_at, modified_at ` +
-		`FROM cyboard.challenge ` +
+		`FROM challenge ` +
 		`WHERE id = $1`
 
 	c := Challenge{}
@@ -226,4 +226,12 @@ func GetPublicChallengeDescription(db DB, flagID int) (string, error) {
 	const sqlstr = `SELECT body FROM challenge WHERE hidden = false AND id = $1`
 	var desc string
 	return desc, db.QueryRow(sqlstr, flagID).Scan(&desc)
+}
+
+// EnableChallenge updates a challenge, ensuring it is active for submission. Right now,
+// this means it will definitely be visible on the CTF display page, ready to guess against.
+func EnableChallenge(db DB, flagID int) error {
+	const sqlstr = `UPDATE challenge SET hidden = 'false' WHERE id = $1`
+	_, err := db.Exec(sqlstr, flagID)
+	return err
 }

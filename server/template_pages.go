@@ -113,8 +113,10 @@ func ShowTeamDashboard(w http.ResponseWriter, r *http.Request) {
 	page.Data = make(map[string]interface{})
 
 	var err error
-	page.Data["ctfProgress"], err = models.GetTeamCTFProgress(db, team.ID)
-	page.checkErr(err, "ctf progress")
+	if isBlueteam(page.T) {
+		page.Data["ctfProgress"], err = models.GetTeamCTFProgress(db, team.ID)
+		page.checkErr(err, "ctf progress")
+	}
 
 	renderTemplate(w, page)
 }
@@ -188,6 +190,15 @@ func ShowCtfDashboard(w http.ResponseWriter, r *http.Request) {
 	page.Data["ChallengeCapturesPerTeam"], err = models.ChallengeCapturesPerTeam(db)
 	page.checkErr(err, "challenge captures per team")
 
+	renderTemplate(w, page)
+}
+
+func ShowLogViewer(w http.ResponseWriter, r *http.Request) {
+	page := getPage(r, "staff_log_files", "Log Viewer")
+
+	log_files, err := getFileList(LogDir)
+	page.Data = M{"LogFiles": log_files}
+	page.checkErr(err, "list of log files")
 	renderTemplate(w, page)
 }
 

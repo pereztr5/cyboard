@@ -36,11 +36,12 @@ const (
 
 // ChallengeGuess is a blueteam's attempt to captured a flag. Only the Flag field
 // is required to be set. Leaving Name empty causes the guess to checked against
-// all hidden flags. The Category ane Name are filled in on a successful guess.
+// all hidden flags. The Category, Name, and points are filled in on a successful guess.
 type ChallengeGuess struct {
-	Name     string `json:"name"`     // name
-	Category string `json:"category"` // category
-	Flag     string `json:"flag"`     // flag
+	Name     string  `json:"name"`     // name
+	Category string  `json:"category"` // category
+	Flag     string  `json:"flag"`     // flag
+	Points   float32 `json:"points"`   // total
 }
 
 // CheckFlagSubmission will award the team with a captured flag if their flag string
@@ -51,7 +52,6 @@ func CheckFlagSubmission(db TXer, ctx context.Context, team *Team, chal *Challen
 		err         error
 		challengeID int
 		solverID    *int
-		points      float32
 
 		sqlwhere string
 		sqlstr   string
@@ -75,10 +75,10 @@ func CheckFlagSubmission(db TXer, ctx context.Context, team *Team, chal *Challen
 	// Otherwise, check if any hidden/anonymous flags have the guessed string value.
 	if len(chal.Name) > 0 {
 		sqlwhere = `c.hidden = false AND c.flag = $2 AND c.Name = $3`
-		err = tx.QueryRow(sqlstr+sqlwhere, team.ID, chal.Flag, chal.Name).Scan(&challengeID, &chal.Name, &chal.Category, &points, &solverID)
+		err = tx.QueryRow(sqlstr+sqlwhere, team.ID, chal.Flag, chal.Name).Scan(&challengeID, &chal.Name, &chal.Category, &chal.Points, &solverID)
 	} else {
 		sqlwhere = `c.hidden = true AND c.flag = $2`
-		err = tx.QueryRow(sqlstr+sqlwhere, team.ID, chal.Flag).Scan(&challengeID, &chal.Name, &chal.Category, &points, &solverID)
+		err = tx.QueryRow(sqlstr+sqlwhere, team.ID, chal.Flag).Scan(&challengeID, &chal.Name, &chal.Category, &chal.Points, &solverID)
 	}
 
 	if err != nil {
@@ -239,4 +239,50 @@ func ChallengeCapturesPerTeam(db DB) ([]TeamCapturedChallenges, error) {
 	}
 
 	return tccs, nil
+}
+
+// CtfSolveResult represents a solved challenge, associated with the solving team,
+// via the pivot table 'ctf_solve'
+type CtfSolveResult struct {
+	Timestamp     time.Time `json:"timestamp"`      // ctf_solve.created_at
+	TeamID        int       `json:"team_id"`        // team.id
+	TeamName      string    `json:"team_name"`      // team.name
+	ChallengeID   int       `json:"challenge_id"`   // challenge.id
+	ChallengeName string    `json:"challenge_name"` // challenge.name
+	Category      string    `json:"category"`       // challenge.category
+	Points        float32   `json:"points"`         // challenge.total
+}
+
+// ChallengeCapturesByTime fetches all `ctf_solve` rows with their ctf name/info and solving
+// team's name & id, and orders them by time. A `cutoffTime` threshold will exclude
+// any solves older than the date.
+func ChallengeCapturesByTime(db DB, cutoffTime time.Time) ([]CtfSolveResult, error) {
+	const sqlstr = `SELECT cs.created_at, t.id, t.name, c.id, c.name, c.category, c.total
+	FROM ctf_solve cs
+		JOIN team t ON cs.team_id = t.id
+		JOIN challenge c ON c.id = cs.challenge_id
+	WHERE cs.created_at > $1
+	ORDER BY cs.created_at ASC`
+
+	rows, err := db.Query(sqlstr, cutoffTime)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+
+	xs := []CtfSolveResult{}
+	for rows.Next() {
+		x := CtfSolveResult{}
+		err = rows.Scan(&x.Timestamp, &x.TeamID, &x.TeamName,
+			&x.ChallengeID, &x.ChallengeName, &x.Category, &x.Points)
+		if err != nil {
+			return nil, err
+		}
+		xs = append(xs, x)
+	}
+	if err = rows.Err(); err != nil {
+		return nil, err
+	}
+
+	return xs, nil
 }

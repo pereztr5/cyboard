@@ -9,23 +9,13 @@ BEGIN;
 --      https://github.com/mattes/migrate/issues/13
 --      https://github.com/mattes/migrate/issues/274
 
+-- Force the current session to use the new schema
+SET search_path = cyboard, "$user", public;
 
--- First: Schema, application user w/ priviledges, and extensions
-CREATE SCHEMA IF NOT EXISTS cyboard;
-
-ALTER ROLE cybot SET search_path = cyboard;
-
-GRANT USAGE ON SCHEMA cyboard TO cybot;
-ALTER DEFAULT PRIVILEGES IN SCHEMA cyboard
-    GRANT SELECT, INSERT, UPDATE, DELETE, TRUNCATE
-    ON TABLES TO cybot;
-
-SET search_path = cyboard;
-
-CREATE EXTENSION IF NOT EXISTS timescaledb ;  -- Better time-series data support in Postgres
-                                              -- https://github.com/timescale/timescaledb/
-CREATE EXTENSION IF NOT EXISTS moddatetime ; -- Provides functions for tracking modification time
-CREATE EXTENSION IF NOT EXISTS tablefunc ; -- Provides functions for crosstab (pivot tables)
+CREATE EXTENSION IF NOT EXISTS timescaledb; -- Better time-series data support in Postgres
+                                            -- https://github.com/timescale/timescaledb/
+CREATE EXTENSION IF NOT EXISTS moddatetime; -- Provides functions for tracking modification time
+CREATE EXTENSION IF NOT EXISTS tablefunc;   -- Provides functions for crosstab (pivot tables)
 
 ----------------
 -- Configuration
@@ -225,13 +215,13 @@ CREATE TABLE service_check (
 
 -- CREATE INDEX service_check_fkey_idx_team    ON service_check (team_id);
 -- CREATE INDEX service_check_fkey_idx_service ON service_check (service_id);
--- CREATE INDEX service_check_idx_status ON service_check (status);
+CREATE INDEX service_check_idx_status       ON service_check (status);
 
 -- ctf_solve is a timestamp of when a team solved a challenge
 CREATE TABLE ctf_solve  (
       created_at   TIMESTAMPTZ  NOT NULL DEFAULT CURRENT_TIMESTAMP
     , team_id      INT          NOT NULL REFERENCES team(id)
-    , challenge_id INT          NOT NULL REFERENCES challenge(id)
+    , challenge_id INT          NOT NULL REFERENCES challenge(id) ON DELETE CASCADE
 
     /* , UNIQUE (team_id, challenge_id) */
     /*
@@ -243,8 +233,8 @@ CREATE TABLE ctf_solve  (
     */
 );
 
--- CREATE INDEX ctf_solve_fkey_idx_team      ON ctf_solve (team_id);
--- CREATE INDEX ctf_solve_fkey_idx_challenge ON ctf_solve (challenge_id);
+CREATE INDEX ctf_solve_fkey_idx_team      ON ctf_solve (team_id);
+CREATE INDEX ctf_solve_fkey_idx_challenge ON ctf_solve (challenge_id);
 
 -- other_points is for bonus points, deductions for misbehavior, etc.
 CREATE TABLE other_points (
@@ -264,27 +254,27 @@ SELECT create_hypertable('other_points',  'created_at');
 
 CREATE VIEW blueteam (id, name, blueteam_ip)
     AS SELECT team.id, team.name, blueteam_ip
-    FROM cyboard.team
+    FROM team
     WHERE team.role_name = 'blueteam'
       AND team.disabled = false;
 
-CREATE VIEW cyboard.service_score (team_id, points)
+CREATE VIEW service_score (team_id, points)
     AS SELECT team.id, COALESCE(sum(service.points), 0)
-    FROM cyboard.blueteam AS team
+    FROM blueteam AS team
         LEFT JOIN service_check AS sc ON team.id = sc.team_id AND sc.status = 'pass'
         LEFT JOIN service ON sc.service_id = service.id
     GROUP BY team.id;
 
-CREATE VIEW cyboard.ctf_score (team_id, points)
+CREATE VIEW ctf_score (team_id, points)
     AS SELECT team.id, COALESCE(sum(ch.total), 0)
-    FROM cyboard.blueteam AS team
+    FROM blueteam AS team
         LEFT JOIN ctf_solve ON team.id = ctf_solve.team_id
         LEFT JOIN challenge AS ch ON ctf_solve.challenge_id = ch.id
     GROUP BY team.id;
 
-CREATE VIEW cyboard.other_score (team_id, points)
+CREATE VIEW other_score (team_id, points)
     AS SELECT team.id, COALESCE(sum(o.points), 0)
-    FROM cyboard.blueteam AS team
+    FROM blueteam AS team
         LEFT JOIN other_points AS o ON team.id = o.team_id
     GROUP BY team.id;
 

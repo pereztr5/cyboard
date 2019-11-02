@@ -1,14 +1,11 @@
-FROM timescale/timescaledb:0.11.0-pg10
+FROM timescale/timescaledb:1.4.2-pg11
 MAINTAINER cnyhackathon
 
-# Set the main user
-# DB Name becomes the same as POSTGRES_USER, since POSTGRES_DATABASE isn't specified
-ENV  POSTGRES_USER  cybot
-
-# Replace timescaledb upstream initdb scripts
-RUN find /docker-entrypoint-initdb.d/ -type f -print -delete
-COPY \
-  000_docker_pgdb.up.sh \
-  001_initialize_schema.up.sql \
+# Add user & schema setup scripts. Filenames are all numbered in the form "XXXcy_*",
+# so as not to collide with the timescaledb base docker's scripts.
+COPY --chown=postgres:postgres \
+  000cy_docker_pgdb.sh \
+  001cy_user_setup.up.sql \
+  002cy_initialize_schema.up.sql \
   /docker-entrypoint-initdb.d/
 

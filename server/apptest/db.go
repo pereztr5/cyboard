@@ -15,12 +15,12 @@ import (
 
 // connString enables connecting to Postgres as a regular user. Used to init `DB`, which
 // is just like the connection would be in production, no mocks or anything like that.
-const connString = "host=localhost port=5432 dbname=cyboard_test user=cybot connect_timeout=10 sslmode=disable"
+const connString = "dbname=cyboard_test user=cyboard connect_timeout=10"
 
 // connStringSU enables connecting to Postgres as a super user. This is required for `StdlibDB`,
 // which is used by the testfixtures library to reset the DB inbetween tests, and to do
 // that it requires super user privs.
-const connStringSU = "host=localhost port=5432 dbname=cyboard_test user=supercybot connect_timeout=10 sslmode=disable"
+const connStringSU = "dbname=cyboard_test user=supercyboard connect_timeout=10"
 
 // If the CYTEST_LOG_SQL variable is set, all SQL queries will be logged. Can be useful in debugging.
 // Another, more thorough option is to go into your postgresql.conf in your pg data dir,
@@ -33,7 +33,7 @@ func testFixtureFiles(testdataPath string) []string {
 	// The order of the files in the array is the order they will be loaded into
 	// the database before each test.
 	// Be careful changing this! The testfixtures library may swallow INSERT stmt errors.
-	files := []string{"team", "challenge", "challenge_file", "ctf_solve", "service", "service_check", "other_points"}
+	files := []string{"team", "challenge", "ctf_solve", "service", "service_check", "other_points"}
 	for i, filename := range files {
 		files[i] = fmt.Sprintf("%s/%s.yml", testdataPath, filename)
 	}
@@ -71,16 +71,24 @@ func Setup(testdataPath string) {
 }
 
 func setupDB() {
-	cfg, err := pgx.ParseDSN(connString)
-	checkErr(err, "ParseDSN")
+	// Get host,port,db to connect to from env vars (PGHOST, PGPORT, PGDATABASE, ...)
+	envCfg, err := pgx.ParseEnvLibpq()
+	checkErr(err, "ParseEnvLibpq")
+	// Add SQL logging if "CYTEST_LOG_SQL" is exported in env var
 	if os.Getenv(cytestLogSQL) != "" {
-		cfg.Logger = logrusadapter.NewLogger(logger)
+		envCfg.Logger = logrusadapter.NewLogger(logger)
 	}
 
-	DB, err = pgx.NewConnPool(pgx.ConnPoolConfig{ConnConfig: cfg})
+	usrCfg, err := pgx.ParseDSN(connString)
+	checkErr(err, "ParseDSN (regular user)")
+
+	usrCfg = envCfg.Merge(usrCfg)
+
+	DB, err = pgx.NewConnPool(pgx.ConnPoolConfig{ConnConfig: usrCfg})
 	checkErr(err, "create PG conn pool")
 
-	StdlibDB, err = sql.Open("pgx", connStringSU)
+	StdlibDB, err = sql.Open("pgx", fmt.Sprintf("%s host=%s port=%d",
+		connStringSU, envCfg.Host, envCfg.Port))
 	checkErr(err, "create PG conn compatible with stdlib sql type")
 }
 

@@ -45,7 +45,9 @@ func SetupPostgres(uri string) {
 	}
 	SetGlobalPostgresDBs(pool)
 
-	Logger.Info("Connected to postgres: ", PgConfigAsString(&baseCfg))
+	if Logger.IsLevelEnabled(logrus.DebugLevel) {
+		Logger.Debug("Connected to postgres: ", PgConfigAsString(&baseCfg))
+	}
 }
 
 func PingDB(ctx context.Context) error {

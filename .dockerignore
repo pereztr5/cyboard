@@ -3,8 +3,8 @@
 *
 
 !main.go
-!Gopkg.lock
-!Gopkg.toml
+!go.mod
+!go.sum
 !cmd/
 !server/
 !ui/

@@ -39,6 +39,17 @@
     </div>
   </div>
   <div class="col-md-6">
+    <p>Remember:</p>
+    <ul>
+      <li>Scoring and infrastructure status: <a href="/scoreboard">Scoring Page</a></li>
+      <li>CTF challenges and submissions go here: <a href="/challenges">Challenges Page</a> (challenges themselves may be hosted on separate servers)</li>
+      <li>Use your team's Discord channel to communicate with each other, and store important info like credentials.</li>
+      <li>The only others that can see your Discord channel are Black Team members, who are there to help if you have questions or requests.</li>
+      <li>Be sure to check <a href="http://www2.cnyhackathon.org/">http://www2.cnyhackathon.org/</a> for links, information, topology diagrams,
+          requirements for infrastructure scoring, and more!</li>
+    </ul>
+{{/* 2019-09 Regional: No hidden challenges in this event, so I'm disabling the form.
+Remove the double-brace slash-star comments on both ends to re-enable.
 
     <form class="card m-2 hidden-flag-form">
       <div class="form-group col-md-12">
@@ -57,7 +68,7 @@
         </div>
       </div>
     </form>
-
+*/}}
   </div>
 </div>
 {{ end }}
@@ -70,13 +81,13 @@
     {{ if isCtfStaff .T}}
     <li><a href="/staff/ctf_dashboard">CTF Dashboard</a></li>
     <li><a href="/staff/ctf">Edit CTF Challenges</a></li>
+    <li><a href="/staff/log_files">View Logs</a></li>
     {{ end }}
     {{ if isAdmin .T}}
     <li><a href="/admin/teams">Edit Teams</a></li>
     <li><a href="/admin/services">Edit Checks</a></li>
     <li><a href="/admin/services/scripts">View/Run Check Scripts</a></li>
     <li><a href="/admin/bonuses">Award/Dock Points</a></li>
-    <!-- <li><a href="/admin/logs" class="link-disabled">Logs</a></li> -->
     {{ end }}
 </ul>
 {{ end }}

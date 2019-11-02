@@ -3,7 +3,7 @@
 [database]
 # Connection string for PostgreSQL. There are many different way to specify this:
 # https://www.postgresql.org/docs/current/static/libpq-connect.html#LIBPQ-CONNSTRING
-postgres_uri = "dbname=cyboard user=cybot host=/var/run/postgresql sslmode=disable"
+postgres_uri = "dbname=cyboard user=cyboard host=/var/run/postgresql sslmode=disable"
 
 [log]
 # Levels: "debug", "info", "warn", "error"

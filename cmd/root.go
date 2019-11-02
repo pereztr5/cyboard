@@ -27,7 +27,7 @@ func init() {
 	flags.StringP("config", "c", "", "config file (default ./config.toml)")
 	flags.BoolVar(&dumpConfig, "dump-config", false,
 		"Prints the parsed server / check config (for debugging purposes)")
-	flags.String("postgres-uri", "postgresql://cybot@localhost/cyboard",
+	flags.String("postgres-uri", "postgresql://cyboard@localhost/cyboard",
 		"Connection string for PostgreSQL. Also configured with the environment var: `CY_POSTGRES_URI`")
 	flags.BoolP("stdout", "s", false, "Log to standard out")
 
